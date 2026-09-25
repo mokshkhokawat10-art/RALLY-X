@@ -17,13 +17,18 @@ namespace RallyX.EditorTools
     /// </summary>
     public static class ProjectSetup
     {
+        internal const string SandboxScenePath = "Assets/Scenes/Dev/Sandbox.unity";
+
         private const string LogPrefix = "[RALLY X Setup] ";
         private const string ProductName = "RALLY X";
-        private const string SandboxScenePath = "Assets/Scenes/Dev/Sandbox.unity";
 
         // Serialized values of PlayerSettings.activeInputHandler: 0 = Input Manager (old), 1 = Input System, 2 = Both.
         private const string ActiveInputHandlerProperty = "activeInputHandler";
         private const int InputSystemOnly = 1;
+
+        // Layers 0-7 are reserved by Unity; user layers start at 8.
+        private const int FirstUserLayer = 8;
+        private const int VehicleLayerIndex = 8;
 
         [MenuItem("RALLY X/Setup/Run Project Setup")]
         public static void RunFromMenu() => Run();
@@ -39,6 +44,7 @@ namespace RallyX.EditorTools
             ConfigureVersionControlFriendlySettings();
             ConfigurePlayerSettings();
             bool inputOk = ConfigureInputHandling();
+            bool layersOk = EnsureLayer(GameLayers.Vehicle, VehicleLayerIndex);
             bool urpOk = VerifyUniversalRenderPipeline();
 
             // The sandbox's primitives take their default material from the active pipeline,
@@ -47,7 +53,7 @@ namespace RallyX.EditorTools
 
             AssetDatabase.SaveAssets();
 
-            bool success = inputOk && urpOk && sandboxOk;
+            bool success = inputOk && layersOk && urpOk && sandboxOk;
             if (success)
                 Debug.Log(LogPrefix + "Completed successfully.");
             else
@@ -116,6 +122,42 @@ namespace RallyX.EditorTools
                 Debug.LogWarning(LogPrefix + "Active Input Handling set to 'Input System Package (New)'. Restart the Unity Editor for it to take effect.");
             }
 
+            return true;
+        }
+
+        private static bool EnsureLayer(string layerName, int preferredIndex)
+        {
+            var tagManagerAssets = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset");
+            if (tagManagerAssets.Length == 0)
+            {
+                Debug.LogError(LogPrefix + "Could not load the TagManager to configure physics layers.");
+                return false;
+            }
+
+            var tagManager = new SerializedObject(tagManagerAssets[0]);
+            var layers = tagManager.FindProperty("layers");
+            for (int i = 0; i < layers.arraySize; i++)
+            {
+                if (layers.GetArrayElementAtIndex(i).stringValue == layerName)
+                    return true;
+            }
+
+            int index = string.IsNullOrEmpty(layers.GetArrayElementAtIndex(preferredIndex).stringValue) ? preferredIndex : -1;
+            for (int i = FirstUserLayer; index < 0 && i < layers.arraySize; i++)
+            {
+                if (string.IsNullOrEmpty(layers.GetArrayElementAtIndex(i).stringValue))
+                    index = i;
+            }
+
+            if (index < 0)
+            {
+                Debug.LogError(LogPrefix + $"No free user layer for '{layerName}'.");
+                return false;
+            }
+
+            layers.GetArrayElementAtIndex(index).stringValue = layerName;
+            tagManager.ApplyModifiedPropertiesWithoutUndo();
+            Debug.Log(LogPrefix + $"Created physics layer '{layerName}' at index {index}.");
             return true;
         }
 

@@ -14,25 +14,46 @@ Arcade rally racer for Windows PC, built with Unity 6 (URP) and the Unity Input 
 3. Run **RALLY X > Setup > Run Project Setup** once if the console reports setup errors
    (it is idempotent and safe to re-run).
 
-Headless setup / compile check:
+## Editor menus
+
+| Menu | What it does |
+|------|--------------|
+| RALLY X > Setup > Run Project Setup | Project settings, physics layers, URP check, Sandbox scene |
+| RALLY X > Build > Create Missing Vehicle Content | Surfaces, car config, placeholder car prefab (never overwrites) |
+| RALLY X > Build > Rebuild Placeholder Car Prefab | Regenerates the car prefab (overwrites manual edits) |
+| RALLY X > Build > Rebuild Sandbox Test Course | Regenerates the Sandbox test course and player car |
+
+## Headless commands
+
+Unity must not have the project open. `U` = `"C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe"`.
 
 ```
-"C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe" -batchmode -quit ^
-  -projectPath "C:\Users\Admin\RALLY X" ^
-  -executeMethod RallyX.EditorTools.ProjectSetup.RunBatch -logFile -
+REM Setup + build all generated content
+%U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.SetupAndBuild -logFile -
+
+REM Play Mode tests (vehicle physics)
+%U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform PlayMode -testResults results.xml -logFile -
 ```
 
 ## Controls
 
-| Action    | Keyboard          | Gamepad        |
-|-----------|-------------------|----------------|
-| Throttle  | W / Up Arrow      | Right Trigger  |
-| Brake     | S / Down Arrow    | Left Trigger   |
-| Steer     | A D / Left Right  | Left Stick     |
-| Handbrake | Space             | South (A / ✕)  |
-| Pause     | Esc               | Start          |
+| Action        | Keyboard          | Gamepad        |
+|---------------|-------------------|----------------|
+| Throttle      | W / Up Arrow      | Right Trigger  |
+| Brake/Reverse | S / Down Arrow    | Left Trigger   |
+| Steer         | A D / Left Right  | Left Stick     |
+| Handbrake     | Space             | South (A / ✕)  |
+| Reset car     | R                 | North (Y / △)  |
+| Pause         | Esc               | Start          |
 
+Dev panels: **F1** foundation overlay, **F2** vehicle telemetry.
 All bindings are defined in `Assets/Scripts/Core/RallyInputActions.cs`.
+
+## Tuning
+
+Handling lives in `Assets/Settings/Vehicles/RallyCar_Config.asset` and surface behaviour in
+`Assets/Settings/Surfaces/`. Both are read live, so changes made during Play Mode apply immediately
+(and persist after stopping, like any asset edit).
 
 ## Layout
 
@@ -40,9 +61,10 @@ All bindings are defined in `Assets/Scripts/Core/RallyInputActions.cs`.
 Assets/
   Scripts/        RallyX runtime assembly (Core, Player, Vehicle, AI, Racing, Tracks,
                   UI, Garage, Audio, VFX, SaveSystem) + Editor/ (RallyX.Editor assembly)
+  Tests/PlayMode/ RallyX.Tests.PlayMode assembly
   Prefabs/        Vehicles, Environment, UI, Track
   Scenes/         MainMenu, Garage, Tracks, Dev (Sandbox test scene)
-  Settings/       URP pipeline, renderer and volume assets
+  Settings/       URP, vehicle configs, surfaces, physics materials
   Materials/ Models/ Textures/ Audio/ VFX/
 ```
 

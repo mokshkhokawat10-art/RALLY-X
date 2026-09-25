@@ -21,6 +21,10 @@ namespace RallyX.Core
         public InputAction Steer { get; }
 
         public InputAction Handbrake { get; }
+
+        /// <summary>Puts the vehicle back on its wheels.</summary>
+        public InputAction ResetVehicle { get; }
+
         public InputAction Pause { get; }
 
         public RallyInputActions()
@@ -51,6 +55,10 @@ namespace RallyX.Core
             Handbrake = Driving.AddAction("Handbrake", InputActionType.Button);
             Handbrake.AddBinding("<Keyboard>/space");
             Handbrake.AddBinding("<Gamepad>/buttonSouth");
+
+            ResetVehicle = Driving.AddAction("ResetVehicle", InputActionType.Button);
+            ResetVehicle.AddBinding("<Keyboard>/r");
+            ResetVehicle.AddBinding("<Gamepad>/buttonNorth");
 
             Pause = Driving.AddAction("Pause", InputActionType.Button);
             Pause.AddBinding("<Keyboard>/escape");
