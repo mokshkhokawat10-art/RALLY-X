@@ -1,0 +1,59 @@
+# Normalize text files to LF in the repository and working tree.
+* text=auto eol=lf
+
+# Code
+*.cs        text diff=csharp
+*.shader    text
+*.hlsl      text
+*.cginc     text
+*.compute   text
+*.asmdef    text
+*.asmref    text
+*.json      text
+*.inputactions text
+
+# Unity YAML assets (Force Text serialization)
+*.unity     text
+*.prefab    text
+*.asset     text
+*.mat       text
+*.meta      text
+*.anim      text
+*.controller text
+*.overrideController text
+*.physicMaterial text
+*.physicsMaterial text
+*.mask      text
+*.playable  text
+*.lighting  text
+*.mixer     text
+*.renderTexture text
+*.shadergraph text
+*.shadersubgraph text
+*.vfx       text
+*.uss       text
+*.uxml      text
+
+# Binary assets. Before committing large art/audio, consider moving these to Git LFS
+# (git-lfs is installed on this machine): git lfs track "*.fbx" "*.png" "*.wav" ...
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.tga       binary
+*.psd       binary
+*.tif       binary
+*.tiff      binary
+*.exr       binary
+*.hdr       binary
+*.fbx       binary
+*.obj       binary
+*.blend     binary
+*.wav       binary
+*.mp3       binary
+*.ogg       binary
+*.aif       binary
+*.ttf       binary
+*.otf       binary
+*.dll       binary
+*.so        binary
+*.exe       binary
