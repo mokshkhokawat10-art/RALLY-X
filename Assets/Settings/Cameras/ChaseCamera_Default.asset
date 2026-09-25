@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db5a8117f4f81864fb8a34d965f1f832, type: 3}
+  m_Name: ChaseCamera_Default
+  m_EditorClassIdentifier: RallyX::RallyX.Cameras.ChaseCameraConfig
+  distance: 6.5
+  extraDistanceAtSpeed: 1
+  height: 2.4
+  lookHeight: 1.1
+  lookAhead: 2
+  rotationSharpness: 5
+  heightSharpness: 6
+  airborneHeightSharpness: 2.5
+  teleportDistance: 25
+  baseFieldOfView: 60
+  maxFieldOfView: 72
+  speedForMaxEffectKmh: 160
+  fieldOfViewBySpeed:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.4
+      value: 0.2
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  fieldOfViewSharpness: 3
+  driftSwing: 0.3
+  maxDriftSwing: 18
+  maxShakeAngle: 1.5
+  maxShakeOffset: 0.08
+  shakeFrequency: 18
+  traumaDecay: 1.6
+  minLandingAirTime: 0.3
+  landingSpeedForFullShake: 10
+  landingShake: 0.55
+  minCollisionImpulse: 3000
+  maxCollisionImpulse: 20000
+  collisionShake: 0.7
+  collisionRadius: 0.3
+  minDistance: 3
+  obstacleRecoverySharpness: 4
+  groundClearance: 0.4

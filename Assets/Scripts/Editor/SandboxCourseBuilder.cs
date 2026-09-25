@@ -1,4 +1,4 @@
-using RallyX.Core;
+using RallyX.Cameras;
 using RallyX.Player;
 using RallyX.Tracks;
 using RallyX.Vehicle;
@@ -26,6 +26,9 @@ namespace RallyX.EditorTools
         // Pads float just above the ground plane so wheel raycasts hit them first.
         private const float PadHeight = 0.01f;
         private const float CrateMass = 40f;
+
+        // Well inside the chase camera's collision radius, so walls it backs up against aren't clipped.
+        private const float CameraNearClip = 0.1f;
 
         private static readonly Vector3 CarSpawnPosition = new Vector3(0f, 0.3f, -85f);
 
@@ -60,7 +63,8 @@ namespace RallyX.EditorTools
             BuildObstacles(course, materials);
 
             var car = SpawnPlayerCar(carPrefab, scene);
-            ConfigureCamera(scene, car.transform);
+            if (!ConfigureCamera(scene, car.GetComponent<VehicleController>()))
+                return false;
 
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene))
@@ -150,19 +154,34 @@ namespace RallyX.EditorTools
             return car;
         }
 
-        private static void ConfigureCamera(Scene scene, Transform target)
+        private static bool ConfigureCamera(Scene scene, VehicleController target)
         {
             var cameraObject = FindRoot(scene, CameraName);
-            if (cameraObject == null)
+            var cameraConfig = CameraContentBuilder.LoadChaseCameraConfig();
+            if (cameraObject == null || cameraConfig == null)
             {
-                Debug.LogWarning(LogPrefix + $"No '{CameraName}' in the Sandbox; the car will not be followed.");
-                return;
+                Debug.LogError(LogPrefix + $"Sandbox needs a '{CameraName}' and {CameraContentBuilder.ChaseCameraConfigPath}.");
+                return false;
             }
 
-            if (!cameraObject.TryGetComponent(out DevFollowCamera follow))
-                follow = cameraObject.AddComponent<DevFollowCamera>();
-            follow.Target = target;
-            cameraObject.transform.SetPositionAndRotation(target.position + new Vector3(0f, 2.8f, -7.5f), Quaternion.Euler(12f, 0f, 0f));
+            // Drops components whose scripts were deleted, such as the Phase 2 DevFollowCamera.
+            GameObjectUtility.RemoveMonoBehavioursWithMissingScript(cameraObject);
+
+            var camera = cameraObject.GetComponent<Camera>();
+            camera.nearClipPlane = CameraNearClip;
+
+            if (!cameraObject.TryGetComponent(out ChaseCamera chaseCamera))
+                chaseCamera = cameraObject.AddComponent<ChaseCamera>();
+            var serializedCamera = new SerializedObject(chaseCamera);
+            serializedCamera.FindProperty("config").objectReferenceValue = cameraConfig;
+            serializedCamera.FindProperty("target").objectReferenceValue = target;
+            serializedCamera.ApplyModifiedPropertiesWithoutUndo();
+
+            // Editor preview pose only; the camera snaps behind the car when Play starts.
+            Vector3 carPosition = target.transform.position;
+            cameraObject.transform.position = carPosition + new Vector3(0f, cameraConfig.Height, -cameraConfig.Distance);
+            cameraObject.transform.LookAt(carPosition + Vector3.up * cameraConfig.LookHeight);
+            return true;
         }
 
         private static void CreatePad(string name, Transform parent, Vector2 center, Vector2 size, Material material, SurfaceType surface)

@@ -12,6 +12,7 @@ namespace RallyX.EditorTools
         {
             bool success = ProjectSetup.Run()
                            && VehicleContentBuilder.BuildMissing()
+                           && CameraContentBuilder.BuildMissing()
                            && SandboxCourseBuilder.Rebuild();
             if (!success)
                 EditorApplication.Exit(1);

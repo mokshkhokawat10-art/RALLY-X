@@ -37,6 +37,9 @@ namespace RallyX.Vehicle
         /// <summary>Raised on collision with the impulse magnitude (N·s) and first contact point.</summary>
         public event Action<float, Vector3> Impact;
 
+        /// <summary>Raised when a wheel touches down after being airborne, with the air time (s) and downward speed (m/s).</summary>
+        public event Action<float, float> Landed;
+
         public VehicleConfig Config => config;
         public Rigidbody Body => body;
         public VehicleDrift Drift { get; } = new VehicleDrift();
@@ -137,6 +140,8 @@ namespace RallyX.Vehicle
 
             if (IsGrounded)
             {
+                if (AirborneTime > 0f)
+                    Landed?.Invoke(AirborneTime, Mathf.Max(0f, -velocity.y));
                 AirborneTime = 0f;
                 ApplyTyreForces(rotation, up, deltaTime);
                 ApplyDriftAssist(up);

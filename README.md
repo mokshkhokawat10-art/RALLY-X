@@ -21,6 +21,7 @@ Arcade rally racer for Windows PC, built with Unity 6 (URP) and the Unity Input 
 | RALLY X > Setup > Run Project Setup | Project settings, physics layers, URP check, Sandbox scene |
 | RALLY X > Build > Create Missing Vehicle Content | Surfaces, car config, placeholder car prefab (never overwrites) |
 | RALLY X > Build > Rebuild Placeholder Car Prefab | Regenerates the car prefab (overwrites manual edits) |
+| RALLY X > Build > Create Missing Camera Content | Default chase camera settings (never overwrites) |
 | RALLY X > Build > Rebuild Sandbox Test Course | Regenerates the Sandbox test course and player car |
 
 ## Headless commands
@@ -31,7 +32,7 @@ Unity must not have the project open. `U` = `"C:\Program Files\Unity\Hub\Editor\
 REM Setup + build all generated content
 %U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.SetupAndBuild -logFile -
 
-REM Play Mode tests (vehicle physics)
+REM Play Mode tests (vehicle physics and chase camera)
 %U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform PlayMode -testResults results.xml -logFile -
 ```
 
@@ -51,8 +52,9 @@ All bindings are defined in `Assets/Scripts/Core/RallyInputActions.cs`.
 
 ## Tuning
 
-Handling lives in `Assets/Settings/Vehicles/RallyCar_Config.asset` and surface behaviour in
-`Assets/Settings/Surfaces/`. Both are read live, so changes made during Play Mode apply immediately
+Handling lives in `Assets/Settings/Vehicles/RallyCar_Config.asset`, surface behaviour in
+`Assets/Settings/Surfaces/` and the chase camera in `Assets/Settings/Cameras/ChaseCamera_Default.asset`.
+All are read live, so changes made during Play Mode apply immediately
 (and persist after stopping, like any asset edit).
 
 ## Layout
@@ -64,9 +66,10 @@ Assets/
   Tests/PlayMode/ RallyX.Tests.PlayMode assembly
   Prefabs/        Vehicles, Environment, UI, Track
   Scenes/         MainMenu, Garage, Tracks, Dev (Sandbox test scene)
-  Settings/       URP, vehicle configs, surfaces, physics materials
+  Settings/       URP, vehicle and camera configs, surfaces, physics materials
   Materials/ Models/ Textures/ Audio/ VFX/
 ```
 
-Namespaces follow the top-level script folder: `RallyX.Core`, `RallyX.Vehicle`, ...
+Namespaces follow the top-level script folder: `RallyX.Core`, `RallyX.Vehicle`, `RallyX.Cameras`, ...
+(plural `Cameras` because a `RallyX.Camera` namespace would hide `UnityEngine.Camera`).
 Editor code uses `RallyX.EditorTools` (not `RallyX.Editor`, which would shadow `UnityEditor.Editor`).
