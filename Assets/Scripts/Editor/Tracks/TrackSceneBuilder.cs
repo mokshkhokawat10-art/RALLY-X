@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using RallyX.AI;
 using RallyX.Cameras;
 using RallyX.Core;
 using RallyX.Player;
@@ -61,6 +62,12 @@ namespace RallyX.EditorTools
                 return false;
             }
 
+            if (AIContentBuilder.LoadSettings() == null || AIContentBuilder.LoadDrivers() == null)
+            {
+                Debug.LogError(LogPrefix + "AI content is missing. Run RALLY X > Build > Create Missing AI Content first.");
+                return false;
+            }
+
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
                 Debug.LogError(LogPrefix + "Track build cancelled: unsaved changes in the open scene were not saved.");
@@ -79,6 +86,8 @@ namespace RallyX.EditorTools
             var raceSettings = RaceContentBuilder.LoadRaceSettings();
             var panelSettings = RaceContentBuilder.LoadPanelSettings();
             var hudLayout = RaceContentBuilder.LoadRaceHudLayout();
+            var aiSettings = AIContentBuilder.LoadSettings();
+            var aiDrivers = AIContentBuilder.LoadDrivers();
 
             string generatedFolder = $"{TracksFolder}/{definition.SceneName}";
             AssetDatabase.DeleteAsset(generatedFolder);
@@ -93,11 +102,13 @@ namespace RallyX.EditorTools
             TrackPropsBuilder.Build(new GameObject("Props").transform, layout, terrain, assets);
 
             var path = CreateTrackPath(layout);
+            CreateBranches(layout, path);
             var grid = CreateSpawnGrid(layout, path);
             var car = SpawnPlayerCar(carPrefab, grid.GetSlot(0));
             ConfigureCamera(scene, car, cameraConfig);
             var circuit = CreateRaceCircuit(layout, path, grid);
-            SetUpRace(car, circuit, raceSettings, panelSettings, hudLayout);
+            var race = SetUpRace(car, circuit, raceSettings, panelSettings, hudLayout);
+            new GameObject(nameof(AIOpponents)).AddComponent<AIOpponents>().Configure(race, carPrefab, aiSettings, aiDrivers);
 
             // The race HUD uses the screen corners; the dev panels stay available on F1 and F2.
             HideDevPanel(new GameObject(nameof(DevOverlay), typeof(DevOverlay)).GetComponent<DevOverlay>());
@@ -215,6 +226,30 @@ namespace RallyX.EditorTools
             return path;
         }
 
+        /// <summary>Shortcuts as runtime branches off the main path, for AI drivers.</summary>
+        private static void CreateBranches(TrackLayout layout, TrackPath path)
+        {
+            if (layout.Shortcuts.Count == 0)
+                return;
+
+            var root = new GameObject("TrackBranches").transform;
+            for (int i = 0; i < layout.Shortcuts.Count; i++)
+            {
+                var samples = layout.Shortcuts[i].Samples;
+                var points = new Vector3[samples.Length];
+                var widths = new float[samples.Length];
+                for (int k = 0; k < samples.Length; k++)
+                {
+                    points[k] = samples[k].Position;
+                    widths[k] = samples[k].Width;
+                }
+
+                var branch = new GameObject($"Shortcut{i + 1}").AddComponent<TrackBranch>();
+                branch.transform.SetParent(root, false);
+                branch.SetSamples(path, points, widths);
+            }
+        }
+
         private static TrackSpawnGrid CreateSpawnGrid(TrackLayout layout, TrackPath path)
         {
             var grid = new GameObject("SpawnGrid").AddComponent<TrackSpawnGrid>();
@@ -292,7 +327,7 @@ namespace RallyX.EditorTools
             return circuit;
         }
 
-        private static void SetUpRace(VehicleController car, RaceCircuit circuit, RaceSettings settings, PanelSettings panelSettings,
+        private static RaceManager SetUpRace(VehicleController car, RaceCircuit circuit, RaceSettings settings, PanelSettings panelSettings,
             VisualTreeAsset hudLayout)
         {
             car.gameObject.AddComponent<RaceParticipant>().Configure(PlayerDisplayName, player: true);
@@ -305,6 +340,7 @@ namespace RallyX.EditorTools
             document.panelSettings = panelSettings;
             document.visualTreeAsset = hudLayout;
             hud.AddComponent<RaceHud>().Configure(race);
+            return race;
         }
 
         private static void HideDevPanel(Component panel)

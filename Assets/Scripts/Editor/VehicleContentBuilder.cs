@@ -44,7 +44,7 @@ namespace RallyX.EditorTools
         public static bool BuildMissing()
         {
             BuildSurfaces();
-            bool carOk = BuildCarPrefab(overwrite: false);
+            bool carOk = BuildCarPrefab(overwrite: false) && EnsureLivery();
             AssetDatabase.SaveAssets();
             return carOk;
         }
@@ -124,6 +124,7 @@ namespace RallyX.EditorTools
                     wheelsProperty.GetArrayElementAtIndex(i).objectReferenceValue = wheels[i];
                 serializedController.ApplyModifiedPropertiesWithoutUndo();
 
+                AddLivery(root);
                 EditorAssetUtility.SetLayerRecursively(root, vehicleLayer);
                 EditorAssetUtility.EnsureFolder("Assets/Prefabs/Vehicles");
                 PrefabUtility.SaveAsPrefabAsset(root, CarPrefabPath, out bool saved);
@@ -140,6 +141,40 @@ namespace RallyX.EditorTools
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        /// <summary>Adds the paint component to a car prefab built before it existed, keeping any other edits to the prefab.</summary>
+        private static bool EnsureLivery()
+        {
+            var contents = PrefabUtility.LoadPrefabContents(CarPrefabPath);
+            try
+            {
+                if (contents.GetComponent<VehicleLivery>() != null)
+                    return true;
+
+                AddLivery(contents);
+                PrefabUtility.SaveAsPrefabAsset(contents, CarPrefabPath, out bool saved);
+                if (!saved)
+                {
+                    Debug.LogError(LogPrefix + $"Failed to add paint to {CarPrefabPath}.");
+                    return false;
+                }
+
+                Debug.Log(LogPrefix + $"Added VehicleLivery to {CarPrefabPath}.");
+                return true;
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
+
+        /// <summary>The body panels are the paint; the cabin, lights and tyres keep their own colours.</summary>
+        private static void AddLivery(GameObject car)
+        {
+            var body = car.transform.Find("Body");
+            var painted = body != null ? new[] { body.GetComponent<Renderer>() } : System.Array.Empty<Renderer>();
+            car.AddComponent<VehicleLivery>().SetPaintedRenderers(painted);
         }
 
         private static PhysicsMaterial CreateBodyPhysicsMaterial()

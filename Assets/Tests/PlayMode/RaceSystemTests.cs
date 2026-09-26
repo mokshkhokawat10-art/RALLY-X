@@ -16,6 +16,7 @@ namespace RallyX.Tests
     /// <summary>
     /// The race system on the real Pine Valley scene with the real car: countdown, checkpoints and laps, the finish
     /// and results, wrong-way warnings, restarts and positions, checked through both the race state and the HUD.
+    /// The AI opponents are taken out so the race rules are checked on their own (AIRaceTests covers them).
     /// </summary>
     public sealed class RaceSystemTests : VehicleTestBase
     {
@@ -52,6 +53,7 @@ namespace RallyX.Tests
             if (playerInput != null)
                 playerInput.enabled = false;
 
+            RemoveOpponents(race);
             race.Restart();
             yield return null;
         }

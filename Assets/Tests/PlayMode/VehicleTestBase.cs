@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
+using RallyX.Racing;
 using RallyX.Tracks;
 using RallyX.Vehicle;
 using UnityEngine;
@@ -102,6 +103,18 @@ namespace RallyX.Tests
             {
                 Assert.Less(elapsed, timeout, $"The car did not reach {speedKmh} km/h within {timeout} s.");
                 yield return NextPhysicsStep;
+            }
+        }
+
+        /// <summary>Takes every racer except the player out of the race and removes their cars.</summary>
+        protected static void RemoveOpponents(RaceManager race)
+        {
+            foreach (var participant in new List<RaceParticipant>(race.Participants))
+            {
+                if (participant.IsPlayer)
+                    continue;
+                race.RemoveParticipant(participant);
+                Object.Destroy(participant.gameObject);
             }
         }
 

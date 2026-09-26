@@ -55,13 +55,18 @@ namespace RallyX.Tests
             Assert.GreaterOrEqual(vehicleLayer, 0, "The Vehicle layer is missing. Run RALLY X > Setup > Run Project Setup.");
             probeMask = ~(1 << vehicleLayer);
 
-            // Free driving: no countdown holding the car, no race rules.
+            // Free driving on an empty track: no opponents, no countdown holding the car, no race rules.
             var race = Object.FindFirstObjectByType<RaceManager>();
             if (race != null)
+            {
+                RemoveOpponents(race);
                 race.enabled = false;
+            }
 
-            // Let the scene's car settle on its grid slot.
-            Car = Object.FindFirstObjectByType<VehicleController>();
+            // Let the player's car settle on its grid slot.
+            var playerInput = Object.FindFirstObjectByType<PlayerVehicleInput>();
+            Assert.IsNotNull(playerInput, "The track scene has no player car.");
+            Car = playerInput.GetComponent<VehicleController>();
             yield return Drive(default, SettleSeconds);
         }
 

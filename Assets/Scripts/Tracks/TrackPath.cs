@@ -19,11 +19,11 @@ namespace RallyX.Tracks
         /// <summary>Length of one lap, metres.</summary>
         public float Length => length;
 
-        public Vector3 GetPoint(int index) => points[Wrap(index)];
-        public float GetWidth(int index) => widths[Wrap(index)];
+        public Vector3 GetPoint(int index) => points[LoopMath.Wrap(index, points.Length)];
+        public float GetWidth(int index) => widths[LoopMath.Wrap(index, widths.Length)];
 
         /// <summary>Distance from the start line to a point, metres.</summary>
-        public float GetDistance(int index) => distances[Wrap(index)];
+        public float GetDistance(int index) => distances[LoopMath.Wrap(index, distances.Length)];
 
         public Vector3 GetTangent(int index) => (GetPoint(index + 1) - GetPoint(index - 1)).normalized;
 
@@ -32,28 +32,15 @@ namespace RallyX.Tracks
         {
             points = newPoints;
             widths = newWidths;
-            distances = new float[newPoints.Length];
-
-            float total = 0f;
-            for (int i = 0; i < newPoints.Length; i++)
-            {
-                distances[i] = total;
-                total += Vector3.Distance(newPoints[i], newPoints[(i + 1) % newPoints.Length]);
-            }
-
-            length = total;
+            distances = LoopMath.CumulativeDistances(newPoints, out length);
         }
 
         /// <summary>Position on the centreline at a distance from the start line (wraps around the lap).</summary>
-        public Vector3 EvaluatePosition(float distance)
-        {
-            int index = FindSegment(distance, out float t);
-            return Vector3.Lerp(GetPoint(index), GetPoint(index + 1), t);
-        }
+        public Vector3 EvaluatePosition(float distance) => LoopMath.EvaluatePosition(points, distances, length, distance);
 
         public float EvaluateWidth(float distance)
         {
-            int index = FindSegment(distance, out float t);
+            int index = LoopMath.FindSegment(points, distances, length, distance, out float t);
             return Mathf.Lerp(GetWidth(index), GetWidth(index + 1), t);
         }
 
@@ -61,65 +48,8 @@ namespace RallyX.Tracks
         /// Distance along the lap of the centreline point closest to a world position (ignoring height).
         /// Pass the previous result as a hint to search only nearby segments.
         /// </summary>
-        public float FindClosestDistance(Vector3 position, float? hintDistance = null, float searchRadius = 60f)
-        {
-            int count = points.Length;
-            int first = 0;
-            int segments = count;
-            if (hintDistance.HasValue)
-            {
-                float spacing = length / count;
-                int span = Mathf.CeilToInt(searchRadius / spacing);
-                first = FindSegment(hintDistance.Value, out _) - span;
-                segments = Mathf.Min(count, span * 2 + 1);
-            }
-
-            float bestSqr = float.MaxValue;
-            float bestDistance = 0f;
-            var flatPosition = new Vector2(position.x, position.z);
-            for (int s = 0; s < segments; s++)
-            {
-                int i = Wrap(first + s);
-                Vector3 a = points[i];
-                Vector3 b = points[Wrap(i + 1)];
-                var a2 = new Vector2(a.x, a.z);
-                var ab = new Vector2(b.x, b.z) - a2;
-                float t = Mathf.Clamp01(Vector2.Dot(flatPosition - a2, ab) / Mathf.Max(ab.sqrMagnitude, 1e-6f));
-                float sqr = (a2 + ab * t - flatPosition).sqrMagnitude;
-                if (sqr < bestSqr)
-                {
-                    bestSqr = sqr;
-                    bestDistance = distances[i] + t * Vector3.Distance(a, b);
-                }
-            }
-
-            return Mathf.Repeat(bestDistance, length);
-        }
-
-        private int FindSegment(float distance, out float t)
-        {
-            distance = Mathf.Repeat(distance, length);
-            int low = 0;
-            int high = distances.Length - 1;
-            while (low < high)
-            {
-                int mid = (low + high + 1) / 2;
-                if (distances[mid] <= distance)
-                    low = mid;
-                else
-                    high = mid - 1;
-            }
-
-            float segmentLength = Vector3.Distance(points[low], GetPoint(low + 1));
-            t = segmentLength > 0f ? (distance - distances[low]) / segmentLength : 0f;
-            return low;
-        }
-
-        private int Wrap(int index)
-        {
-            int count = points.Length;
-            return ((index % count) + count) % count;
-        }
+        public float FindClosestDistance(Vector3 position, float? hintDistance = null, float searchRadius = 60f) =>
+            LoopMath.FindClosestDistance(points, distances, length, position, hintDistance, searchRadius);
 
         private void OnDrawGizmosSelected()
         {

@@ -97,6 +97,23 @@ namespace RallyX.Racing
                 Player = participant;
         }
 
+        /// <summary>Takes a racer out of the race. Its car is released and left where it is.</summary>
+        public void RemoveParticipant(RaceParticipant participant)
+        {
+            if (!participants.Remove(participant))
+                return;
+
+            standings.Remove(participant);
+            if (Player == participant)
+                Player = participants.Find(other => other.IsPlayer);
+            if (participant != null)
+                participant.Vehicle.InputLocked = false;
+
+            // Racers get their trackers when a race is set up; before the first one there are no standings to update.
+            if (participants.TrueForAll(other => other.Tracker != null))
+                UpdateStandings();
+        }
+
         /// <summary>Puts every racer back on the grid and starts a new race with a fresh countdown.</summary>
         public void Restart()
         {
@@ -105,6 +122,11 @@ namespace RallyX.Racing
                 return;
 
             participants.RemoveAll(IsMissing);
+
+            // The player starts on pole; everyone else keeps the order they joined in.
+            if (Player != null && participants.Remove(Player))
+                participants.Insert(0, Player);
+
             State = RaceState.Countdown;
             countdownElapsed = -settings.GridDelay;
             RaceTime = 0f;

@@ -101,6 +101,7 @@ GameObject:
   - component: {fileID: 1105435953703045653}
   - component: {fileID: 7931997648341711136}
   - component: {fileID: 6424243016777706799}
+  - component: {fileID: 8452363000947139825}
   m_Layer: 8
   m_Name: RallyCar
   m_TagString: Untagged
@@ -181,6 +182,20 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   resetLift: 1
+--- !u!114 &8452363000947139825
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1413130034401471420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be12a7b2286d18449b5272f024fadde2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: RallyX::RallyX.Vehicle.VehicleLivery
+  paintedRenderers:
+  - {fileID: 2956843054631733034}
 --- !u!1 &2414619236727058241
 GameObject:
   m_ObjectHideFlags: 0

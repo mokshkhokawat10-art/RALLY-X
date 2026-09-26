@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c235035f4b824f4e9742b4b44420849, type: 3}
+  m_Name: AIDriver_Lind
+  m_EditorClassIdentifier: RallyX::RallyX.AI.AIDriverProfile
+  displayName: Lind
+  paint: {r: 0.12, g: 0.33, b: 0.85, a: 1}
+  cornerGrip: 8.5
+  braking: 11
+  topSpeed: 0.97
+  laneOffset: 0
+  shortcutChance: 0.6

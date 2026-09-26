@@ -84,6 +84,22 @@ namespace RallyX.Racing
         public RaceProgress Progress =>
             new RaceProgress(CompletedLaps, CheckpointsThisLap, DistanceToNextCheckpoint, Finished, FinishTime);
 
+        /// <summary>
+        /// Distance covered along the track since first crossing the start line, metres (negative on the grid).
+        /// Built from the same laps, checkpoints and distance to the next checkpoint as positions, so it orders
+        /// racers the same way and measures the gaps between them.
+        /// </summary>
+        public float RaceDistance
+        {
+            get
+            {
+                int next = NextCheckpoint;
+                float nextDistance = next == 0 ? circuit.LapLength : circuit.CheckpointDistance(next);
+                float intoLap = HasStarted ? nextDistance - DistanceToNextCheckpoint : -DistanceToNextCheckpoint;
+                return CompletedLaps * circuit.LapLength + intoLap;
+            }
+        }
+
         /// <summary>Time on the current lap, seconds. The first lap is timed from the start of the race.</summary>
         public float CurrentLapTime(float raceTime) => Finished ? 0f : raceTime - lapStartTime;
 

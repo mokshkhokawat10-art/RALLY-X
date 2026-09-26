@@ -23,6 +23,7 @@ Arcade rally racer for Windows PC, built with Unity 6 (URP) and the Unity Input 
 | RALLY X > Build > Rebuild Placeholder Car Prefab | Regenerates the car prefab (overwrites manual edits) |
 | RALLY X > Build > Create Missing Camera Content | Default chase camera settings (never overwrites) |
 | RALLY X > Build > Create Missing Race Content | Default race settings and the UI panel settings (never overwrites) |
+| RALLY X > Build > Create Missing AI Content | AI settings (incl. difficulty levels) and the three AI driver profiles (never overwrites) |
 | RALLY X > Build > Rebuild Sandbox Test Course | Regenerates the Sandbox test course and player car |
 | RALLY X > Build > Rebuild Pine Valley Track | Regenerates the Pine Valley scene from its track definition (overwrites the scene) |
 | RALLY X > Dev > Capture Pine Valley Screenshots | Renders an overview, views around the lap and both bridges to `Captures/` |
@@ -41,10 +42,10 @@ REM Setup + regenerate the track scenes
 REM Track review screenshots
 %U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.TrackCaptureTool.CaptureBatch -captureDir Captures -logFile -
 
-REM Edit Mode tests (track layout geometry, race rules)
+REM Edit Mode tests (track layout geometry, race rules, AI racing lines and speed plans, difficulty tuning)
 %U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform EditMode -testResults editmode.xml -logFile -
 
-REM Play Mode tests (vehicle physics, chase camera, Pine Valley drivability, races)
+REM Play Mode tests (vehicle physics, chase camera, Pine Valley drivability, races, AI races on every difficulty)
 %U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform PlayMode -testResults results.xml -logFile -
 ```
 
@@ -99,6 +100,26 @@ gates in driving order, the first being the start/finish line), a `RaceManager` 
   plain C#, shared by the player and AI racers.
 - `VehicleController.InputLocked` holds cars on the grid during the countdown and brings finished cars to a stop.
 - Disabling the `RaceManager` releases the cars for free driving.
+
+## AI opponents
+
+Track scenes get an `AIOpponents` object that spawns one car per driver profile on the grid behind the player
+(Lind, Petrov, Moreno: fastest first, each with its own paint, pace, lane and shortcut habit). AI cars are raced
+through the same `VehicleController` inputs, `RaceParticipant` and `RaceTracker` as the player, so they use
+the same physics, checkpoints, laps and positions.
+
+- **Difficulty** (Easy / Normal / Hard) is set on `AIOpponents` in the Inspector. Changing it during Play applies
+  straight away; restart the race (Backspace) for a fair start. Normal is each driver's own profile; Easy and Hard scale
+  every driver's cornering, braking and top speed by the factors in `AISettings_Default.asset` (**Difficulty**).
+- There is no rubber-banding: an AI driver's pace depends only on its profile and the difficulty, never on
+  where the player is.
+- Each driver follows a racing line worked out from the track (wide-apex-wide within the road edges), plans its
+  speed for corners, surfaces and jumps, passes slower cars, countersteers and eases off the throttle in slides,
+  takes the shortcut on some laps, and recovers when stuck (reverses out, then is put back on the track),
+  rolled over, lost off the road or going the wrong way.
+- Tuning: shared behaviour and difficulty factors in `Assets/Settings/AI/AISettings_Default.asset`, each driver in
+  `Assets/Settings/AI/Drivers/`. Speeds are planned at every race start, so edits apply from the next restart.
+  The generated scene keeps its `AIOpponents` difficulty only until the track is rebuilt.
 
 ## Layout
 

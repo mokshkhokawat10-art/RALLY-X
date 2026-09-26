@@ -142,6 +142,19 @@ namespace RallyX.Tests
         }
 
         [Test]
+        public void RaceDistance_IsNegativeOnTheGridAndCountsWholeLaps()
+        {
+            float degree = Mathf.Deg2Rad * Radius;
+            Assert.AreEqual(GridAngle * degree, tracker.RaceDistance, 0.5f, "On the grid, behind the line.");
+
+            DriveAround(GridAngle, 100f);
+            Assert.AreEqual(100f * degree, tracker.RaceDistance, 0.5f);
+
+            DriveAround(100f, 370f);
+            Assert.AreEqual(LapLength + 10f * degree, tracker.RaceDistance, 0.5f, "One lap plus 10 degrees.");
+        }
+
+        [Test]
         public void DrivingTheWrongWay_WarnsAfterTheDelayAndClearsWhenTurnedAround()
         {
             DriveAround(GridAngle, 45f);
