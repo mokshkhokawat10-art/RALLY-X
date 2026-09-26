@@ -15,6 +15,8 @@ namespace RallyX.EditorTools
         [SerializeField] private string displayName = "Track";
         [Tooltip("Scene file name, without extension, created in Assets/Scenes/Tracks.")]
         [SerializeField] private string sceneName = "Track";
+        [Tooltip("Look of the track: sky, ground, roads, trees and rocks. None = the pine forest.")]
+        [SerializeField] private TrackTheme theme;
 
         [Header("Layout")]
         [Tooltip("Control points in driving order forming a closed loop. Node 0 is the start/finish line.")]
@@ -46,6 +48,10 @@ namespace RallyX.EditorTools
         [SerializeField, Range(0f, 1f)] private float rimStart = 0.8f;
         [Tooltip("Width of the slope blending the road into the surrounding hills, metres.")]
         [SerializeField, Min(1f)] private float embankmentWidth = 22f;
+        [Tooltip("Height of each step when the hills rise in flat benches and steep walls, like a canyon, metres. 0 = smooth hills.")]
+        [SerializeField, Min(0f)] private float terraceHeight;
+        [Tooltip("Share of each step taken by its steep wall (0..1); the rest is a flat bench.")]
+        [SerializeField, Range(0.05f, 1f)] private float terraceWall = 0.35f;
         [SerializeField] private int seed = 1234;
 
         [Header("Scenery")]
@@ -71,6 +77,10 @@ namespace RallyX.EditorTools
 
         public string DisplayName => displayName;
         public string SceneName => sceneName;
+
+        /// <summary>The track's look, or null for the pine forest.</summary>
+        public TrackTheme Theme => theme;
+
         public TrackNode[] Nodes => nodes;
         public float SampleSpacing => sampleSpacing;
         public TrackJump[] Jumps => jumps;
@@ -88,6 +98,8 @@ namespace RallyX.EditorTools
         public float RimHeight => rimHeight;
         public float RimStart => rimStart;
         public float EmbankmentWidth => embankmentWidth;
+        public float TerraceHeight => terraceHeight;
+        public float TerraceWall => terraceWall;
         public int Seed => seed;
         public float TreeSpacing => treeSpacing;
         public float TreeClearance => treeClearance;
@@ -110,6 +122,8 @@ namespace RallyX.EditorTools
             bridges = newBridges;
             shortcuts = newShortcuts;
         }
+
+        public void SetTheme(TrackTheme newTheme) => theme = newTheme;
     }
 
     /// <summary>A point on the road's centreline.</summary>

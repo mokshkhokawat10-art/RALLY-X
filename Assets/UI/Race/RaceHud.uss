@@ -270,6 +270,63 @@
     border-color: rgb(255, 255, 255);
 }
 
+.pause {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.55);
+    display: none;
+}
+
+.pause-card {
+    min-width: 520px;
+    padding: 30px 48px 26px 48px;
+    align-items: stretch;
+    background-color: rgba(10, 14, 24, 0.95);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgb(255, 196, 36);
+}
+
+.pause-card > .results-title,
+.pause-card > .hint {
+    -unity-text-align: middle-center;
+}
+
+.pause-track {
+    margin-bottom: 18px;
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: rgb(160, 168, 182);
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+.pause-button {
+    margin: 0 0 10px 0;
+    padding: 12px 28px;
+    font-size: 28px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-width: 0;
+    border-radius: 8px;
+}
+
+.pause-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.pause-button.is-selected,
+.pause-button.is-selected:hover {
+    color: rgb(20, 20, 20);
+    background-color: rgb(255, 196, 36);
+}
+
 .menu-button {
     margin-top: 10px;
     color: rgb(255, 255, 255);

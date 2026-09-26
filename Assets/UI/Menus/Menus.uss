@@ -160,6 +160,42 @@
     -unity-font-style: bold;
 }
 
+.track-picker {
+    flex-direction: row;
+    align-items: center;
+}
+
+.track-arrow {
+    width: 34px;
+    height: 34px;
+    margin: 2px 0 0 0;
+    padding: 0;
+    font-size: 22px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-width: 0;
+    border-radius: 4px;
+}
+
+.track-arrow:hover {
+    color: rgb(14, 14, 14);
+    background-color: rgb(255, 196, 36);
+}
+
+.track-picker > .career-value {
+    margin: 2px 12px 0 12px;
+}
+
+.track-name--locked {
+    color: rgba(200, 206, 216, 0.45);
+}
+
+.track-record--locked {
+    color: rgb(255, 196, 36);
+    -unity-font-style: bold;
+}
+
 .current-car-name {
     margin: 4px 0 0 0;
     padding: 0;

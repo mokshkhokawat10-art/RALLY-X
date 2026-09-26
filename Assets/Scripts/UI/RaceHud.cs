@@ -10,9 +10,9 @@ namespace RallyX.UI
     /// <summary>
     /// Race HUD and results screen for the player's racer: position, lap, race and lap times, speed, the start
     /// countdown, the wrong-way warning and lap messages, then results with the credits earned (from the player's
-    /// <see cref="PlayerRaceEntry"/>) and restart and main menu buttons. The restart input works at any time; the pause
-    /// input leaves for the main menu once the results are up. Layout and styling are in Assets/UI/Race/RaceHud.uxml
-    /// and RaceHud.uss.
+    /// <see cref="PlayerRaceEntry"/>) and restart and main menu buttons. The restart input works at any time. The pause
+    /// input pauses the race (time stops) with a menu to resume, restart or leave for the main menu; once the results
+    /// are up it leaves for the main menu. Layout and styling are in Assets/UI/Race/RaceHud.uxml and RaceHud.uss.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
@@ -51,6 +51,10 @@ namespace RallyX.UI
         private Label rewardCredits;
         private Label rewardBalance;
         private Label rewardNews;
+        private VisualElement pauseOverlay;
+        private Label pauseTrack;
+        private MenuSelection pauseSelection = new MenuSelection();
+        private float timeScaleBeforePause = 1f;
 
         private float messageTimeLeft;
         private float playerFinishedAt = -1f;
@@ -65,21 +69,69 @@ namespace RallyX.UI
         /// <summary>True while the results screen is on show.</summary>
         public bool ResultsVisible => resultsVisible;
 
+        /// <summary>True while the race is paused with the pause menu open.</summary>
+        public bool Paused { get; private set; }
+
+        /// <summary>The pause menu's buttons (resume, restart, main menu) and which one is highlighted.</summary>
+        public MenuSelection PauseSelection => pauseSelection;
+
         public void Configure(RaceManager newRace, PlayerRaceEntry newPlayerEntry = null)
         {
             race = newRace;
             playerEntry = newPlayerEntry;
         }
 
-        /// <summary>Starts the race again from the grid. Used by the results button and the restart input.</summary>
+        /// <summary>Starts the race again from the grid. Used by the results and pause buttons and the restart input.</summary>
         public void RestartRace()
         {
+            Resume();
             if (race != null)
                 race.Restart();
         }
 
         /// <summary>Leaves the race for the main menu, if the game has one.</summary>
-        public void GoToMainMenu() => GameScenes.Load(GameScenes.MainMenu);
+        public void GoToMainMenu()
+        {
+            Resume();
+            GameScenes.Load(GameScenes.MainMenu);
+        }
+
+        /// <summary>
+        /// Stops time and opens the pause menu. Does nothing once the results are up (the race is over) or when already
+        /// paused. Returns true if the race was paused.
+        /// </summary>
+        public bool Pause()
+        {
+            if (Paused || resultsVisible)
+                return false;
+
+            Paused = true;
+            timeScaleBeforePause = Time.timeScale;
+            Time.timeScale = 0f;
+            AudioListener.pause = true;
+            input.EnableMenu();
+            if (Bind())
+            {
+                SetVisible(pauseOverlay, true);
+                pauseSelection.Select(0);
+            }
+
+            return true;
+        }
+
+        /// <summary>Closes the pause menu and lets time run again at the speed it ran before.</summary>
+        public void Resume()
+        {
+            if (!Paused)
+                return;
+
+            Paused = false;
+            Time.timeScale = timeScaleBeforePause;
+            AudioListener.pause = false;
+            input.DisableMenu();
+            if (pauseOverlay != null)
+                SetVisible(pauseOverlay, false);
+        }
 
         private void Awake()
         {
@@ -102,6 +154,8 @@ namespace RallyX.UI
 
         private void OnDisable()
         {
+            // Never leave the game frozen, e.g. when the scene is unloaded while paused.
+            Resume();
             input.Disable();
             if (playerEntry != null)
                 playerEntry.ResultRecorded -= OnResultRecorded;
@@ -119,8 +173,15 @@ namespace RallyX.UI
         {
             if (input.RestartRace.WasPressedThisFrame())
                 RestartRace();
-            else if (resultsVisible && input.Pause.WasPressedThisFrame() && GameScenes.CanLoad(GameScenes.MainMenu))
-                GoToMainMenu();
+            else if (Paused)
+                UpdatePauseMenu();
+            else if (input.Pause.WasPressedThisFrame())
+            {
+                if (!resultsVisible)
+                    Pause();
+                else if (GameScenes.CanLoad(GameScenes.MainMenu))
+                    GoToMainMenu();
+            }
 
             if (race == null || !Bind())
                 return;
@@ -136,6 +197,23 @@ namespace RallyX.UI
 
             if (!resultsVisible && playerFinishedAt >= 0f && Time.time - playerFinishedAt >= race.Settings.ResultsDelay)
                 ShowResults();
+        }
+
+        private void UpdatePauseMenu()
+        {
+            // Esc is both the pause and the back input, so one press resumes once.
+            if (input.Pause.WasPressedThisFrame() || input.Back.WasPressedThisFrame())
+            {
+                Resume();
+                return;
+            }
+
+            if (input.MenuUp.WasPressedThisFrame())
+                pauseSelection.Move(-1);
+            if (input.MenuDown.WasPressedThisFrame())
+                pauseSelection.Move(1);
+            if (input.Submit.WasPressedThisFrame())
+                pauseSelection.Submit();
         }
 
         private void UpdateStats(RaceParticipant player, RaceTracker tracker)
@@ -367,10 +445,40 @@ namespace RallyX.UI
                 SetVisible(menuButton, GameScenes.CanLoad(GameScenes.MainMenu));
             }
 
+            // Optional: the pause menu. Main menu is only offered when the game has one.
+            pauseOverlay = root.Q("pause");
+            pauseTrack = root.Q<Label>("pause-track");
+            var resume = root.Q<Button>("pause-resume");
+            var restart = root.Q<Button>("pause-restart");
+            var leave = root.Q<Button>("pause-menu");
+            pauseSelection = new MenuSelection();
+            if (pauseOverlay != null && resume != null && restart != null && leave != null)
+            {
+                pauseSelection.Add(resume, Resume);
+                pauseSelection.Add(restart, RestartRace);
+                pauseSelection.Add(leave, GoToMainMenu);
+                leave.SetEnabled(GameScenes.CanLoad(GameScenes.MainMenu));
+                if (pauseTrack != null)
+                    pauseTrack.text = DescribeRace();
+                SetVisible(pauseOverlay, Paused);
+            }
+            else
+            {
+                pauseOverlay = null;
+            }
+
             shownPosition = shownRacers = shownLap = shownSpeed = -1;
             messageLabel.text = string.Empty;
             SetVisible(results, resultsVisible);
             return true;
+        }
+
+        /// <summary>The track and race length, e.g. "PINE VALLEY  |  3 LAPS".</summary>
+        private string DescribeRace()
+        {
+            var track = playerEntry != null ? playerEntry.Track : null;
+            string laps = race != null ? $"{race.Laps} {(race.Laps == 1 ? "LAP" : "LAPS")}" : string.Empty;
+            return track != null ? $"{track.DisplayName.ToUpperInvariant()}  |  {laps}" : laps;
         }
     }
 }

@@ -412,6 +412,10 @@ namespace RallyX.EditorTools
 
         private static void BuildWater(Context context)
         {
+            // Dry themes have no water: their creeks are washes.
+            if (context.Assets.Water == null)
+                return;
+
             var group = context.Group("Water");
             foreach (var creek in context.Terrain.Creeks)
             {

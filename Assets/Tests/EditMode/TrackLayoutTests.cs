@@ -7,17 +7,50 @@ using UnityEngine;
 
 namespace RallyX.Tests
 {
-    /// <summary>Geometry checks of generated track layouts, before any scene is built.</summary>
+    /// <summary>Geometry checks of every generated track's layout, before any scene is built, and of its built terrain.</summary>
+    [TestFixture(PineValleyTrack.DefinitionPath)]
+    [TestFixture(RedCanyonTrack.DefinitionPath)]
     public sealed class TrackLayoutTests
     {
+        private readonly string definitionPath;
         private TrackLayout layout;
+
+        public TrackLayoutTests(string definitionPath) => this.definitionPath = definitionPath;
 
         [SetUp]
         public void SetUp()
         {
-            var definition = AssetDatabase.LoadAssetAtPath<TrackDefinition>(PineValleyTrack.DefinitionPath);
-            Assert.IsNotNull(definition, $"Missing {PineValleyTrack.DefinitionPath}. Run the track build first.");
+            var definition = AssetDatabase.LoadAssetAtPath<TrackDefinition>(definitionPath);
+            Assert.IsNotNull(definition, $"Missing {definitionPath}. Run the track build first.");
             layout = TrackLayout.Build(definition);
+        }
+
+        [Test]
+        public void BuiltTerrain_KeepsItsPaintedGroundLayers()
+        {
+            // The ground layers' weights are stored in textures inside the terrain asset; they were once lost on saving,
+            // leaving every track showing only its first layer.
+            string path = $"{TrackSceneBuilder.TracksFolder}/{layout.Definition.SceneName}/Terrain.asset";
+            var data = AssetDatabase.LoadAssetAtPath<TerrainData>(path);
+            Assert.IsNotNull(data, $"Missing {path}. Build the track first.");
+
+            int resolution = data.alphamapResolution;
+            var maps = data.GetAlphamaps(0, 0, resolution, resolution);
+            var shares = new float[data.alphamapLayers];
+            for (int z = 0; z < resolution; z++)
+            {
+                for (int x = 0; x < resolution; x++)
+                {
+                    for (int layer = 0; layer < shares.Length; layer++)
+                        shares[layer] += maps[z, x, layer] / (resolution * resolution);
+                }
+            }
+
+            var described = shares.Select((share, layer) => $"{data.terrainLayers[layer].name} {share:P1}");
+            TestContext.WriteLine($"{layout.Definition.DisplayName} ground: {string.Join(", ", described)}");
+            Assert.AreEqual(4, shares.Length);
+            for (int layer = 0; layer < shares.Length; layer++)
+                Assert.Greater(shares[layer], 0.005f, $"{data.terrainLayers[layer].name} is never painted.");
         }
 
         [Test]
@@ -45,11 +78,11 @@ namespace RallyX.Tests
         }
 
         [Test]
-        public void PineValley_LayoutHasNoTightCornersSteepGradesOrOverlaps()
+        public void Layout_HasNoTightCornersSteepGradesOrOverlaps()
         {
             var samples = layout.Main.Samples;
             float minRadius = samples.Min(s => s.Radius);
-            TestContext.WriteLine($"Pine Valley: {layout.Main.Length:0} m, {samples.Length} samples, tightest radius {minRadius:0.0} m, " +
+            TestContext.WriteLine($"{layout.Definition.DisplayName}: {layout.Main.Length:0} m, {samples.Length} samples, tightest radius {minRadius:0.0} m, " +
                                   $"max grade {MaxGrade():P1}, height range {samples.Min(s => s.Position.y):0.0}-{samples.Max(s => s.Position.y):0.0} m");
 
             var problems = layout.Validate();
@@ -98,6 +131,24 @@ namespace RallyX.Tests
             }
         }
 
+        private float MaxGrade()
+        {
+            float max = 0f;
+            for (int i = 0; i < layout.Main.Count; i++)
+            {
+                var a = layout.Main.Get(i);
+                var b = layout.Main.Get(i + 1);
+                float run = Vector2.Distance(TrackLayout.Flat(a.Position), TrackLayout.Flat(b.Position));
+                max = Mathf.Max(max, Mathf.Abs(b.Position.y - a.Position.y) / run);
+            }
+
+            return max;
+        }
+    }
+
+    /// <summary>The track maths every layout is built on: the jump profile and the baked centreline.</summary>
+    public sealed class TrackMathTests
+    {
         [Test]
         public void JumpProfile_RisesToLipThenFallsSmoothly()
         {
@@ -148,20 +199,6 @@ namespace RallyX.Tests
             {
                 Object.DestroyImmediate(gameObject);
             }
-        }
-
-        private float MaxGrade()
-        {
-            float max = 0f;
-            for (int i = 0; i < layout.Main.Count; i++)
-            {
-                var a = layout.Main.Get(i);
-                var b = layout.Main.Get(i + 1);
-                float run = Vector2.Distance(TrackLayout.Flat(a.Position), TrackLayout.Flat(b.Position));
-                max = Mathf.Max(max, Mathf.Abs(b.Position.y - a.Position.y) / run);
-            }
-
-            return max;
         }
     }
 }

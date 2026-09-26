@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: RallyX.Editor::RallyX.EditorTools.TrackDefinition
   displayName: Pine Valley
   sceneName: PineValley
+  theme: {fileID: 11400000, guid: 4780f07fad2e76044be8533fda07f27f, type: 2}
   nodes:
   - position: {x: 200, y: 88}
     elevation: 10
@@ -159,9 +160,15 @@ MonoBehaviour:
   rimHeight: 50
   rimStart: 0.8
   embankmentWidth: 22
+  terraceHeight: 0
+  terraceWall: 0.35
   seed: 1234
   treeSpacing: 7.5
   treeClearance: 7
   clearingAmount: 0.25
   roadsideRockChance: 0.35
   forestBoulderCount: 45
+  checkpointSpacing: 120
+  checkpointMargin: 6
+  checkpointHeight: 12
+  checkpointJunctionClearance: 20

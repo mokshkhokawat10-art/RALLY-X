@@ -17,5 +17,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Tracks/PineValley.unity
     guid: 724f29f2cf1bacf43916d836d14985e6
+  - enabled: 1
+    path: Assets/Scenes/Tracks/RedCanyon.unity
+    guid: 051e2ecdedd554346b3904464116eee4
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

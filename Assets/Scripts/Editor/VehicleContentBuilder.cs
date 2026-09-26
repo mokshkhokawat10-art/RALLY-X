@@ -42,6 +42,8 @@ namespace RallyX.EditorTools
             new SurfaceDefinition("Gravel", grip: 0.72f, topSpeed: 0.92f, acceleration: 0.9f, rollingResistance: 0.6f),
             new SurfaceDefinition("Mud", grip: 0.55f, topSpeed: 0.78f, acceleration: 0.6f, rollingResistance: 2f),
             new SurfaceDefinition("Grass", grip: 0.45f, topSpeed: 0.7f, acceleration: 0.8f, rollingResistance: 1.5f),
+            // Loose desert ground off the road (Red Canyon): like grass, but it drags a little more.
+            new SurfaceDefinition("Sand", grip: 0.45f, topSpeed: 0.68f, acceleration: 0.75f, rollingResistance: 1.8f),
         };
 
         [MenuItem("RALLY X/Build/Create Missing Vehicle Content")]

@@ -16,13 +16,23 @@ using UnityEngine.UIElements;
 namespace RallyX.Tests
 {
     /// <summary>
-    /// AI opponents on the real Pine Valley scene: grid and start, full races on every difficulty with positions
+    /// AI opponents on every track scene: grid and start, full races on every difficulty with positions
     /// checked throughout, pace by difficulty, passing, recovery and shortcuts. Measured values are printed for
     /// tuning; the checks allow for normal racing incidents.
     /// </summary>
+    // The second value is the cautious scripted test driver's lap time on the track, which the quickest AI must beat.
+    [TestFixture("PineValley", 76f)]
+    [TestFixture("RedCanyon", 90f)]
     public sealed class AIRaceTests : VehicleTestBase
     {
-        private const string SceneName = "PineValley";
+        private readonly string sceneName;
+        private readonly float testDriverLapTime;
+
+        public AIRaceTests(string sceneName, float testDriverLapTime)
+        {
+            this.sceneName = sceneName;
+            this.testDriverLapTime = testDriverLapTime;
+        }
 
         // Contact closer than this to another car's centre counts as hitting that car, metres.
         private const float CarContactRadius = 3.5f;
@@ -36,10 +46,10 @@ namespace RallyX.Tests
         [UnitySetUp]
         public IEnumerator LoadRace()
         {
-            Assert.IsTrue(Application.CanStreamedLevelBeLoaded(SceneName),
-                $"{SceneName} is not in the build scene list. Run RALLY X > Build > Rebuild Pine Valley Track.");
-            yield return SceneManager.LoadSceneAsync(SceneName, LoadSceneMode.Additive);
-            scene = SceneManager.GetSceneByName(SceneName);
+            Assert.IsTrue(Application.CanStreamedLevelBeLoaded(sceneName),
+                $"{sceneName} is not in the build scene list. Run RALLY X > Build > Rebuild All Tracks.");
+            yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            scene = SceneManager.GetSceneByName(sceneName);
 
             race = Object.FindFirstObjectByType<RaceManager>();
             opponents = Object.FindFirstObjectByType<AIOpponents>();
@@ -168,7 +178,7 @@ namespace RallyX.Tests
             foreach (var entry in stats.Values)
             {
                 var tracker = entry.Tracker;
-                Assert.AreEqual(3, tracker.CompletedLaps);
+                Assert.AreEqual(race.Laps, tracker.CompletedLaps);
                 Assert.AreEqual(3, tracker.LapTimes.Count);
                 Assert.AreEqual(tracker.FinishTime, tracker.LapTimes[0] + tracker.LapTimes[1] + tracker.LapTimes[2], 0.01f,
                     $"{entry.Name}'s lap times should add up to the finish time.");
@@ -187,7 +197,8 @@ namespace RallyX.Tests
             yield return null;
             Assert.AreEqual("4/4", HudText("position"), "The HUD should show the player's position.");
 
-            Assert.Less(fastestLap, 76f, "The quickest AI should lap faster than the cautious test driver (76-78 s).");
+            TestContext.WriteLine($"Quickest AI lap {fastestLap:0.0} s; the test driver laps in {testDriverLapTime:0} s.");
+            Assert.Less(fastestLap, testDriverLapTime, "The quickest AI should lap faster than the cautious test driver.");
         }
 
         [UnityTest, Timeout(600000)]

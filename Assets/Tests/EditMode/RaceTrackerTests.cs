@@ -101,6 +101,22 @@ namespace RallyX.Tests
         }
 
         [Test]
+        public void Laps_SetForATrack_FinishTheRaceAfterThatMany()
+        {
+            Assert.AreEqual(3, tracker.Laps, "A race starts with the race settings' laps.");
+            tracker.Laps = 1;
+            var events = DriveAround(GridAngle, 360f + 5f);
+
+            Assert.IsTrue(tracker.Finished);
+            Assert.IsTrue((events & RaceEvents.Finished) != 0);
+            Assert.AreEqual(1, tracker.CompletedLaps);
+            Assert.AreEqual(1, tracker.CurrentLap);
+
+            tracker.Laps = 0;
+            Assert.AreEqual(1, tracker.Laps, "A race is at least one lap.");
+        }
+
+        [Test]
         public void CrossingTheLine_FromTheGrid_StartsLapOneWithoutCompletingALap()
         {
             Assert.IsFalse(tracker.HasStarted);

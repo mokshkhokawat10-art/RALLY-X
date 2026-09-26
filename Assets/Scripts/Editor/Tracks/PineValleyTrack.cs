@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEngine;
 
 namespace RallyX.EditorTools
@@ -9,9 +10,22 @@ namespace RallyX.EditorTools
     public static class PineValleyTrack
     {
         public const string DefinitionPath = "Assets/Settings/Tracks/PineValley_Track.asset";
+        public const string ThemePath = "Assets/Settings/Tracks/Themes/Forest_Theme.asset";
 
-        public static TrackDefinition LoadOrCreate() =>
-            EditorAssetUtility.LoadOrCreate(DefinitionPath, CreateDefinition);
+        public static TrackDefinition LoadOrCreate()
+        {
+            var definition = EditorAssetUtility.LoadOrCreate(DefinitionPath, CreateDefinition);
+
+            // A definition made before themes existed gets the forest theme, which is how it already looked.
+            if (definition.Theme == null)
+            {
+                definition.SetTheme(EditorAssetUtility.LoadOrCreate(ThemePath, TrackTheme.CreateForest));
+                EditorUtility.SetDirty(definition);
+                AssetDatabase.SaveAssets();
+            }
+
+            return definition;
+        }
 
         private static TrackDefinition CreateDefinition()
         {

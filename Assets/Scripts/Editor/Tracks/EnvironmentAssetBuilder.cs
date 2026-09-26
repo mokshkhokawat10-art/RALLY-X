@@ -5,7 +5,7 @@ using static RallyX.EditorTools.ProceduralTextures;
 
 namespace RallyX.EditorTools
 {
-    /// <summary>Placeholder environment art shared by generated tracks.</summary>
+    /// <summary>Placeholder environment art for a generated track: shared props plus its theme's ground, roads, trees and rocks.</summary>
     public sealed class EnvironmentAssets
     {
         public Material RoadDirt;
@@ -18,14 +18,25 @@ namespace RallyX.EditorTools
         public Material ChevronLeft;
         public Material ChevronRight;
         public Material Checker;
+
+        /// <summary>Creek water, or null when the theme's creeks are dry.</summary>
         public Material Water;
+
         public Material PostWhite;
         public Material PostRed;
         public Material Banner;
         public Material BannerText;
+
+        /// <summary>The theme's sky, or null for Unity's default sky.</summary>
+        public Material Sky;
+
         public Font BannerFont;
         public TerrainLayer[] TerrainLayers;
         public GameObject[] TreePrefabs;
+
+        /// <summary>Share of the trees planted with each of <see cref="TreePrefabs"/>, adding up to 1.</summary>
+        public float[] TreeShares;
+
         public GameObject[] RockPrefabs;
 
         /// <summary>Terrain layer indices, matching <see cref="TerrainLayers"/>.</summary>
@@ -35,7 +46,11 @@ namespace RallyX.EditorTools
         public const int RockLayer = 3;
     }
 
-    /// <summary>Creates any missing placeholder environment assets. Existing assets are reused untouched.</summary>
+    /// <summary>
+    /// Creates any missing placeholder environment art. Props shared by every track live in the shared folders; a
+    /// theme's ground, roads, trees and rocks live in its own subfolder (the forest theme's in the shared folders).
+    /// Existing assets are reused untouched, so delete a theme's folders to regenerate its art.
+    /// </summary>
     public static class EnvironmentAssetBuilder
     {
         private const string TextureFolder = "Assets/Textures/Generated";
@@ -48,93 +63,146 @@ namespace RallyX.EditorTools
         // Fraction of the screen height below which a tree is not drawn (about 700 m away for a pine).
         private const float TreeCullScreenHeight = 0.01f;
 
-        public static EnvironmentAssets LoadOrCreate()
+        public static EnvironmentAssets LoadOrCreate(TrackTheme theme)
         {
-            var bark = Lit("Bark", PaintedTexture("Tree_Bark", PaintBark), 0.1f, instanced: true);
-            var needles = Lit("Needles", PaintedTexture("Tree_Needles", PaintNeedles), 0.05f, instanced: true);
-            var rock = Lit("Rock", PaintedTexture("Rock", (u, v) => PaintRock(u, v, 11f)), 0.15f, instanced: true);
+            var art = new ThemeFolders(theme.ArtFolder);
+            var bark = Lit(art.Material("Bark"), Painted(art.Texture("Tree_Bark"), (u, v) => PaintBark(u, v, theme.Bark)), 0.1f, instanced: true);
+            var needles = Lit(art.Material("Needles"), Painted(art.Texture("Tree_Needles"), (u, v) => PaintNeedles(u, v, theme.Foliage)), 0.05f,
+                instanced: true);
+            var rock = Lit(art.Material("Rock"),
+                Painted(art.Texture("Rock"), (u, v) => PaintBandedRock(u, v, 11f, theme.Rock, theme.RockBanding)), 0.15f, instanced: true);
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var shared = new ThemeFolders(string.Empty);
+
+            var treeShapes = theme.Trees;
+            var treePrefabs = new GameObject[treeShapes.Length];
+            var treeShares = new float[treeShapes.Length];
+            float totalShare = 0f;
+            foreach (var shape in treeShapes)
+                totalShare += shape.share;
+            for (int i = 0; i < treeShapes.Length; i++)
+            {
+                treePrefabs[i] = TreePrefab(art, treeShapes[i], bark, needles);
+                treeShares[i] = totalShare > 0f ? treeShapes[i].share / totalShare : 1f / treeShapes.Length;
+            }
 
             return new EnvironmentAssets
             {
-                RoadDirt = Lit("Road_Dirt", PaintedTexture("Road_Dirt", PaintRoadDirt), 0.1f),
-                RoadGravel = Lit("Road_Gravel", PaintedTexture("Road_Gravel", PaintRoadGravel), 0.1f),
-                RoadMud = Lit("Road_Mud", PaintedTexture("Road_Mud", PaintRoadMud), 0.45f),
-                RoadAsphalt = Lit("Road_Asphalt", PaintedTexture("Road_Asphalt", PaintRoadAsphalt), 0.25f),
-                BridgeDeck = Lit("Bridge_Planks", PaintedTexture("Bridge_Planks", PaintPlanks), 0.15f),
-                Concrete = Lit("Concrete", PaintedTexture("Concrete", (u, v) => Shade(PaintRock(u, v, 23f), 1.35f)), 0.1f, instanced: true),
-                Barrier = Lit("Barrier", PaintedTexture("Barrier_Stripes", PaintStripes), 0.35f, instanced: true),
-                ChevronLeft = Lit("Chevron_Left", PaintedTexture("Sign_ChevronLeft", (u, v) => PaintChevron(1f - u, v), repeat: false), 0.3f),
-                ChevronRight = Lit("Chevron_Right", PaintedTexture("Sign_ChevronRight", PaintChevron, repeat: false), 0.3f),
-                Checker = Lit("Checker", PaintedTexture("Line_Checker", PaintChecker), 0.2f),
-                Water = Lit("Water", PaintedTexture("Water", PaintWater), 0.92f),
-                PostWhite = Lit("Post_White", null, 0.3f, new Color(0.9f, 0.9f, 0.88f), instanced: true),
-                PostRed = Lit("Post_Red", null, 0.5f, new Color(0.85f, 0.08f, 0.05f), instanced: true),
-                Banner = Lit("Banner", null, 0.3f, new Color(0.06f, 0.09f, 0.2f)),
-                BannerText = TextMaterial("Banner_Text", font),
+                RoadDirt = Lit(art.Material("Road_Dirt"), Painted(art.Texture("Road_Dirt"), (u, v) => PaintRoadDirt(u, v, theme.RoadDirt)), 0.1f),
+                RoadGravel = Lit(art.Material("Road_Gravel"),
+                    Painted(art.Texture("Road_Gravel"), (u, v) => PaintRoadGravel(u, v, theme.RoadGravel, theme.RoadGravelDarkStones)), 0.1f),
+                RoadMud = Lit(shared.Material("Road_Mud"), Painted(shared.Texture("Road_Mud"), PaintRoadMud), 0.45f),
+                RoadAsphalt = Lit(shared.Material("Road_Asphalt"), Painted(shared.Texture("Road_Asphalt"), PaintRoadAsphalt), 0.25f),
+                BridgeDeck = Lit(shared.Material("Bridge_Planks"), Painted(shared.Texture("Bridge_Planks"), PaintPlanks), 0.15f),
+                Concrete = Lit(shared.Material("Concrete"), Painted(shared.Texture("Concrete"), (u, v) => Shade(PaintRock(u, v, 23f, GreyRock), 1.35f)),
+                    0.1f, instanced: true),
+                Barrier = Lit(shared.Material("Barrier"), Painted(shared.Texture("Barrier_Stripes"), PaintStripes), 0.35f, instanced: true),
+                ChevronLeft = Lit(shared.Material("Chevron_Left"), Painted(shared.Texture("Sign_ChevronLeft"), (u, v) => PaintChevron(1f - u, v), repeat: false),
+                    0.3f),
+                ChevronRight = Lit(shared.Material("Chevron_Right"), Painted(shared.Texture("Sign_ChevronRight"), PaintChevron, repeat: false), 0.3f),
+                Checker = Lit(shared.Material("Checker"), Painted(shared.Texture("Line_Checker"), PaintChecker), 0.2f),
+                Water = theme.CreekWater
+                    ? Lit(art.Material("Water"), Painted(art.Texture("Water"), (u, v) => PaintWater(u, v, theme.Water)), 0.92f)
+                    : null,
+                PostWhite = Lit(shared.Material("Post_White"), null, 0.3f, new Color(0.9f, 0.9f, 0.88f), instanced: true),
+                PostRed = Lit(shared.Material("Post_Red"), null, 0.5f, new Color(0.85f, 0.08f, 0.05f), instanced: true),
+                Banner = Lit(shared.Material("Banner"), null, 0.3f, new Color(0.06f, 0.09f, 0.2f)),
+                BannerText = TextMaterial(shared.Material("Banner_Text"), font),
+                Sky = theme.CustomSky ? SkyMaterial(art.Material("Sky"), theme) : null,
                 BannerFont = font,
                 TerrainLayers = new[]
                 {
-                    Layer("Grass", PaintedTexture("Ground_Grass", PaintGrass), 6f),
-                    Layer("ForestFloor", PaintedTexture("Ground_ForestFloor", PaintForestFloor), 8f),
-                    Layer("Dirt", PaintedTexture("Ground_Dirt", PaintDirt), 5f),
-                    Layer("Rock", PaintedTexture("Ground_Rock", (u, v) => PaintRock(u, v, 5f)), 10f),
+                    Layer(art.TerrainLayer("Grass"), Painted(art.Texture("Ground_Grass"), (u, v) => PaintGrass(u, v, theme.Grass)), 6f),
+                    Layer(art.TerrainLayer("ForestFloor"),
+                        Painted(art.Texture("Ground_ForestFloor"), (u, v) => PaintForestFloor(u, v, theme.ForestFloor, theme.ForestFloorPatches)), 8f),
+                    Layer(art.TerrainLayer("Dirt"), Painted(art.Texture("Ground_Dirt"), (u, v) => PaintDirt(u, v, theme.Dirt)), 5f),
+                    Layer(art.TerrainLayer("Rock"), Painted(art.Texture("Ground_Rock"), (u, v) => PaintRock(u, v, 5f, theme.Rock)), 10f),
                 },
-                TreePrefabs = new[]
+                TreePrefabs = treePrefabs,
+                TreeShares = treeShares,
+                RockPrefabs = new[]
                 {
-                    TreePrefab("PineTall", bark, needles, new[] { new Cone(1.8f, 5.4f, 1.9f), new Cone(3.5f, 6.9f, 1.5f), new Cone(5.1f, 8.4f, 1.05f) }),
-                    TreePrefab("PineBushy", bark, needles, new[] { new Cone(1.2f, 4.2f, 2.3f), new Cone(2.6f, 5.4f, 1.9f), new Cone(3.9f, 6.5f, 1.4f), new Cone(5.1f, 7.3f, 0.9f) }),
+                    RockPrefab(art, "Rock_A", rock, 1, theme.RockBanding > 0f),
+                    RockPrefab(art, "Rock_B", rock, 2, theme.RockBanding > 0f),
+                    RockPrefab(art, "Rock_C", rock, 3, theme.RockBanding > 0f),
                 },
-                RockPrefabs = new[] { RockPrefab("Rock_A", rock, 1), RockPrefab("Rock_B", rock, 2), RockPrefab("Rock_C", rock, 3) },
             };
+        }
+
+        /// <summary>Where a theme's generated art goes: its subfolder of each art folder, or the folders themselves.</summary>
+        private readonly struct ThemeFolders
+        {
+            private readonly string subfolder;
+
+            public ThemeFolders(string artFolder) => subfolder = string.IsNullOrEmpty(artFolder) ? string.Empty : "/" + artFolder.Trim('/');
+
+            public string Texture(string name) => $"{TextureFolder}{subfolder}/{name}.png";
+            public string Material(string name) => $"{MaterialFolder}{subfolder}/{name}.mat";
+            public string TerrainLayer(string name) => $"{MaterialFolder}{subfolder}/TerrainLayers/{name}.terrainlayer";
+            public string Mesh(string name) => $"{MeshFolder}{subfolder}/{name}.asset";
+            public string Prefab(string name) => $"{PrefabFolder}{subfolder}/{name}.prefab";
+            public string PrefabFolderPath => $"{PrefabFolder}{subfolder}";
         }
 
         // ---------------------------------------------------------------- textures
 
-        private static Texture2D PaintedTexture(string name, Painter paint, bool repeat = true) =>
-            ProceduralTextures.LoadOrCreate($"{TextureFolder}/{name}.png", TextureSize, paint, repeat);
+        private static readonly Palette GreyRock = new Palette(new Color(0.3f, 0.3f, 0.3f), new Color(0.52f, 0.51f, 0.49f), new Color(0.3f, 0.3f, 0.3f));
 
-        private static Color PaintGrass(float u, float v)
+        private static Texture2D Painted(string path, Painter paint, bool repeat = true) =>
+            ProceduralTextures.LoadOrCreate(path, TextureSize, paint, repeat);
+
+        private static Color PaintGrass(float u, float v, Palette colors)
         {
-            Color color = Color.Lerp(new Color(0.16f, 0.27f, 0.09f), new Color(0.3f, 0.42f, 0.17f), TileableNoise(u, v, 6, 4, 1f));
+            Color color = Color.Lerp(colors.dark, colors.light, TileableNoise(u, v, 6, 4, 1f));
             float dry = TileableNoise(u, v, 48, 2, 2f);
-            return dry > 0.6f ? Color.Lerp(color, new Color(0.45f, 0.44f, 0.22f), (dry - 0.6f) * 2f) : color;
+            return dry > 0.6f ? Color.Lerp(color, colors.detail, (dry - 0.6f) * 2f) : color;
         }
 
-        private static Color PaintForestFloor(float u, float v)
+        private static Color PaintForestFloor(float u, float v, Palette colors, Color patches)
         {
-            Color color = Color.Lerp(new Color(0.13f, 0.1f, 0.06f), new Color(0.26f, 0.2f, 0.12f), TileableNoise(u, v, 6, 4, 3f));
+            Color color = Color.Lerp(colors.dark, colors.light, TileableNoise(u, v, 6, 4, 3f));
             if (TileableNoise(u, v, 3, 2, 4f) > 0.58f)
-                color = Color.Lerp(color, new Color(0.17f, 0.25f, 0.09f), 0.6f);
-            return TileableNoise(u, v, 64, 2, 5f) > 0.6f ? new Color(0.36f, 0.25f, 0.14f) : color;
+                color = Color.Lerp(color, patches, 0.6f);
+            return TileableNoise(u, v, 64, 2, 5f) > 0.6f ? colors.detail : color;
         }
 
-        private static Color PaintDirt(float u, float v)
+        private static Color PaintDirt(float u, float v, Palette colors)
         {
-            Color color = Color.Lerp(new Color(0.33f, 0.24f, 0.16f), new Color(0.5f, 0.39f, 0.27f), TileableNoise(u, v, 8, 4, 6f));
-            return TileableNoise(u, v, 48, 2, 7f) > 0.64f ? new Color(0.58f, 0.52f, 0.45f) : color;
+            Color color = Color.Lerp(colors.dark, colors.light, TileableNoise(u, v, 8, 4, 6f));
+            return TileableNoise(u, v, 48, 2, 7f) > 0.64f ? colors.detail : color;
         }
 
-        private static Color PaintRock(float u, float v, float seed)
+        private static Color PaintRock(float u, float v, float seed, Palette colors)
         {
-            Color color = Color.Lerp(new Color(0.3f, 0.3f, 0.3f), new Color(0.52f, 0.51f, 0.49f), TileableNoise(u, v, 5, 5, seed));
+            Color color = Color.Lerp(colors.dark, colors.light, TileableNoise(u, v, 5, 5, seed));
             return Mathf.Abs(TileableNoise(u, v, 12, 3, seed + 1f) - 0.5f) < 0.015f ? Shade(color, 0.6f) : color;
         }
 
-        private static Color PaintRoadDirt(float u, float v)
+        /// <summary>Rock with horizontal bands of lighter and darker stone along v (the height on banded boulders).</summary>
+        private static Color PaintBandedRock(float u, float v, float seed, Palette colors, float banding)
         {
-            Color color = Color.Lerp(new Color(0.42f, 0.32f, 0.22f), new Color(0.56f, 0.44f, 0.31f), TileableNoise(u, v, 6, 4, 8f));
+            Color color = PaintRock(u, v, seed, colors);
+            if (banding <= 0f)
+                return color;
+
+            float band = Mathf.Sin((v * 7f + TileableNoise(u, v, 3, 2, seed + 2f) * 0.6f) * Mathf.PI * 2f);
+            return Shade(color, 1f + 0.22f * banding * band);
+        }
+
+        private static Color PaintRoadDirt(float u, float v, Palette colors)
+        {
+            Color color = Color.Lerp(colors.dark, colors.light, TileableNoise(u, v, 6, 4, 8f));
             return Shade(color, 1f - 0.18f * WheelTracks(u) * (0.6f + 0.4f * TileableNoise(u, v, 16, 2, 9f)));
         }
 
-        private static Color PaintRoadGravel(float u, float v)
+        private static Color PaintRoadGravel(float u, float v, Palette colors, Color darkStones)
         {
-            Color color = Color.Lerp(new Color(0.46f, 0.44f, 0.4f), new Color(0.62f, 0.59f, 0.54f), TileableNoise(u, v, 10, 3, 10f));
+            Color color = Color.Lerp(colors.dark, colors.light, TileableNoise(u, v, 10, 3, 10f));
             float stones = TileableNoise(u, v, 64, 1, 11f);
             if (stones > 0.6f)
-                color = new Color(0.72f, 0.7f, 0.66f);
+                color = colors.detail;
             else if (stones < 0.4f)
-                color = new Color(0.36f, 0.34f, 0.31f);
+                color = darkStones;
             return Shade(color, 1f - 0.1f * WheelTracks(u));
         }
 
@@ -168,16 +236,16 @@ namespace RallyX.EditorTools
             return Shade(wood, 0.85f + 0.3f * TileableNoise(u, v, 24, 2, 15f + plank));
         }
 
-        private static Color PaintBark(float u, float v)
+        private static Color PaintBark(float u, float v, Palette colors)
         {
             float streaks = Mathf.Sin((u * 24f + TileableNoise(u, v, 4, 2, 16f) * 3f) * Mathf.PI * 2f) * 0.5f + 0.5f;
-            return Color.Lerp(new Color(0.22f, 0.15f, 0.1f), new Color(0.4f, 0.28f, 0.18f), streaks * 0.6f + TileableNoise(u, v, 8, 3, 17f) * 0.4f);
+            return Color.Lerp(colors.dark, colors.light, streaks * 0.6f + TileableNoise(u, v, 8, 3, 17f) * 0.4f);
         }
 
-        private static Color PaintNeedles(float u, float v)
+        private static Color PaintNeedles(float u, float v, Palette colors)
         {
-            Color color = Color.Lerp(new Color(0.06f, 0.16f, 0.07f), new Color(0.15f, 0.3f, 0.12f), TileableNoise(u, v, 12, 4, 18f));
-            return TileableNoise(u, v, 64, 1, 19f) > 0.65f ? new Color(0.24f, 0.4f, 0.18f) : color;
+            Color color = Color.Lerp(colors.dark, colors.light, TileableNoise(u, v, 12, 4, 18f));
+            return TileableNoise(u, v, 64, 1, 19f) > 0.65f ? colors.detail : color;
         }
 
         private static Color PaintStripes(float u, float v) =>
@@ -186,8 +254,8 @@ namespace RallyX.EditorTools
         private static Color PaintChecker(float u, float v) =>
             ((int)(u * 8f) + (int)(v * 2f)) % 2 == 0 ? new Color(0.05f, 0.05f, 0.05f) : new Color(0.95f, 0.95f, 0.95f);
 
-        private static Color PaintWater(float u, float v) =>
-            Color.Lerp(new Color(0.06f, 0.14f, 0.16f), new Color(0.12f, 0.24f, 0.26f), TileableNoise(u, v, 6, 3, 20f));
+        private static Color PaintWater(float u, float v, Palette colors) =>
+            Color.Lerp(colors.dark, colors.light, TileableNoise(u, v, 6, 3, 20f));
 
         /// <summary>Black ">" chevron on a yellow board with a black border, pointing right.</summary>
         private static Color PaintChevron(float u, float v)
@@ -213,9 +281,9 @@ namespace RallyX.EditorTools
 
         // ---------------------------------------------------------------- materials and layers
 
-        private static Material Lit(string name, Texture2D texture, float smoothness, Color? tint = null, bool instanced = false)
+        private static Material Lit(string path, Texture2D texture, float smoothness, Color? tint = null, bool instanced = false)
         {
-            var material = EditorAssetUtility.LoadOrCreateLitMaterial($"{MaterialFolder}/{name}.mat", tint ?? Color.white, smoothness);
+            var material = EditorAssetUtility.LoadOrCreateLitMaterial(path, tint ?? Color.white, smoothness);
             if (material.GetTexture("_BaseMap") != texture || material.enableInstancing != instanced)
             {
                 material.SetTexture("_BaseMap", texture);
@@ -230,10 +298,10 @@ namespace RallyX.EditorTools
         /// Material for 3D text. The font's own material skips the depth test, so text would show through anything
         /// in front of it, including the back of the sign it is on.
         /// </summary>
-        private static Material TextMaterial(string name, Font font)
+        private static Material TextMaterial(string path, Font font)
         {
             var shader = AssetDatabase.LoadAssetAtPath<Shader>(WorldTextShaderPath);
-            var material = EditorAssetUtility.LoadOrCreate($"{MaterialFolder}/{name}.mat", () => new Material(shader));
+            var material = EditorAssetUtility.LoadOrCreate(path, () => new Material(shader));
             if (material.shader != shader || material.mainTexture != font.material.mainTexture)
             {
                 material.shader = shader;
@@ -244,38 +312,38 @@ namespace RallyX.EditorTools
             return material;
         }
 
-        private static TerrainLayer Layer(string name, Texture2D texture, float tileSize) =>
-            EditorAssetUtility.LoadOrCreate($"{MaterialFolder}/TerrainLayers/{name}.terrainlayer", () => new TerrainLayer
+        /// <summary>A procedural sky in the theme's colours. Kept in step with the theme on every build.</summary>
+        private static Material SkyMaterial(string path, TrackTheme theme)
+        {
+            var material = EditorAssetUtility.LoadOrCreate(path, () => new Material(Shader.Find("Skybox/Procedural")));
+            material.SetColor("_SkyTint", theme.SkyTint);
+            material.SetColor("_GroundColor", theme.SkyGround);
+            material.SetFloat("_AtmosphereThickness", theme.AtmosphereThickness);
+            material.SetFloat("_Exposure", theme.SkyExposure);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private static TerrainLayer Layer(string path, Texture2D texture, float tileSize)
+        {
+            return EditorAssetUtility.LoadOrCreate(path, () => new TerrainLayer
             {
                 diffuseTexture = texture,
                 tileSize = new Vector2(tileSize, tileSize),
             });
+        }
 
         // ---------------------------------------------------------------- meshes and prefabs
 
-        private readonly struct Cone
+        private static GameObject TreePrefab(ThemeFolders art, TreeShape shape, Material bark, Material needles)
         {
-            public readonly float BaseY;
-            public readonly float TopY;
-            public readonly float Radius;
-
-            public Cone(float baseY, float topY, float radius)
-            {
-                BaseY = baseY;
-                TopY = topY;
-                Radius = radius;
-            }
-        }
-
-        private static GameObject TreePrefab(string name, Material bark, Material needles, Cone[] cones)
-        {
-            string path = $"{PrefabFolder}/{name}.prefab";
+            string path = art.Prefab(shape.name);
             var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (existing != null)
                 return existing;
 
-            var mesh = EditorAssetUtility.LoadOrCreate($"{MeshFolder}/{name}.asset", () => BuildPineMesh(name, cones));
-            var root = new GameObject(name);
+            var mesh = EditorAssetUtility.LoadOrCreate(art.Mesh(shape.name), () => BuildTreeMesh(shape.name, shape.cones));
+            var root = new GameObject(shape.name);
             try
             {
                 // Terrain trees must be a single renderer, so trunk and foliage are submeshes of one mesh.
@@ -289,11 +357,13 @@ namespace RallyX.EditorTools
                 lodGroup.SetLODs(new[] { new LOD(TreeCullScreenHeight, new Renderer[] { renderer }) });
                 lodGroup.RecalculateBounds();
 
+                // The trunk collider stops at the lowest foliage, so low bushes don't grow tall invisible posts.
+                float trunkHeight = Mathf.Clamp(shape.cones.Length > 0 ? shape.cones[0].tipHeight : 3.2f, 1f, 3.2f);
                 var trunk = root.AddComponent<CapsuleCollider>();
-                trunk.center = new Vector3(0f, 1.6f, 0f);
+                trunk.center = new Vector3(0f, trunkHeight * 0.5f, 0f);
                 trunk.radius = 0.3f;
-                trunk.height = 3.2f;
-                EditorAssetUtility.EnsureFolder(PrefabFolder);
+                trunk.height = trunkHeight;
+                EditorAssetUtility.EnsureFolder(art.PrefabFolderPath);
                 return PrefabUtility.SaveAsPrefabAsset(root, path);
             }
             finally
@@ -302,14 +372,14 @@ namespace RallyX.EditorTools
             }
         }
 
-        private static GameObject RockPrefab(string name, Material material, int seed)
+        private static GameObject RockPrefab(ThemeFolders art, string name, Material material, int seed, bool banded)
         {
-            string path = $"{PrefabFolder}/{name}.prefab";
+            string path = art.Prefab(name);
             var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (existing != null)
                 return existing;
 
-            var mesh = EditorAssetUtility.LoadOrCreate($"{MeshFolder}/{name}.asset", () => BuildRockMesh(name, seed));
+            var mesh = EditorAssetUtility.LoadOrCreate(art.Mesh(name), () => BuildRockMesh(name, seed, banded));
             var root = new GameObject(name);
             try
             {
@@ -318,7 +388,7 @@ namespace RallyX.EditorTools
                 var collider = root.AddComponent<MeshCollider>();
                 collider.sharedMesh = mesh;
                 collider.convex = true;
-                EditorAssetUtility.EnsureFolder(PrefabFolder);
+                EditorAssetUtility.EnsureFolder(art.PrefabFolderPath);
                 return PrefabUtility.SaveAsPrefabAsset(root, path);
             }
             finally
@@ -327,13 +397,13 @@ namespace RallyX.EditorTools
             }
         }
 
-        private static Mesh BuildPineMesh(string name, Cone[] cones)
+        private static Mesh BuildTreeMesh(string name, TreeCone[] cones)
         {
             const int trunkSides = 8;
             const int coneSides = 10;
             const float trunkRadius = 0.22f;
             const float trunkBottom = -0.4f;
-            float trunkTop = cones[cones.Length - 1].BaseY + 0.5f;
+            float trunkTop = cones[cones.Length - 1].baseHeight + 0.5f;
 
             var vertices = new List<Vector3>();
             var uvs = new List<Vector2>();
@@ -358,12 +428,12 @@ namespace RallyX.EditorTools
             // Faceted cones: each face gets its own vertices for a clean low-poly look.
             foreach (var cone in cones)
             {
-                var apex = Vector3.up * cone.TopY;
-                var center = Vector3.up * cone.BaseY;
+                var apex = Vector3.up * cone.tipHeight;
+                var center = Vector3.up * cone.baseHeight;
                 for (int i = 0; i < coneSides; i++)
                 {
-                    Vector3 b0 = RingDirection(i, coneSides) * cone.Radius + center;
-                    Vector3 b1 = RingDirection(i + 1, coneSides) * cone.Radius + center;
+                    Vector3 b0 = RingDirection(i, coneSides) * cone.radius + center;
+                    Vector3 b1 = RingDirection(i + 1, coneSides) * cone.radius + center;
                     AddTriangle(vertices, uvs, foliage, b0, b1, apex, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 1f));
                     AddTriangle(vertices, uvs, foliage, center, b1, b0, new Vector2(0.5f, 0.5f), new Vector2(1f, 0f), new Vector2(0f, 0f));
                 }
@@ -380,9 +450,12 @@ namespace RallyX.EditorTools
             return mesh;
         }
 
-        private static Mesh BuildRockMesh(string name, int seed)
+        /// <summary>
+        /// Subdivided icosahedron, displaced with noise and flattened, with flat-shaded faces. Banded rocks map the
+        /// texture's v to height, so the texture's bands run round the rock like layers of sandstone.
+        /// </summary>
+        private static Mesh BuildRockMesh(string name, int seed, bool banded)
         {
-            // Subdivided icosahedron, displaced with noise and flattened, with flat-shaded faces.
             float t = (1f + Mathf.Sqrt(5f)) * 0.5f;
             var corners = new List<Vector3>
             {
@@ -413,7 +486,7 @@ namespace RallyX.EditorTools
                     Vector3 normal = Vector3.Cross(q1 - p1, r1 - p1);
                     if (Vector3.Dot(normal, p1 + q1 + r1) < 0f)
                         (q1, r1) = (r1, q1);
-                    AddTriangle(vertices, uvs, triangles, p1, q1, r1, new Vector2(p1.x, p1.z), new Vector2(q1.x, q1.z), new Vector2(r1.x, r1.z));
+                    AddTriangle(vertices, uvs, triangles, p1, q1, r1, RockUv(p1, banded), RockUv(q1, banded), RockUv(r1, banded));
                 }
             }
 
@@ -425,6 +498,8 @@ namespace RallyX.EditorTools
             mesh.RecalculateBounds();
             return mesh;
         }
+
+        private static Vector2 RockUv(Vector3 point, bool banded) => banded ? new Vector2(point.x + point.z, point.y * 0.5f) : new Vector2(point.x, point.z);
 
         private static Vector3 Displace(Vector3 unit, int seed)
         {

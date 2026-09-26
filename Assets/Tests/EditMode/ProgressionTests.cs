@@ -268,6 +268,63 @@ namespace RallyX.Tests
             Assert.AreSame(first, tracks.Resolve(PlayerProfile.InMemory()));
         }
 
+        [Test]
+        public void ProjectTracks_RedCanyonOpensWithATopThreeFinishAtPineValley()
+        {
+            var tracks = settings.Tracks;
+            Assert.AreEqual(2, tracks.Tracks.Count);
+            var pineValley = tracks.Tracks[0];
+            var redCanyon = tracks.Tracks[1];
+            Assert.AreEqual("RedCanyon", redCanyon.SceneName);
+            Assert.AreSame(pineValley, redCanyon.PreviousTrack);
+            foreach (var track in tracks.Tracks)
+            {
+                Assert.Greater(track.Laps, 0, $"{track.DisplayName} should set its own laps.");
+                Assert.IsNotEmpty(track.Description, $"{track.DisplayName} needs a line for the track picker.");
+            }
+
+            var profile = PlayerProfile.InMemory();
+            profile.EnsureStarted(settings.StartingCredits);
+            Assert.IsFalse(redCanyon.IsUnlocked(profile));
+            Assert.AreEqual("FINISH TOP 3 AT PINE VALLEY", redCanyon.UnlockHint(profile));
+            profile.SelectTrack(redCanyon.Id);
+            Assert.AreSame(pineValley, tracks.Resolve(profile), "A locked track is never raced, even when chosen.");
+
+            var fourth = RaceReward.Record(profile, settings, roster, pineValley, 4, 4, 250f, 80f, false);
+            Assert.IsEmpty(fourth.UnlockedTracks, "Fourth isn't top 3.");
+            Assert.IsFalse(redCanyon.IsUnlocked(profile));
+
+            var third = RaceReward.Record(profile, settings, roster, pineValley, 3, 4, 240f, 78f, false);
+            CollectionAssert.AreEqual(new[] { "Red Canyon" }, third.UnlockedTracks);
+            Assert.IsTrue(profile.HasUnlockedTrack(redCanyon.Id), "The unlock is kept in the profile.");
+            Assert.AreSame(redCanyon, tracks.Resolve(profile), "The chosen track is raced once it is unlocked.");
+        }
+
+        [Test]
+        public void Credits_AreScaledByEachTracksMultiplier()
+        {
+            var pineValley = settings.Tracks.Tracks[0];
+            var redCanyon = settings.Tracks.Tracks[1];
+            TestContext.WriteLine($"Red Canyon pays x{redCanyon.CreditMultiplier}: {settings.CreditsFor(1, redCanyon)}, {settings.CreditsFor(2, redCanyon)}, " +
+                                  $"{settings.CreditsFor(3, redCanyon)}, {settings.CreditsFor(4, redCanyon)}");
+            Assert.AreEqual(1f, pineValley.CreditMultiplier);
+            Assert.Greater(redCanyon.CreditMultiplier, 1f, "The harder track pays more.");
+            for (int position = 1; position <= 4; position++)
+            {
+                Assert.AreEqual(settings.CreditsFor(position), settings.CreditsFor(position, pineValley));
+                int scaled = settings.CreditsFor(position, redCanyon);
+                Assert.AreEqual(settings.CreditsFor(position) * redCanyon.CreditMultiplier, scaled, 5f);
+                Assert.AreEqual(0, scaled % 10, "Credits are rounded to 10.");
+            }
+
+            var profile = PlayerProfile.InMemory();
+            var win = RaceReward.Record(profile, settings, roster, redCanyon, 1, 4, 200f, 65f, false);
+            Assert.AreEqual(settings.CreditsFor(1, redCanyon), win.CreditsEarned);
+            Assert.AreEqual(win.CreditsEarned, profile.Credits);
+            Assert.AreEqual(settings.CreditsFor(1), RaceReward.Record(profile, settings, roster, null, 1, 4, 200f, 65f, false).CreditsEarned,
+                "Without a track a race pays the plain amount.");
+        }
+
         private T Keep<T>(T item) where T : Object
         {
             created.Add(item);

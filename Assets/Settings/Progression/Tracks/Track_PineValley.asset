@@ -15,6 +15,9 @@ MonoBehaviour:
   id: pine-valley
   displayName: Pine Valley
   sceneName: PineValley
+  description: 'Pine forest  |  1.6 km'
+  laps: 3
+  creditMultiplier: 1
   winsToUnlock: 0
   previousTrack: {fileID: 0}
   positionOnPreviousTrack: 0

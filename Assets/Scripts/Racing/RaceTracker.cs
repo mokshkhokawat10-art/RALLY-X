@@ -27,11 +27,20 @@ namespace RallyX.Racing
         private Vector3 lastPosition;
         private float lapStartTime;
         private float wrongWayTime;
+        private int laps;
 
         public RaceTracker(RaceCircuit circuit, RaceSettings settings)
         {
             this.circuit = circuit;
             this.settings = settings;
+            laps = settings.Laps;
+        }
+
+        /// <summary>Laps in the race, at least 1. Starts as the race settings' laps; set it before a race, not during one.</summary>
+        public int Laps
+        {
+            get => laps;
+            set => laps = Mathf.Max(1, value);
         }
 
         public int CompletedLaps { get; private set; }
@@ -49,7 +58,7 @@ namespace RallyX.Racing
         public bool HasStarted => CompletedLaps > 0 || CheckpointsThisLap > 0;
 
         /// <summary>Lap being driven, from 1, for display. Stays on the last lap after the finish.</summary>
-        public int CurrentLap => Mathf.Min(CompletedLaps + 1, settings.Laps);
+        public int CurrentLap => Mathf.Min(CompletedLaps + 1, Laps);
 
         /// <summary>Distance along the lap from the start line, metres.</summary>
         public float TrackDistance { get; private set; }
@@ -162,7 +171,7 @@ namespace RallyX.Racing
             lapStartTime = time;
             CompletedLaps++;
             CheckpointsThisLap = 1;
-            if (CompletedLaps < settings.Laps)
+            if (CompletedLaps < Laps)
                 return RaceEvents.Checkpoint | RaceEvents.LapCompleted;
 
             Finished = true;

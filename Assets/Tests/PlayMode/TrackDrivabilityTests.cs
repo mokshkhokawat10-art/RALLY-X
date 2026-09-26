@@ -13,14 +13,18 @@ using UnityEngine.TestTools;
 namespace RallyX.Tests
 {
     /// <summary>
-    /// Loads the generated Pine Valley scene and checks that it is drivable: road under the whole lap, nothing in
+    /// Loads each generated track scene and checks that it is drivable: road under the whole lap, nothing in
     /// the space above it, trees standing back, a usable starting grid, and a full lap by a scripted driver in the
     /// real car. The race is switched off, so these check free driving. Rebuild the track
-    /// (RALLY X > Build > Rebuild Pine Valley Track) before running these.
+    /// (RALLY X > Build > Rebuild All Tracks) before running these.
     /// </summary>
-    public sealed class PineValleyTrackTests : VehicleTestBase
+    [TestFixture("PineValley")]
+    [TestFixture("RedCanyon")]
+    public sealed class TrackDrivabilityTests : VehicleTestBase
     {
-        private const string SceneName = "PineValley";
+        private readonly string sceneName;
+
+        public TrackDrivabilityTests(string sceneName) => this.sceneName = sceneName;
 
         // Road probes cover this fraction of the half width, keeping clear of the edge where the bevel starts.
         private const float ProbeWidthFraction = 0.9f;
@@ -42,10 +46,10 @@ namespace RallyX.Tests
         [UnitySetUp]
         public IEnumerator LoadTrack()
         {
-            Assert.IsTrue(Application.CanStreamedLevelBeLoaded(SceneName),
-                $"{SceneName} is not in the build scene list. Run RALLY X > Build > Rebuild Pine Valley Track.");
-            yield return SceneManager.LoadSceneAsync(SceneName, LoadSceneMode.Additive);
-            scene = SceneManager.GetSceneByName(SceneName);
+            Assert.IsTrue(Application.CanStreamedLevelBeLoaded(sceneName),
+                $"{sceneName} is not in the build scene list. Run RALLY X > Build > Rebuild All Tracks.");
+            yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            scene = SceneManager.GetSceneByName(sceneName);
 
             path = Object.FindFirstObjectByType<TrackPath>();
             Assert.IsNotNull(path, "The track scene has no TrackPath.");

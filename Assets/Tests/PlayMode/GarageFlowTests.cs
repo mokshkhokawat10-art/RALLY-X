@@ -270,6 +270,90 @@ namespace RallyX.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator MainMenu_BrowsesTracksAndRacesRedCanyonOnceItIsUnlocked()
+        {
+            var progression = LoadAsset<ProgressionSettings>("Assets/Settings/Progression/ProgressionSettings.asset");
+            var roster = LoadAsset<VehicleRoster>("Assets/Settings/Vehicles/VehicleRoster.asset");
+            var pineValley = progression.Tracks.Tracks[0];
+            var redCanyon = progression.Tracks.Tracks[1];
+            var profile = PlayerProfile.Current;
+
+            yield return Open(GameScenes.MainMenu);
+            var menu = Object.FindFirstObjectByType<MainMenu>();
+            var root = menu.GetComponent<UIDocument>().rootVisualElement;
+            Assert.AreSame(pineValley, menu.Track, "A new career opens on the first track.");
+            Assert.IsTrue(menu.CanRace);
+            Assert.AreEqual(DisplayStyle.Flex, root.Q<Button>("track-next").style.display.value, "With two tracks the arrows show.");
+            StringAssert.Contains("3 LAPS", menu.TrackDetailsText);
+
+            // Red Canyon is locked: shown with what unlocks it, RACE is off, and it isn't chosen.
+            menu.NextTrack();
+            Assert.AreSame(redCanyon, menu.Track);
+            Assert.IsTrue(menu.TrackLocked);
+            Assert.IsFalse(menu.CanRace);
+            Assert.IsFalse(root.Q<Button>("race-button").enabledSelf);
+            Assert.AreEqual("LOCKED: FINISH TOP 3 AT PINE VALLEY", menu.TrackRecordText);
+            StringAssert.Contains("CREDITS x1.5", menu.TrackDetailsText);
+            Assert.AreNotEqual(redCanyon.Id, profile.SelectedTrackId, "A locked track is never chosen.");
+            TestContext.WriteLine($"Locked: {Text(menu, "track-name")} | {menu.TrackDetailsText} | {menu.TrackRecordText}");
+            menu.Race();
+            yield return null;
+            Assert.AreEqual(GameScenes.MainMenu, SceneManager.GetActiveScene().name, "A locked track can't be raced.");
+
+            // Browsing wraps round, and showing an unlocked track chooses it.
+            menu.NextTrack();
+            Assert.AreSame(pineValley, menu.Track);
+            Assert.AreEqual(pineValley.Id, profile.SelectedTrackId);
+
+            // A podium at Pine Valley unlocks Red Canyon.
+            var reward = RaceReward.Record(profile, progression, roster, pineValley, 3, 4, 240f, 78f, false);
+            CollectionAssert.Contains(reward.UnlockedTracks, redCanyon.DisplayName);
+            menu.PreviousTrack();
+            Assert.AreSame(redCanyon, menu.Track);
+            Assert.IsFalse(menu.TrackLocked);
+            Assert.IsTrue(menu.CanRace);
+            Assert.IsTrue(root.Q<Button>("race-button").enabledSelf);
+            Assert.AreEqual("NO LAP RECORD YET", menu.TrackRecordText);
+            Assert.AreEqual(redCanyon.Id, profile.SelectedTrackId, "The chosen track is saved.");
+
+            // RACE loads it, raced over its own laps.
+            menu.Race();
+            yield return WaitForActiveScene(redCanyon.SceneName);
+            yield return null;
+            var entry = Object.FindFirstObjectByType<PlayerRaceEntry>();
+            Assert.IsNotNull(entry, "Red Canyon needs a PlayerRaceEntry. Rebuild the track.");
+            Assert.AreSame(redCanyon, entry.Track);
+            Assert.AreEqual(redCanyon.Laps, Object.FindFirstObjectByType<RaceManager>().Laps);
+
+            // Back at the main menu, it opens on the chosen track.
+            yield return Open(GameScenes.MainMenu);
+            Assert.AreSame(redCanyon, Object.FindFirstObjectByType<MainMenu>().Track);
+        }
+
+        [UnityTest]
+        public IEnumerator Pause_MainMenuLeavesTheRaceWithTimeRunningAgain()
+        {
+            yield return Open(GameScenes.MainMenu);
+            var menu = Object.FindFirstObjectByType<MainMenu>();
+            menu.Race();
+            yield return WaitForActiveScene(menu.RaceScene);
+            yield return null;
+
+            var hud = Object.FindFirstObjectByType<RaceHud>();
+            float timeScale = Time.timeScale;
+            Assert.IsTrue(hud.Pause());
+            Assert.AreEqual(0f, Time.timeScale);
+            hud.PauseSelection.Move(2);
+            Assert.AreEqual("pause-menu", hud.PauseSelection.Selected.name);
+            Assert.IsTrue(hud.PauseSelection.Selected.enabledSelf, "The game has a main menu to go back to.");
+            hud.PauseSelection.Submit();
+
+            yield return WaitForActiveScene(GameScenes.MainMenu);
+            Assert.AreEqual(timeScale, Time.timeScale, "Leaving a paused race lets time run again.");
+            Assert.IsFalse(AudioListener.pause);
+        }
+
         private static UpgradeDefinition[] ToArray(UpgradeCatalog catalog)
         {
             var upgrades = new UpgradeDefinition[catalog.Upgrades.Count];

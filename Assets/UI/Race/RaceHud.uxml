@@ -47,5 +47,15 @@
                 <ui:Label text="Restart: Backspace / gamepad View      Main menu: Esc / gamepad Start" class="hint" />
             </ui:VisualElement>
         </ui:VisualElement>
+        <ui:VisualElement name="pause" class="pause">
+            <ui:VisualElement class="pause-card">
+                <ui:Label text="PAUSED" class="results-title" />
+                <ui:Label name="pause-track" class="pause-track" />
+                <ui:Button name="pause-resume" text="RESUME" class="pause-button" />
+                <ui:Button name="pause-restart" text="RESTART RACE" class="pause-button" />
+                <ui:Button name="pause-menu" text="MAIN MENU" class="pause-button" />
+                <ui:Label text="Up / Down  choose      Enter  confirm      Esc / Start  resume" class="hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

@@ -15,7 +15,7 @@ namespace RallyX.Player
     /// Puts the player in a track scene's race in the car chosen in the garage (the roster's default if none is
     /// chosen or it is locked), with its installed upgrades applied to its handling, on pole with the chase camera
     /// behind it. Records laps in the player's profile, and pays and records the result when they finish
-    /// (<see cref="RaceReward"/>). Runs before the race and AI set up, so they find the car.
+    /// (<see cref="RaceReward"/>). Sets the race to the track's laps. Runs before the race and AI set up, so they find the car.
     /// </summary>
     [DefaultExecutionOrder(-100)]
     [DisallowMultipleComponent]
@@ -84,6 +84,10 @@ namespace RallyX.Player
             var profile = PlayerProfile.Current;
             if (progression != null)
                 profile.EnsureStarted(progression.StartingCredits);
+
+            // The track's own race length; runs before the race manager sets up the first race.
+            if (race != null && track != null)
+                race.SetLaps(track.Laps);
 
             Vehicle = roster.Resolve(profile);
             var slot = grid.GetSlot(0);

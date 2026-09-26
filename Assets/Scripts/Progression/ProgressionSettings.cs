@@ -10,7 +10,7 @@ namespace RallyX.Progression
     [CreateAssetMenu(menuName = "RALLY X/Progression Settings", fileName = "ProgressionSettings")]
     public sealed class ProgressionSettings : ScriptableObject
     {
-        [Tooltip("Credits for finishing 1st, 2nd, 3rd... Positions past the end of the list earn the last amount.")]
+        [Tooltip("Credits for finishing 1st, 2nd, 3rd... Positions past the end of the list earn the last amount. Each track multiplies these by its credit multiplier.")]
         [SerializeField] private int[] creditsByPosition = { 1500, 1000, 700, 400 };
 
         [Tooltip("Credits a new career starts with.")]
@@ -35,6 +35,9 @@ namespace RallyX.Progression
                 return 0;
             return Mathf.Max(0, creditsByPosition[Mathf.Min(position, creditsByPosition.Length) - 1]);
         }
+
+        /// <summary>Credits for a finish on a track, with the track's multiplier (none without a track).</summary>
+        public int CreditsFor(int position, TrackInfo track) => track != null ? track.ScaleCredits(CreditsFor(position)) : CreditsFor(position);
 
         /// <summary>Why the settings can't be used, or null when they are complete.</summary>
         public string FindProblem()
@@ -72,7 +75,7 @@ namespace RallyX.Progression
         public List<string> UnlockedTracks { get; } = new List<string>();
 
         /// <summary>
-        /// Pays and records a finished race: credits for the position, the win and track finish, and any cars or
+        /// Pays and records a finished race: credits for the position (times the track's multiplier), the win and track finish, and any cars or
         /// tracks it unlocked (kept in the profile from then on).
         /// </summary>
         public static RaceReward Record(PlayerProfile profile, ProgressionSettings settings, VehicleRoster roster, TrackInfo track,
@@ -95,7 +98,7 @@ namespace RallyX.Progression
                 RaceTime = raceTime,
                 BestLap = bestLap,
                 NewLapRecord = newLapRecord,
-                CreditsEarned = settings != null ? settings.CreditsFor(position) : 0,
+                CreditsEarned = settings != null ? settings.CreditsFor(position, track) : 0,
             };
             profile.RecordRaceFinish(position, reward.CreditsEarned, track != null ? track.Id : null);
 

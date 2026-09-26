@@ -8,8 +8,9 @@ namespace RallyX.EditorTools
 {
     /// <summary>
     /// Creates the career data if it is missing: the progression settings (credits per position, starting credits),
-    /// the upgrade catalogue with each stage's price and effect, and the track list with Pine Valley. Existing assets
-    /// are never overwritten, so prices and rewards tuned in the Editor are kept.
+    /// the upgrade catalogue with each stage's price and effect, and the tracks (Pine Valley, then Red Canyon, unlocked
+    /// by a top-3 finish at Pine Valley). Existing assets are never overwritten, so prices and rewards tuned in the
+    /// Editor are kept; a track missing from an existing track list is added to its end.
     /// </summary>
     public static class ProgressionContentBuilder
     {
@@ -17,9 +18,12 @@ namespace RallyX.EditorTools
         public const string UpgradesPath = "Assets/Settings/Progression/UpgradeCatalog.asset";
         public const string TracksPath = "Assets/Settings/Progression/TrackRoster.asset";
         public const string PineValleyTrackPath = "Assets/Settings/Progression/Tracks/Track_PineValley.asset";
+        public const string RedCanyonTrackPath = "Assets/Settings/Progression/Tracks/Track_RedCanyon.asset";
 
         private const string LogPrefix = "[RALLY X Build] ";
         private const string PineValleyId = "pine-valley";
+        private const string RedCanyonId = "red-canyon";
+        private const int Laps = 3;
 
         // Three stages each, every stage dearer and better. Effects are totals with that stage installed.
         private static UpgradeDefinition[] DefaultUpgrades() => new[]
@@ -64,13 +68,19 @@ namespace RallyX.EditorTools
 
             string pineValleyScene = PineValleyTrack.LoadOrCreate().SceneName;
             var pineValley = EditorAssetUtility.LoadOrCreate(PineValleyTrackPath,
-                () => TrackInfo.Create(PineValleyId, "Pine Valley", pineValleyScene));
+                () => TrackInfo.Create(PineValleyId, "Pine Valley", pineValleyScene, description: "Pine forest  |  1.6 km", laps: Laps));
+            string redCanyonScene = RedCanyonTrack.LoadOrCreate().SceneName;
+            var redCanyon = EditorAssetUtility.LoadOrCreate(RedCanyonTrackPath,
+                () => TrackInfo.Create(RedCanyonId, "Red Canyon", redCanyonScene, previousTrack: pineValley, positionOnPreviousTrack: 3,
+                    description: "Dry canyon  |  1.9 km", laps: Laps, creditMultiplier: 1.5f));
+
             var tracks = EditorAssetUtility.LoadOrCreate(TracksPath, () =>
             {
                 var roster = ScriptableObject.CreateInstance<TrackRoster>();
-                roster.SetTracks(new[] { pineValley });
+                roster.SetTracks(new[] { pineValley, redCanyon });
                 return roster;
             });
+            EnsureListed(tracks, redCanyon);
 
             var settings = EditorAssetUtility.LoadOrCreate(SettingsPath, () =>
             {
@@ -93,6 +103,21 @@ namespace RallyX.EditorTools
         public static ProgressionSettings LoadSettings() => AssetDatabase.LoadAssetAtPath<ProgressionSettings>(SettingsPath);
 
         public static TrackInfo LoadPineValley() => AssetDatabase.LoadAssetAtPath<TrackInfo>(PineValleyTrackPath);
+
+        public static TrackInfo LoadRedCanyon() => AssetDatabase.LoadAssetAtPath<TrackInfo>(RedCanyonTrackPath);
+
+        /// <summary>Adds a track to the end of an existing track list that doesn't have it (a list made before the track existed).</summary>
+        private static void EnsureListed(TrackRoster roster, TrackInfo track)
+        {
+            var tracks = new System.Collections.Generic.List<TrackInfo>(roster.Tracks);
+            if (tracks.Contains(track))
+                return;
+
+            tracks.Add(track);
+            roster.SetTracks(tracks.ToArray());
+            EditorUtility.SetDirty(roster);
+            Debug.Log(LogPrefix + $"Added {track.DisplayName} to {TracksPath}.");
+        }
 
         private static UpgradeDefinition Upgrade(UpgradeType type, string displayName, string description, params (int cost, VehicleTuning tuning)[] stages)
         {

@@ -11,9 +11,9 @@ using Object = UnityEngine.Object;
 namespace RallyX.EditorTools
 {
     /// <summary>
-    /// Renders a set of views of a track to PNG files for review without opening the scene:
+    /// Renders a set of views of each track to PNG files for review without opening the scenes:
     /// a top-down overview, chase-camera views around the lap and aerial views of each bridge.
-    /// Batch mode: -executeMethod RallyX.EditorTools.TrackCaptureTool.CaptureBatch -captureDir &lt;folder&gt;
+    /// Batch mode: -executeMethod RallyX.EditorTools.TrackCaptureTool.CaptureBatch -captureDir &lt;folder&gt; [-track &lt;scene name&gt;]
     /// </summary>
     public static class TrackCaptureTool
     {
@@ -21,19 +21,38 @@ namespace RallyX.EditorTools
         private const int Height = 720;
         private const float ViewSpacing = 120f;
 
-        [MenuItem("RALLY X/Dev/Capture Pine Valley Screenshots")]
+        [MenuItem("RALLY X/Dev/Capture Track Screenshots")]
         public static void CaptureFromMenu()
         {
             string folder = Path.GetFullPath("Captures");
-            if (Capture(PineValleyTrack.LoadOrCreate(), folder))
+            if (CaptureTracks(null, folder))
                 EditorUtility.RevealInFinder(folder);
         }
 
+        /// <summary>Batch mode: -captureDir &lt;folder&gt; (default Captures) and optionally -track &lt;scene name&gt; (default every track).</summary>
         public static void CaptureBatch()
         {
             string folder = CommandLineValue("-captureDir") ?? Path.GetFullPath("Captures");
-            if (!Capture(PineValleyTrack.LoadOrCreate(), folder))
+            if (!CaptureTracks(CommandLineValue("-track"), folder))
                 EditorApplication.Exit(1);
+        }
+
+        /// <summary>Captures one track (by scene name) or, with null, every track, each into its own subfolder.</summary>
+        public static bool CaptureTracks(string sceneName, string folder)
+        {
+            bool captured = false;
+            foreach (var definition in TrackCatalog.LoadOrCreateAll())
+            {
+                if (sceneName != null && definition.SceneName != sceneName)
+                    continue;
+                if (!Capture(definition, Path.Combine(folder, definition.SceneName)))
+                    return false;
+                captured = true;
+            }
+
+            if (!captured)
+                Debug.LogError($"[RALLY X Capture] No track with the scene name '{sceneName}'.");
+            return captured;
         }
 
         public static bool Capture(TrackDefinition definition, string folder)
@@ -140,7 +159,8 @@ namespace RallyX.EditorTools
             Object.DestroyImmediate(image);
         }
 
-        private static string CommandLineValue(string name)
+        /// <summary>The value after a command-line option, e.g. "Captures" for -captureDir Captures, or null.</summary>
+        internal static string CommandLineValue(string name)
         {
             string[] args = Environment.GetCommandLineArgs();
             int index = Array.IndexOf(args, name);

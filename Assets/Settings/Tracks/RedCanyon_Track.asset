@@ -1,0 +1,193 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26288b5f677497f4ea330f6699c3a988, type: 3}
+  m_Name: RedCanyon_Track
+  m_EditorClassIdentifier: RallyX.Editor::RallyX.EditorTools.TrackDefinition
+  displayName: Red Canyon
+  sceneName: RedCanyon
+  theme: {fileID: 11400000, guid: 118f33e3cb2be234b9f232291636068e, type: 2}
+  nodes:
+  - position: {x: 390, y: 104}
+    elevation: 8
+    width: 11
+    surface: {fileID: 11400000, guid: f6608bae45eb58945893173dc9d30284, type: 2}
+  - position: {x: 300, y: 100}
+    elevation: 8
+    width: 11
+    surface: {fileID: 11400000, guid: f6608bae45eb58945893173dc9d30284, type: 2}
+  - position: {x: 215, y: 104}
+    elevation: 8.5
+    width: 10.5
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 150, y: 130}
+    elevation: 9
+    width: 10
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 112, y: 190}
+    elevation: 10
+    width: 10
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 100, y: 262}
+    elevation: 11.5
+    width: 10
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 108, y: 335}
+    elevation: 13
+    width: 10
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 100, y: 400}
+    elevation: 15
+    width: 10
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 122, y: 452}
+    elevation: 18
+    width: 10
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 170, y: 475}
+    elevation: 20.5
+    width: 9.5
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 245, y: 472}
+    elevation: 24
+    width: 9.5
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 300, y: 470}
+    elevation: 26.5
+    width: 9.5
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 330, y: 488}
+    elevation: 28
+    width: 11
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 318, y: 515}
+    elevation: 29
+    width: 11
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 285, y: 520}
+    elevation: 30.5
+    width: 9.5
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 225, y: 518}
+    elevation: 33.5
+    width: 9.5
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 178, y: 530}
+    elevation: 35
+    width: 11
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 175, y: 560}
+    elevation: 36
+    width: 11
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 215, y: 578}
+    elevation: 37
+    width: 10
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 300, y: 580}
+    elevation: 38.5
+    width: 10
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 385, y: 572}
+    elevation: 38
+    width: 10
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 460, y: 555}
+    elevation: 37
+    width: 10
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 520, y: 520}
+    elevation: 35
+    width: 10.5
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 548, y: 460}
+    elevation: 31
+    width: 10
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 560, y: 400}
+    elevation: 27
+    width: 10
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 510, y: 352}
+    elevation: 24
+    width: 10
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 545, y: 300}
+    elevation: 21
+    width: 10
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  - position: {x: 535, y: 235}
+    elevation: 16
+    width: 10
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 510, y: 170}
+    elevation: 12
+    width: 10
+    surface: {fileID: 11400000, guid: 5f81216eb3284564eaf9cc04b8f40f9e, type: 2}
+  - position: {x: 478, y: 124}
+    elevation: 9
+    width: 10.5
+    surface: {fileID: 11400000, guid: f6608bae45eb58945893173dc9d30284, type: 2}
+  sampleSpacing: 2
+  jumps:
+  - start:
+      node: 19
+      t: 0.3
+    height: 1.3
+    rampLength: 16
+    landingLength: 34
+  - start:
+      node: 27
+      t: 0.3
+    height: 1.2
+    rampLength: 14
+    landingLength: 32
+  bridges:
+  - center:
+      node: 5
+      t: 0.5
+    length: 20
+    creekDepth: 3.5
+  shortcuts:
+  - from:
+      node: 24
+      t: 0.15
+    to:
+      node: 26
+      t: 0.15
+    waypoints:
+    - {x: 552, y: 352}
+    width: 5.5
+    surface: {fileID: 11400000, guid: 594ee8b7ce51ee44ab35826b2264770b, type: 2}
+  roadBevelWidth: 1
+  roadBevelDrop: 0.3
+  terrainSize: 700
+  terrainMaxHeight: 140
+  heightmapResolution: 513
+  alphamapResolution: 512
+  baseHeight: 12
+  noiseAmplitude: 26
+  noiseScale: 140
+  rimHeight: 70
+  rimStart: 0.78
+  embankmentWidth: 14
+  terraceHeight: 8
+  terraceWall: 0.2
+  seed: 7321
+  treeSpacing: 18
+  treeClearance: 6
+  clearingAmount: 0.5
+  roadsideRockChance: 0.7
+  forestBoulderCount: 140
+  checkpointSpacing: 120
+  checkpointMargin: 6
+  checkpointHeight: 12
+  checkpointJunctionClearance: 20

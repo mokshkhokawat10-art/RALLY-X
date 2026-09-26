@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEngine;
 
 namespace RallyX.EditorTools
 {
@@ -8,6 +9,7 @@ namespace RallyX.EditorTools
     /// </summary>
     public static class BatchTasks
     {
+        /// <summary>Setup plus every generated asset that is missing, including the scenes of tracks that have none yet.</summary>
         public static void SetupAndBuild()
         {
             bool success = ProjectSetup.Run()
@@ -17,7 +19,7 @@ namespace RallyX.EditorTools
                            && AIContentBuilder.BuildMissing()
                            && GarageContentBuilder.BuildMissing()
                            && ProgressionContentBuilder.BuildMissing()
-                           && PineValleyTrack.LoadOrCreate() != null
+                           && TrackCatalog.BuildMissing()
                            && SandboxCourseBuilder.Rebuild()
                            && MenuSceneBuilder.Build();
             if (!success)
@@ -27,15 +29,20 @@ namespace RallyX.EditorTools
         /// <summary>Setup plus a full regeneration of every track scene.</summary>
         public static void SetupAndBuildTracks()
         {
-            bool success = ProjectSetup.Run()
-                           && VehicleContentBuilder.BuildMissing()
-                           && CameraContentBuilder.BuildMissing()
-                           && RaceContentBuilder.BuildMissing()
-                           && AIContentBuilder.BuildMissing()
-                           && GarageContentBuilder.BuildMissing()
-                           && ProgressionContentBuilder.BuildMissing()
-                           && TrackSceneBuilder.Build(PineValleyTrack.LoadOrCreate());
+            bool success = SetupTrackContent() && TrackCatalog.BuildAll();
             if (!success)
+                EditorApplication.Exit(1);
+        }
+
+        /// <summary>Setup plus a full regeneration of one track's scene: -track &lt;scene name&gt;, e.g. -track RedCanyon.</summary>
+        public static void SetupAndBuildTrack()
+        {
+            string sceneName = TrackCaptureTool.CommandLineValue("-track");
+            bool success = SetupTrackContent();
+            var definition = success ? TrackCatalog.Find(sceneName) : null;
+            if (success && definition == null)
+                Debug.LogError($"[RALLY X Build] No track with the scene name '{sceneName}'. Pass -track <scene name>.");
+            if (definition == null || !TrackSceneBuilder.Build(definition))
                 EditorApplication.Exit(1);
         }
 
@@ -51,5 +58,14 @@ namespace RallyX.EditorTools
             if (!success)
                 EditorApplication.Exit(1);
         }
+
+        private static bool SetupTrackContent() =>
+            ProjectSetup.Run()
+            && VehicleContentBuilder.BuildMissing()
+            && CameraContentBuilder.BuildMissing()
+            && RaceContentBuilder.BuildMissing()
+            && AIContentBuilder.BuildMissing()
+            && GarageContentBuilder.BuildMissing()
+            && ProgressionContentBuilder.BuildMissing();
     }
 }

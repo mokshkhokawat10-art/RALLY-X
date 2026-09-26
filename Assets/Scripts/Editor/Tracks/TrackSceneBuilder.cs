@@ -35,9 +35,6 @@ namespace RallyX.EditorTools
 
         public static string ScenePath(TrackDefinition definition) => $"{TracksFolder}/{definition.SceneName}.unity";
 
-        [MenuItem("RALLY X/Build/Rebuild Pine Valley Track")]
-        public static void RebuildPineValleyFromMenu() => Build(PineValleyTrack.LoadOrCreate());
-
         public static bool Build(TrackDefinition definition)
         {
             var problems = TrackLayout.Build(definition).Validate();
@@ -107,11 +104,13 @@ namespace RallyX.EditorTools
             AssetDatabase.DeleteAsset(generatedFolder);
             EditorAssetUtility.EnsureFolder(generatedFolder);
 
-            var assets = EnvironmentAssetBuilder.LoadOrCreate();
-            ConfigureLighting(scene);
+            // A track without a theme is the pine forest.
+            var theme = definition.Theme != null ? definition.Theme : TrackTheme.CreateForest();
+            var assets = EnvironmentAssetBuilder.LoadOrCreate(theme);
+            ConfigureLighting(scene, theme, assets.Sky);
 
-            var terrain = TerrainGenerator.Generate(definition, layout, assets, $"{generatedFolder}/Terrain.asset");
-            CreateTerrainObject(terrain.Data);
+            var terrain = TerrainGenerator.Generate(definition, layout, assets, theme, $"{generatedFolder}/Terrain.asset");
+            CreateTerrainObject(terrain.Data, theme.OffRoadSurface != null ? theme.OffRoadSurface : VehicleContentBuilder.LoadSurface("Grass"));
             BuildRoads(layout, assets, generatedFolder);
             TrackPropsBuilder.Build(new GameObject("Props").transform, layout, terrain, assets);
 
@@ -141,32 +140,44 @@ namespace RallyX.EditorTools
 
             EditorAssetUtility.AddSceneToBuildSettings(scenePath);
             AssetDatabase.SaveAssets();
+            if (definition.Theme == null)
+                Object.DestroyImmediate(theme);
             Debug.Log(LogPrefix + $"Built {definition.DisplayName}: {layout.Main.Length:0} m lap, {circuit.CheckpointCount} checkpoints, " +
                       $"{terrain.Data.treeInstanceCount} trees, scene {scenePath}.");
             return true;
         }
 
-        private static void ConfigureLighting(Scene scene)
+        private static void ConfigureLighting(Scene scene, TrackTheme theme, Material sky)
         {
             foreach (var root in scene.GetRootGameObjects())
             {
                 if (!root.TryGetComponent(out Light light) || light.type != LightType.Directional)
                     continue;
 
-                light.transform.rotation = Quaternion.Euler(40f, -35f, 0f);
-                light.intensity = 1.3f;
-                light.color = new Color(1f, 0.95f, 0.86f);
+                light.transform.rotation = Quaternion.Euler(theme.SunRotation);
+                light.intensity = theme.SunIntensity;
+                light.color = theme.SunColor;
                 light.shadows = LightShadows.Soft;
                 RenderSettings.sun = light;
             }
 
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = 0.0032f;
-            RenderSettings.fogColor = new Color(0.64f, 0.72f, 0.78f);
+            RenderSettings.fogDensity = theme.FogDensity;
+            RenderSettings.fogColor = theme.FogColor;
+
+            // A theme's own sky comes with its own ambient light, set directly so it never depends on baking.
+            if (sky != null)
+            {
+                RenderSettings.skybox = sky;
+                RenderSettings.ambientMode = AmbientMode.Trilight;
+                RenderSettings.ambientSkyColor = theme.AmbientSky;
+                RenderSettings.ambientEquatorColor = theme.AmbientEquator;
+                RenderSettings.ambientGroundColor = theme.AmbientGround;
+            }
         }
 
-        private static void CreateTerrainObject(TerrainData data)
+        private static void CreateTerrainObject(TerrainData data, SurfaceType offRoad)
         {
             var terrainObject = Terrain.CreateTerrainGameObject(data);
             terrainObject.name = "Terrain";
@@ -178,8 +189,8 @@ namespace RallyX.EditorTools
             terrain.treeDistance = 400f;
             terrain.treeBillboardDistance = 400f;
 
-            // Anything off the road is grass as far as the wheels are concerned.
-            terrainObject.AddComponent<SurfaceMarker>().Surface = VehicleContentBuilder.LoadSurface("Grass");
+            // Anything off the road is the theme's off-road surface as far as the wheels are concerned.
+            terrainObject.AddComponent<SurfaceMarker>().Surface = offRoad;
         }
 
         private static void BuildRoads(TrackLayout layout, EnvironmentAssets assets, string generatedFolder)

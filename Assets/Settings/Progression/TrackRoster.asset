@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: RallyX::RallyX.Progression.TrackRoster
   tracks:
   - {fileID: 11400000, guid: f4c9707f4eab2e4459b85a26cac94815, type: 2}
+  - {fileID: 11400000, guid: 49a25b63a40afba4d86c869b22ca4232, type: 2}

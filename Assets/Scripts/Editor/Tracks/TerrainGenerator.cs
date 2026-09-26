@@ -67,7 +67,8 @@ namespace RallyX.EditorTools
         private const float MapEdgeMargin = 12f;
         private const float MaxTreeSlope = 38f;
 
-        public static GeneratedTerrain Generate(TrackDefinition definition, TrackLayout layout, EnvironmentAssets assets, string assetPath)
+        public static GeneratedTerrain Generate(TrackDefinition definition, TrackLayout layout, EnvironmentAssets assets, TrackTheme theme,
+            string assetPath)
         {
             int resolution = definition.HeightmapResolution;
             float size = definition.TerrainSize;
@@ -81,19 +82,23 @@ namespace RallyX.EditorTools
 
             var data = new TerrainData { heightmapResolution = resolution };
             data.size = new Vector3(size, definition.TerrainMaxHeight, size);
-            data.SetHeights(0, 0, BuildHeights(definition, field, creeks));
-
-            data.terrainLayers = assets.TerrainLayers;
             data.alphamapResolution = definition.AlphamapResolution;
-            data.SetAlphamaps(0, 0, BuildAlphamaps(definition, roads, data));
 
-            data.treePrototypes = assets.TreePrefabs.Select(prefab => new TreePrototype { prefab = prefab }).ToArray();
-            data.SetTreeInstances(PlaceTrees(definition, field, creeks, data), snapToHeightmap: true);
-
+            // Save the asset before painting it: the ground layers' weights live in textures that are only stored with
+            // the terrain when it is already an asset (painted first, they were lost and the ground showed one layer).
             if (AssetDatabase.LoadAssetAtPath<TerrainData>(assetPath) != null)
                 AssetDatabase.DeleteAsset(assetPath);
             EditorAssetUtility.EnsureFolder(System.IO.Path.GetDirectoryName(assetPath)?.Replace('\\', '/'));
             AssetDatabase.CreateAsset(data, assetPath);
+
+            data.SetHeights(0, 0, BuildHeights(definition, field, creeks));
+
+            data.terrainLayers = assets.TerrainLayers;
+            data.SetAlphamaps(0, 0, BuildAlphamaps(definition, theme, roads, creeks, data));
+
+            data.treePrototypes = assets.TreePrefabs.Select(prefab => new TreePrototype { prefab = prefab }).ToArray();
+            data.SetTreeInstances(PlaceTrees(definition, field, creeks, data, assets.TreeShares), snapToHeightmap: true);
+            EditorUtility.SetDirty(data);
 
             return new GeneratedTerrain { Data = data, Creeks = creeks, Field = field };
         }
@@ -117,7 +122,23 @@ namespace RallyX.EditorTools
             float v = z / size * 2f - 1f;
             float edge = Mathf.Pow(Mathf.Pow(Mathf.Abs(u), 4f) + Mathf.Pow(Mathf.Abs(v), 4f), 0.25f);
             float rim = definition.RimHeight * SmoothStep((edge - definition.RimStart) / (1f - definition.RimStart));
-            return definition.BaseHeight + definition.NoiseAmplitude * noise / 0.9375f + rim;
+            return Terrace(definition, definition.BaseHeight + definition.NoiseAmplitude * noise / 0.9375f + rim);
+        }
+
+        /// <summary>
+        /// Turns smooth hills into flat benches with steep walls between them, like canyon country: each step of
+        /// <see cref="TrackDefinition.TerraceHeight"/> stays level, then rises over the step's last fraction. Off at 0.
+        /// </summary>
+        private static float Terrace(TrackDefinition definition, float height)
+        {
+            float step = definition.TerraceHeight;
+            if (step <= 0f)
+                return height;
+
+            float level = height / step;
+            float bench = Mathf.Floor(level);
+            float wall = definition.TerraceWall;
+            return (bench + SmoothStep((level - bench - (1f - wall)) / wall)) * step;
         }
 
         /// <summary>0..1 forest density; below the clearing amount there are no trees.</summary>
@@ -197,7 +218,8 @@ namespace RallyX.EditorTools
             return creeks;
         }
 
-        private static float[,,] BuildAlphamaps(TrackDefinition definition, List<RoadPath> roads, TerrainData data)
+        private static float[,,] BuildAlphamaps(TrackDefinition definition, TrackTheme theme, List<RoadPath> roads, List<Creek> creeks,
+            TerrainData data)
         {
             int resolution = definition.AlphamapResolution;
             float size = definition.TerrainSize;
@@ -213,7 +235,12 @@ namespace RallyX.EditorTools
                     float x = field.WorldCoordinate(ix);
                     float roadEdge = field.Distance[iz, ix] - field.HalfWidth[iz, ix];
                     float dirt = float.IsPositiveInfinity(roadEdge) ? 0f : 1f - SmoothStep((roadEdge - 0.5f) / 4f);
-                    float rock = SmoothStep((data.GetSteepness(x / size, z / size) - 30f) / 12f) * (1f - dirt);
+
+                    // Dry creeks are washes of bare, worn ground.
+                    if (!theme.CreekWater)
+                        dirt = Mathf.Max(dirt, DryWash(creeks, new Vector2(x, z)));
+
+                    float rock = SmoothStep((data.GetSteepness(x / size, z / size) - theme.RockSlope) / theme.RockBlend) * (1f - dirt);
                     float forest = SmoothStep((ForestDensity(definition, x, z) - definition.ClearingAmount - 0.2f) / 0.15f)
                                    * (1f - dirt) * (1f - rock);
                     float grass = (1f - dirt) * (1f - rock) * (1f - forest);
@@ -229,7 +256,27 @@ namespace RallyX.EditorTools
             return maps;
         }
 
-        private static TreeInstance[] PlaceTrees(TrackDefinition definition, RoadField field, List<Creek> creeks, TerrainData data)
+        /// <summary>1 in a creek's bed, fading out across its banks and towards its ends.</summary>
+        private static float DryWash(List<Creek> creeks, Vector2 point)
+        {
+            float wash = 0f;
+            foreach (var creek in creeks)
+            {
+                Vector2 offset = point - creek.Center;
+                float along = Mathf.Abs(Vector2.Dot(offset, creek.Along));
+                if (along > creek.Reach)
+                    continue;
+
+                float across = Mathf.Abs(Vector2.Dot(offset, creek.Across));
+                float bed = 1f - SmoothStep((across - creek.HalfWidth) / (creek.BankWidth * 0.5f));
+                float ends = 1f - SmoothStep((along - (creek.Reach - CreekEndFade)) / CreekEndFade);
+                wash = Mathf.Max(wash, bed * ends);
+            }
+
+            return wash;
+        }
+
+        private static TreeInstance[] PlaceTrees(TrackDefinition definition, RoadField field, List<Creek> creeks, TerrainData data, float[] shares)
         {
             var random = new System.Random(definition.Seed + 101);
             float size = definition.TerrainSize;
@@ -254,7 +301,7 @@ namespace RallyX.EditorTools
                     trees.Add(new TreeInstance
                     {
                         position = new Vector3(x / size, 0f, z / size),
-                        prototypeIndex = variant < 0.6 ? 0 : 1,
+                        prototypeIndex = PickShape(shares, variant),
                         widthScale = scale,
                         heightScale = scale * stretch,
                         rotation = rotation,
@@ -265,6 +312,20 @@ namespace RallyX.EditorTools
             }
 
             return trees.ToArray();
+        }
+
+        /// <summary>The tree shape for a random number in 0..1, each shape taking its share of the range in order.</summary>
+        private static int PickShape(float[] shares, double variant)
+        {
+            double upTo = 0.0;
+            for (int i = 0; i < shares.Length - 1; i++)
+            {
+                upTo += shares[i];
+                if (variant < upTo)
+                    return i;
+            }
+
+            return shares.Length - 1;
         }
 
         private static bool CanPlaceTree(TrackDefinition definition, RoadField field, List<Creek> creeks, TerrainData data, float x, float z)

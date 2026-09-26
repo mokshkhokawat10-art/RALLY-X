@@ -35,6 +35,7 @@ namespace RallyX.Racing
         private Comparison<RaceParticipant> compareStandings;
         private float countdownElapsed;
         private bool started;
+        private int lapsOverride;
 
         /// <summary>A new race was set up on the grid and its countdown is about to begin.</summary>
         public event Action RaceRestarted;
@@ -58,7 +59,8 @@ namespace RallyX.Racing
         public RaceSettings Settings => settings;
         public RaceCircuit Circuit => circuit;
         public RaceState State { get; private set; }
-        public int Laps => settings.Laps;
+        /// <summary>Laps in the race: the track's own count if it set one (<see cref="SetLaps"/>), otherwise the race settings'.</summary>
+        public int Laps => lapsOverride > 0 ? lapsOverride : settings.Laps;
 
         /// <summary>Seconds since GO; 0 during the countdown. Stops once every racer has finished.</summary>
         public float RaceTime { get; private set; }
@@ -85,6 +87,12 @@ namespace RallyX.Racing
             settings = newSettings;
             circuit = newCircuit;
         }
+
+        /// <summary>
+        /// Sets the race length for this track (0 = the race settings' laps). Takes effect when a race is set up, so call
+        /// it before the scene starts (the first race) or follow it with <see cref="Restart"/>.
+        /// </summary>
+        public void SetLaps(int laps) => lapsOverride = Mathf.Max(0, laps);
 
         /// <summary>Adds a racer, for example one spawned at runtime. It takes part from the next <see cref="Restart"/>.</summary>
         public void AddParticipant(RaceParticipant participant)
@@ -143,6 +151,7 @@ namespace RallyX.Racing
                 participant.Vehicle.PlaceAt(slot.position, slot.rotation);
                 participant.Vehicle.InputLocked = true;
                 participant.Tracker ??= new RaceTracker(circuit, settings);
+                participant.Tracker.Laps = Laps;
                 participant.Tracker.Reset(slot.position);
             }
 

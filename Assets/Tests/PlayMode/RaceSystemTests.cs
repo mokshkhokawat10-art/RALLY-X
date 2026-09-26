@@ -14,13 +14,17 @@ using UnityEngine.UIElements;
 namespace RallyX.Tests
 {
     /// <summary>
-    /// The race system on the real Pine Valley scene with the real car: countdown, checkpoints and laps, the finish
+    /// The race system on every track scene with the real car: countdown, checkpoints and laps, the finish
     /// and results, wrong-way warnings, restarts and positions, checked through both the race state and the HUD.
     /// The AI opponents are taken out so the race rules are checked on their own (AIRaceTests covers them).
     /// </summary>
+    [TestFixture("PineValley")]
+    [TestFixture("RedCanyon")]
     public sealed class RaceSystemTests : VehicleTestBase
     {
-        private const string SceneName = "PineValley";
+        private readonly string sceneName;
+
+        public RaceSystemTests(string sceneName) => this.sceneName = sceneName;
         private const float RaceTimeout = 480f;
 
         private Scene scene;
@@ -32,10 +36,10 @@ namespace RallyX.Tests
         [UnitySetUp]
         public IEnumerator LoadRace()
         {
-            Assert.IsTrue(Application.CanStreamedLevelBeLoaded(SceneName),
-                $"{SceneName} is not in the build scene list. Run RALLY X > Build > Rebuild Pine Valley Track.");
-            yield return SceneManager.LoadSceneAsync(SceneName, LoadSceneMode.Additive);
-            scene = SceneManager.GetSceneByName(SceneName);
+            Assert.IsTrue(Application.CanStreamedLevelBeLoaded(sceneName),
+                $"{sceneName} is not in the build scene list. Run RALLY X > Build > Rebuild All Tracks.");
+            yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            scene = SceneManager.GetSceneByName(sceneName);
 
             race = Object.FindFirstObjectByType<RaceManager>();
             hud = Object.FindFirstObjectByType<RaceHud>();
@@ -181,7 +185,7 @@ namespace RallyX.Tests
             TestContext.WriteLine($"Finished in {RaceTime.Format(tracker.FinishTime)}; laps {string.Join(", ", FormatAll(tracker.LapTimes))}; " +
                                   $"best {RaceTime.Format(tracker.BestLapTime)}; HUD laps {string.Join(" ", lapsShown)}");
 
-            Assert.AreEqual(3, tracker.CompletedLaps);
+            Assert.AreEqual(race.Laps, tracker.CompletedLaps);
             CollectionAssert.AreEqual(new[] { 1, 2, 3 }, lapEvents);
             Assert.AreEqual(lapSum, tracker.FinishTime, 0.01f, "Lap times should add up to the race time.");
             Assert.AreEqual(1, player.Position);
@@ -201,6 +205,7 @@ namespace RallyX.Tests
             var rows = Hud.Q("results-table").Query<VisualElement>(className: "results-row").ToList();
             Assert.AreEqual(2, rows.Count, "A header row and one row per racer.");
             StringAssert.Contains("You", rows[1].Q<Label>(className: "results-cell--driver").text);
+            Assert.IsFalse(hud.Pause(), "Once the results are up the race is over, so there is nothing to pause.");
 
             // Out of the driver's hands, the finished car brakes to a stop on the road.
             for (float waited = 0f; Car.SpeedKmh > 1f && waited < 15f; waited += Time.fixedDeltaTime)
@@ -321,7 +326,7 @@ namespace RallyX.Tests
             Assert.IsTrue(Car.InputLocked);
             Assert.Less(Vector3.Distance(Flat(Car.Body.position), Flat(pole.position)), 0.5f, "The car should be back on pole.");
             Assert.Less(Car.Body.linearVelocity.magnitude, 1f);
-            Assert.AreEqual("1/3", HudText("lap"));
+            Assert.AreEqual($"1/{race.Laps}", HudText("lap"));
             Assert.AreEqual("0:00.000", HudText("timer"));
             Assert.IsFalse(hud.ResultsVisible);
 
@@ -329,6 +334,51 @@ namespace RallyX.Tests
             yield return WaitForGo();
             yield return Drive(FullThrottle, 1.5f);
             Assert.Greater(Car.SpeedKmh, 20f);
+        }
+
+        [UnityTest]
+        public IEnumerator Pause_StopsTimeAndItsMenuResumesOrRestarts()
+        {
+            yield return WaitForGo();
+            yield return Drive(FullThrottle, 2f);
+            Assert.Greater(Car.SpeedKmh, 20f);
+            float timeScale = Time.timeScale;
+
+            // Paused: time stands still under the pause menu, with RESUME highlighted.
+            Assert.IsTrue(hud.Pause());
+            Assert.IsTrue(hud.Paused);
+            Assert.AreEqual(0f, Time.timeScale);
+            Assert.IsTrue(AudioListener.pause);
+            Assert.IsTrue(IsShown("pause"));
+            Assert.AreEqual("pause-resume", hud.PauseSelection.Selected.name);
+            StringAssert.Contains($"{race.Laps} LAPS", HudText("pause-track"));
+            Vector3 position = Car.Body.position;
+            float clock = race.RaceTime;
+            yield return new WaitForSecondsRealtime(0.3f);
+            Assert.AreEqual(clock, race.RaceTime, "The race clock stops while paused.");
+            Assert.Less(Vector3.Distance(position, Car.Body.position), 0.01f, "The car stops while paused.");
+            Assert.IsFalse(hud.Pause(), "Pausing twice does nothing.");
+
+            // RESUME: time runs again at the speed it ran before.
+            hud.PauseSelection.Submit();
+            Assert.IsFalse(hud.Paused);
+            Assert.AreEqual(timeScale, Time.timeScale);
+            Assert.IsFalse(AudioListener.pause);
+            Assert.IsFalse(IsShown("pause"));
+            yield return Drive(FullThrottle, 0.5f);
+            Assert.Greater(race.RaceTime, clock);
+
+            // RESTART RACE: back on the grid for a new countdown, with time running.
+            Assert.IsTrue(hud.Pause());
+            hud.PauseSelection.Move(1);
+            Assert.AreEqual("pause-restart", hud.PauseSelection.Selected.name);
+            hud.PauseSelection.Submit();
+            Assert.IsFalse(hud.Paused);
+            Assert.AreEqual(timeScale, Time.timeScale);
+            Assert.AreEqual(RaceState.Countdown, race.State);
+            Assert.AreEqual(0f, race.RaceTime);
+            Assert.IsTrue(Car.InputLocked);
+            TestContext.WriteLine($"Paused at {clock:0.00} s on {HudText("pause-track")}; resumed and restarted.");
         }
 
         [UnityTest]
