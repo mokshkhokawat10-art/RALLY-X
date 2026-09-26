@@ -57,6 +57,16 @@ namespace RallyX.EditorTools
             Debug.Log($"[RALLY X Build] Added {scenePath} to the build scene list.");
         }
 
+        /// <summary>Puts scenes at the front of the build scene list in the order given (the first is the one a build opens), keeping the rest after them.</summary>
+        public static void PlaceScenesFirstInBuildSettings(params string[] scenePaths)
+        {
+            var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            scenes.RemoveAll(scene => Array.IndexOf(scenePaths, scene.path) >= 0);
+            for (int i = 0; i < scenePaths.Length; i++)
+                scenes.Insert(i, new EditorBuildSettingsScene(scenePaths[i], true));
+            EditorBuildSettings.scenes = scenes.ToArray();
+        }
+
         public static void SetLayerRecursively(GameObject root, int layer)
         {
             root.layer = layer;

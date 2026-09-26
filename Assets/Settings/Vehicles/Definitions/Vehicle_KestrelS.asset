@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 081086c877c911c45ad3c42f5d02ebcd, type: 3}
+  m_Name: Vehicle_KestrelS
+  m_EditorClassIdentifier: RallyX::RallyX.Garage.VehicleDefinition
+  id: kestrel-s
+  displayName: Kestrel S
+  category: Group R2  |  Lightweight hatch
+  description: Light, eager and glued to the road. It darts into corners and stops
+    on a coin, but runs out of breath on the long straights.
+  prefab: {fileID: 6488246584201959731, guid: 9688529ac280017468b8125a91c7b49f, type: 3}
+  winsToUnlock: 0

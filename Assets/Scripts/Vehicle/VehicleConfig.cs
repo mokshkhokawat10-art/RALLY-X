@@ -173,6 +173,57 @@ namespace RallyX.Vehicle
         public float AirControl => airControl;
         public float AirAutoLevel => airAutoLevel;
 
+        /// <summary>
+        /// A copy of this config with tuning applied, for one car at runtime (installed upgrades). The asset itself is
+        /// never changed. Destroy the copy when the car is gone.
+        /// </summary>
+        public VehicleConfig CreateTuned(VehicleTuning tuning)
+        {
+            var tuned = Instantiate(this);
+            tuned.name = $"{name} (Tuned)";
+            tuned.acceleration *= 1f + tuning.Acceleration;
+            tuned.maxSpeedKmh *= 1f + tuning.TopSpeed;
+
+            // Downforce is set as a share of the weight at top speed; keep the same downforce at every speed, so a
+            // higher top speed never costs grip in fast corners.
+            tuned.downforce *= (1f + tuning.TopSpeed) * (1f + tuning.TopSpeed);
+            tuned.tyreFriction *= 1f + tuning.Grip;
+            tuned.brakeDeceleration *= 1f + tuning.Braking;
+            tuned.antiRoll = Mathf.Clamp01(antiRoll + tuning.Stability);
+
+            // Turbo pull: nothing extra at a standstill, growing to the full fraction at top speed, where the curve
+            // is zero, so it adds pull without raising the top speed on its own.
+            tuned.accelerationCurve = ScaleCurve(accelerationCurve, time => 1f + tuning.HighSpeedPull * time, time => tuning.HighSpeedPull);
+
+            // More steering at speed; full lock at a standstill stays the same.
+            float steer = 1f + tuning.Steering;
+            tuned.steerBySpeed = ScaleCurve(steerBySpeed, time => time > 0f ? steer : 1f, _ => 0f, maxValue: 1f);
+            return tuned;
+        }
+
+        /// <summary>
+        /// A curve with every key's value multiplied by <paramref name="factor"/> at its time. Slopes follow the product
+        /// rule, with <paramref name="factorSlope"/> the factor's rate of change.
+        /// </summary>
+        private static AnimationCurve ScaleCurve(AnimationCurve curve, Func<float, float> factor, Func<float, float> factorSlope,
+            float maxValue = float.MaxValue)
+        {
+            var keys = curve.keys;
+            for (int i = 0; i < keys.Length; i++)
+            {
+                var key = keys[i];
+                float f = factor(key.time);
+                float slope = factorSlope(key.time);
+                float value = key.value;
+                key.value = Mathf.Min(value * f, maxValue);
+                key.inTangent = key.inTangent * f + value * slope;
+                key.outTangent = key.outTangent * f + value * slope;
+                keys[i] = key;
+            }
+
+            return new AnimationCurve(keys) { preWrapMode = curve.preWrapMode, postWrapMode = curve.postWrapMode };
+        }
+
 #if UNITY_EDITOR
         private void OnValidate() => Changed?.Invoke();
 #endif

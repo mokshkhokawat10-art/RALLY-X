@@ -82,6 +82,28 @@ namespace RallyX.Vehicle
 
         public void SetInput(in VehicleInputState state) => requestedInput = state;
 
+        /// <summary>
+        /// Drives with another handling config from the next physics step, for example a copy with upgrades applied
+        /// (<see cref="VehicleConfig.CreateTuned"/>). The wheels keep their size and suspension travel.
+        /// </summary>
+        public void SetConfig(VehicleConfig newConfig)
+        {
+            if (newConfig == null || newConfig == config)
+                return;
+
+#if UNITY_EDITOR
+            if (isActiveAndEnabled && config != null)
+                config.Changed -= ApplyBodySettings;
+#endif
+            config = newConfig;
+#if UNITY_EDITOR
+            if (isActiveAndEnabled)
+                config.Changed += ApplyBodySettings;
+#endif
+            if (body != null)
+                ApplyBodySettings();
+        }
+
         /// <summary>Puts the vehicle back on its wheels, facing its current heading, with no velocity.</summary>
         public void ResetVehicle() => PlaceAt(body.position + Vector3.up * resetLift, UprightRotation(body.rotation));
 

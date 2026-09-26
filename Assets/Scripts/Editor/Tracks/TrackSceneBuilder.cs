@@ -4,10 +4,10 @@ using RallyX.AI;
 using RallyX.Cameras;
 using RallyX.Core;
 using RallyX.Player;
+using RallyX.Progression;
 using RallyX.Racing;
 using RallyX.Tracks;
 using RallyX.UI;
-using RallyX.Vehicle;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -32,7 +32,6 @@ namespace RallyX.EditorTools
         private const float GridRowSpacing = 6.5f;
         private const float CameraNearClip = 0.1f;
         private const float CameraFarClip = 900f;
-        private const string PlayerDisplayName = "You";
 
         public static string ScenePath(TrackDefinition definition) => $"{TracksFolder}/{definition.SceneName}.unity";
 
@@ -68,6 +67,18 @@ namespace RallyX.EditorTools
                 return false;
             }
 
+            if (GarageContentBuilder.LoadRoster() == null)
+            {
+                Debug.LogError(LogPrefix + "Garage content is missing. Run RALLY X > Build > Create Missing Garage Content first.");
+                return false;
+            }
+
+            if (ProgressionContentBuilder.LoadSettings() == null)
+            {
+                Debug.LogError(LogPrefix + "Progression content is missing. Run RALLY X > Build > Create Missing Progression Content first.");
+                return false;
+            }
+
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
                 Debug.LogError(LogPrefix + "Track build cancelled: unsaved changes in the open scene were not saved.");
@@ -88,6 +99,9 @@ namespace RallyX.EditorTools
             var hudLayout = RaceContentBuilder.LoadRaceHudLayout();
             var aiSettings = AIContentBuilder.LoadSettings();
             var aiDrivers = AIContentBuilder.LoadDrivers();
+            var roster = GarageContentBuilder.LoadRoster();
+            var progression = ProgressionContentBuilder.LoadSettings();
+            var trackInfo = FindTrackForScene(progression, definition.SceneName);
 
             string generatedFolder = $"{TracksFolder}/{definition.SceneName}";
             AssetDatabase.DeleteAsset(generatedFolder);
@@ -104,15 +118,19 @@ namespace RallyX.EditorTools
             var path = CreateTrackPath(layout);
             CreateBranches(layout, path);
             var grid = CreateSpawnGrid(layout, path);
-            var car = SpawnPlayerCar(carPrefab, grid.GetSlot(0));
-            ConfigureCamera(scene, car, cameraConfig);
+            var chaseCamera = ConfigureCamera(scene, grid.GetSlot(0), cameraConfig);
             var circuit = CreateRaceCircuit(layout, path, grid);
-            var race = SetUpRace(car, circuit, raceSettings, panelSettings, hudLayout);
+            var race = new GameObject(nameof(RaceManager)).AddComponent<RaceManager>();
+            race.Configure(raceSettings, circuit);
+
+            // The player's car is the one chosen in the garage, with its upgrades, so it is spawned when the scene loads.
+            var entry = new GameObject(nameof(PlayerRaceEntry)).AddComponent<PlayerRaceEntry>();
+            entry.Configure(roster, grid, race, chaseCamera, progression, trackInfo);
+            CreateHud(race, entry, panelSettings, hudLayout);
             new GameObject(nameof(AIOpponents)).AddComponent<AIOpponents>().Configure(race, carPrefab, aiSettings, aiDrivers);
 
             // The race HUD uses the screen corners; the dev panels stay available on F1 and F2.
             HideDevPanel(new GameObject(nameof(DevOverlay), typeof(DevOverlay)).GetComponent<DevOverlay>());
-            HideDevPanel(car.GetComponent<VehicleDebugPanel>());
 
             string scenePath = ScenePath(definition);
             if (!EditorSceneManager.SaveScene(scene, scenePath))
@@ -272,18 +290,8 @@ namespace RallyX.EditorTools
             return grid;
         }
 
-        private static VehicleController SpawnPlayerCar(GameObject carPrefab, Transform slot)
-        {
-            var car = (GameObject)PrefabUtility.InstantiatePrefab(carPrefab);
-            car.name = "PlayerCar";
-            car.transform.SetPositionAndRotation(slot.position, slot.rotation);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(car.transform);
-            car.AddComponent<PlayerVehicleInput>();
-            car.AddComponent<VehicleDebugPanel>();
-            return car.GetComponent<VehicleController>();
-        }
-
-        private static void ConfigureCamera(Scene scene, VehicleController target, ChaseCameraConfig config)
+        /// <summary>The chase camera, waiting behind pole position for the player's car (set when the scene loads).</summary>
+        private static ChaseCamera ConfigureCamera(Scene scene, Transform pole, ChaseCameraConfig config)
         {
             foreach (var root in scene.GetRootGameObjects())
             {
@@ -296,14 +304,14 @@ namespace RallyX.EditorTools
                 var chaseCamera = root.AddComponent<ChaseCamera>();
                 var serialized = new SerializedObject(chaseCamera);
                 serialized.FindProperty("config").objectReferenceValue = config;
-                serialized.FindProperty("target").objectReferenceValue = target;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
 
-                Transform car = target.transform;
-                root.transform.position = car.position - car.forward * config.Distance + Vector3.up * config.Height;
-                root.transform.LookAt(car.position + Vector3.up * config.LookHeight);
-                return;
+                root.transform.position = pole.position - pole.forward * config.Distance + Vector3.up * config.Height;
+                root.transform.LookAt(pole.position + Vector3.up * config.LookHeight);
+                return chaseCamera;
             }
+
+            return null;
         }
 
         private static RaceCircuit CreateRaceCircuit(TrackLayout layout, TrackPath path, TrackSpawnGrid grid)
@@ -327,20 +335,26 @@ namespace RallyX.EditorTools
             return circuit;
         }
 
-        private static RaceManager SetUpRace(VehicleController car, RaceCircuit circuit, RaceSettings settings, PanelSettings panelSettings,
-            VisualTreeAsset hudLayout)
+        private static void CreateHud(RaceManager race, PlayerRaceEntry entry, PanelSettings panelSettings, VisualTreeAsset hudLayout)
         {
-            car.gameObject.AddComponent<RaceParticipant>().Configure(PlayerDisplayName, player: true);
-
-            var race = new GameObject(nameof(RaceManager)).AddComponent<RaceManager>();
-            race.Configure(settings, circuit);
-
             var hud = new GameObject(nameof(RaceHud));
             var document = hud.AddComponent<UIDocument>();
             document.panelSettings = panelSettings;
             document.visualTreeAsset = hudLayout;
-            hud.AddComponent<RaceHud>().Configure(race);
-            return race;
+            hud.AddComponent<RaceHud>().Configure(race, entry);
+        }
+
+        /// <summary>The career's entry for a track scene, or null (the track then keeps no records).</summary>
+        private static TrackInfo FindTrackForScene(ProgressionSettings progression, string sceneName)
+        {
+            foreach (var track in progression.Tracks.Tracks)
+            {
+                if (track != null && track.SceneName == sceneName)
+                    return track;
+            }
+
+            Debug.LogWarning(LogPrefix + $"No TrackInfo in {ProgressionContentBuilder.TracksPath} races {sceneName}; best laps won't be kept.");
+            return null;
         }
 
         private static void HideDevPanel(Component panel)

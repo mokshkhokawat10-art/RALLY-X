@@ -1,4 +1,3 @@
-using RallyX.Core;
 using RallyX.Tracks;
 using RallyX.Vehicle;
 using UnityEditor;
@@ -14,12 +13,27 @@ namespace RallyX.EditorTools
     {
         public const string CarPrefabPath = "Assets/Prefabs/Vehicles/RallyCar.prefab";
         public const string SurfacesFolder = "Assets/Settings/Surfaces";
+        public const string CarConfigPath = "Assets/Settings/Vehicles/RallyCar_Config.asset";
 
         private const string LogPrefix = "[RALLY X Build] ";
-        private const string CarConfigPath = "Assets/Settings/Vehicles/RallyCar_Config.asset";
-        private const string BodyPhysicsMaterialPath = "Assets/Settings/Physics/VehicleBody.physicsMaterial";
-        private const string CarMaterialsFolder = "Assets/Materials/Vehicles";
-        private const float TyreWidth = 0.26f;
+
+        // The first placeholder car (the Falcon RX in the garage), also driven by the AI.
+        private static readonly PlaceholderCarBuilder.Spec RallyCarSpec = new PlaceholderCarBuilder.Spec
+        {
+            Name = "RallyCar",
+            PrefabPath = CarPrefabPath,
+            Paint = new Color(0.85f, 0.28f, 0.08f),
+            Parts = new[]
+            {
+                new PlaceholderCarBuilder.Part("Body", new Vector3(0f, 0.7f, 0f), new Vector3(1.8f, 0.55f, 4.2f), PlaceholderCarBuilder.Finish.Paint, collides: true),
+                new PlaceholderCarBuilder.Part("Cabin", new Vector3(0f, 1.2f, -0.25f), new Vector3(1.5f, 0.45f, 2.1f), PlaceholderCarBuilder.Finish.Cabin, collides: true),
+                new PlaceholderCarBuilder.Part("Headlight_L", new Vector3(-0.6f, 0.75f, 2.11f), new Vector3(0.35f, 0.15f, 0.04f), PlaceholderCarBuilder.Finish.Light),
+                new PlaceholderCarBuilder.Part("Headlight_R", new Vector3(0.6f, 0.75f, 2.11f), new Vector3(0.35f, 0.15f, 0.04f), PlaceholderCarBuilder.Finish.Light),
+            },
+            HalfTrack = 0.82f,
+            FrontAxle = 1.35f,
+            RearAxle = -1.3f,
+        };
 
         private static readonly SurfaceDefinition[] SurfaceDefinitions =
         {
@@ -73,74 +87,8 @@ namespace RallyX.EditorTools
 
         private static bool BuildCarPrefab(bool overwrite)
         {
-            if (!overwrite && AssetDatabase.LoadAssetAtPath<GameObject>(CarPrefabPath) != null)
-                return true;
-
-            int vehicleLayer = LayerMask.NameToLayer(GameLayers.Vehicle);
-            if (vehicleLayer < 0)
-            {
-                Debug.LogError(LogPrefix + $"Layer '{GameLayers.Vehicle}' is missing. Run RALLY X > Setup > Run Project Setup first.");
-                return false;
-            }
-
             var config = EditorAssetUtility.LoadOrCreate(CarConfigPath, ScriptableObject.CreateInstance<VehicleConfig>);
-            var bodyPhysics = EditorAssetUtility.LoadOrCreate(BodyPhysicsMaterialPath, CreateBodyPhysicsMaterial);
-            var bodyMaterial = EditorAssetUtility.LoadOrCreateLitMaterial($"{CarMaterialsFolder}/RallyCar_Body.mat", new Color(0.85f, 0.28f, 0.08f), 0.55f);
-            var cabinMaterial = EditorAssetUtility.LoadOrCreateLitMaterial($"{CarMaterialsFolder}/RallyCar_Cabin.mat", new Color(0.08f, 0.09f, 0.11f), 0.8f);
-            var tyreMaterial = EditorAssetUtility.LoadOrCreateLitMaterial($"{CarMaterialsFolder}/RallyCar_Tyre.mat", new Color(0.05f, 0.05f, 0.05f), 0.1f);
-            var lightMaterial = EditorAssetUtility.LoadOrCreateLitMaterial($"{CarMaterialsFolder}/RallyCar_Light.mat", new Color(1f, 0.95f, 0.7f), 0.6f);
-
-            var root = new GameObject("RallyCar");
-            try
-            {
-                root.AddComponent<Rigidbody>();
-                var controller = root.AddComponent<VehicleController>();
-
-                CreateBox("Body", root.transform, new Vector3(0f, 0.7f, 0f), new Vector3(1.8f, 0.55f, 4.2f), bodyMaterial, bodyPhysics);
-                CreateBox("Cabin", root.transform, new Vector3(0f, 1.2f, -0.25f), new Vector3(1.5f, 0.45f, 2.1f), cabinMaterial, bodyPhysics);
-                CreateBox("Headlight_L", root.transform, new Vector3(-0.6f, 0.75f, 2.11f), new Vector3(0.35f, 0.15f, 0.04f), lightMaterial, null);
-                CreateBox("Headlight_R", root.transform, new Vector3(0.6f, 0.75f, 2.11f), new Vector3(0.35f, 0.15f, 0.04f), lightMaterial, null);
-
-                // Place the suspension mounts so the tyres just touch the ground at static sag with the root at ground level.
-                float angularFrequency = 2f * Mathf.PI * config.SpringFrequency;
-                float staticSag = Physics.gravity.magnitude / (angularFrequency * angularFrequency);
-                float restSpringLength = config.SuspensionTravel - staticSag;
-                float mountHeight = config.WheelRadius + restSpringLength;
-
-                var wheels = new[]
-                {
-                    CreateWheel("Wheel_FL", root.transform, new Vector3(-0.82f, mountHeight, 1.35f), true, config.WheelRadius, restSpringLength, tyreMaterial),
-                    CreateWheel("Wheel_FR", root.transform, new Vector3(0.82f, mountHeight, 1.35f), true, config.WheelRadius, restSpringLength, tyreMaterial),
-                    CreateWheel("Wheel_RL", root.transform, new Vector3(-0.82f, mountHeight, -1.3f), false, config.WheelRadius, restSpringLength, tyreMaterial),
-                    CreateWheel("Wheel_RR", root.transform, new Vector3(0.82f, mountHeight, -1.3f), false, config.WheelRadius, restSpringLength, tyreMaterial),
-                };
-
-                var serializedController = new SerializedObject(controller);
-                serializedController.FindProperty("config").objectReferenceValue = config;
-                serializedController.FindProperty("fallbackSurface").objectReferenceValue = LoadSurface("Asphalt");
-                var wheelsProperty = serializedController.FindProperty("wheels");
-                wheelsProperty.arraySize = wheels.Length;
-                for (int i = 0; i < wheels.Length; i++)
-                    wheelsProperty.GetArrayElementAtIndex(i).objectReferenceValue = wheels[i];
-                serializedController.ApplyModifiedPropertiesWithoutUndo();
-
-                AddLivery(root);
-                EditorAssetUtility.SetLayerRecursively(root, vehicleLayer);
-                EditorAssetUtility.EnsureFolder("Assets/Prefabs/Vehicles");
-                PrefabUtility.SaveAsPrefabAsset(root, CarPrefabPath, out bool saved);
-                if (!saved)
-                {
-                    Debug.LogError(LogPrefix + $"Failed to save {CarPrefabPath}.");
-                    return false;
-                }
-
-                Debug.Log(LogPrefix + $"Built {CarPrefabPath}.");
-                return true;
-            }
-            finally
-            {
-                Object.DestroyImmediate(root);
-            }
+            return PlaceholderCarBuilder.Build(RallyCarSpec, config, overwrite);
         }
 
         /// <summary>Adds the paint component to a car prefab built before it existed, keeping any other edits to the prefab.</summary>
@@ -175,65 +123,6 @@ namespace RallyX.EditorTools
             var body = car.transform.Find("Body");
             var painted = body != null ? new[] { body.GetComponent<Renderer>() } : System.Array.Empty<Renderer>();
             car.AddComponent<VehicleLivery>().SetPaintedRenderers(painted);
-        }
-
-        private static PhysicsMaterial CreateBodyPhysicsMaterial()
-        {
-            // Low friction lets cars scrape along barriers instead of snagging on them.
-            return new PhysicsMaterial("VehicleBody")
-            {
-                dynamicFriction = 0.1f,
-                staticFriction = 0.1f,
-                bounciness = 0.05f,
-                frictionCombine = PhysicsMaterialCombine.Minimum,
-                bounceCombine = PhysicsMaterialCombine.Average,
-            };
-        }
-
-        /// <summary>Box primitive. Pass a null physics material for a visual-only box without a collider.</summary>
-        private static void CreateBox(string name, Transform parent, Vector3 localPosition, Vector3 size, Material material,
-            PhysicsMaterial physicsMaterial)
-        {
-            var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            box.name = name;
-            box.transform.SetParent(parent, false);
-            box.transform.localPosition = localPosition;
-            box.transform.localScale = size;
-            box.GetComponent<MeshRenderer>().sharedMaterial = material;
-
-            var collider = box.GetComponent<BoxCollider>();
-            if (physicsMaterial == null)
-                Object.DestroyImmediate(collider);
-            else
-                collider.sharedMaterial = physicsMaterial;
-        }
-
-        private static VehicleWheel CreateWheel(string name, Transform parent, Vector3 localPosition, bool isFront, float radius,
-            float restSpringLength, Material tyreMaterial)
-        {
-            var mount = new GameObject(name);
-            mount.transform.SetParent(parent, false);
-            mount.transform.localPosition = localPosition;
-            var wheel = mount.AddComponent<VehicleWheel>();
-
-            var visual = new GameObject("Visual").transform;
-            visual.SetParent(mount.transform, false);
-            visual.localPosition = new Vector3(0f, -restSpringLength, 0f);
-
-            // The cylinder primitive's axis is Y and it is 2 units tall; turn it so the axle runs along X.
-            var tyre = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            tyre.name = "Tyre";
-            Object.DestroyImmediate(tyre.GetComponent<Collider>());
-            tyre.transform.SetParent(visual, false);
-            tyre.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            tyre.transform.localScale = new Vector3(radius * 2f, TyreWidth * 0.5f, radius * 2f);
-            tyre.GetComponent<MeshRenderer>().sharedMaterial = tyreMaterial;
-
-            var serializedWheel = new SerializedObject(wheel);
-            serializedWheel.FindProperty("isFront").boolValue = isFront;
-            serializedWheel.FindProperty("visual").objectReferenceValue = visual;
-            serializedWheel.ApplyModifiedPropertiesWithoutUndo();
-            return wheel;
         }
 
         private readonly struct SurfaceDefinition

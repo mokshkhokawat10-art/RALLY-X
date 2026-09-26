@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RallyX.Racing;
+using RallyX.SaveSystem;
 using RallyX.Tracks;
 using RallyX.Vehicle;
 using UnityEngine;
@@ -17,6 +18,7 @@ namespace RallyX.Tests
     /// <summary>
     /// Shared fixture: a large flat test plane, the real car prefab, scripted driving and cleanup.
     /// Physics runs at its normal fixed timestep; time scale only makes the tests finish sooner.
+    /// Every test gets a fresh player profile kept in memory, so the player's own save is never read or changed.
     /// </summary>
     public abstract class VehicleTestBase
     {
@@ -44,10 +46,19 @@ namespace RallyX.Tests
             Time.timeScale = SimulationSpeedup;
         }
 
+        // A UnitySetUp in the base class runs before those of the test classes, which load scenes that read the profile.
+        [UnitySetUp]
+        public IEnumerator UseTestProfile()
+        {
+            PlayerProfile.Current = PlayerProfile.InMemory();
+            yield break;
+        }
+
         [UnityTearDown]
         public IEnumerator TearDownScene()
         {
             Time.timeScale = previousTimeScale;
+            PlayerProfile.Current = null;
             foreach (var gameObject in spawned)
             {
                 if (gameObject != null)
@@ -69,7 +80,7 @@ namespace RallyX.Tests
         protected IEnumerator CreateCourse(SurfaceType surface = null) =>
             CreateCourse(surface, SpawnPosition, Quaternion.identity, settle: true);
 
-        protected IEnumerator CreateCourse(SurfaceType surface, Vector3 position, Quaternion rotation, bool settle)
+        protected IEnumerator CreateCourse(SurfaceType surface, Vector3 position, Quaternion rotation, bool settle, GameObject carPrefab = null)
         {
             var ground = Track(GameObject.CreatePrimitive(PrimitiveType.Plane));
             ground.name = "TestGround";
@@ -77,7 +88,7 @@ namespace RallyX.Tests
             if (surface != null)
                 ground.AddComponent<SurfaceMarker>().Surface = surface;
 
-            var carObject = Track(Object.Instantiate(LoadAsset<GameObject>(CarPrefabPath), position, rotation));
+            var carObject = Track(Object.Instantiate(carPrefab != null ? carPrefab : LoadAsset<GameObject>(CarPrefabPath), position, rotation));
             Car = carObject.GetComponent<VehicleController>();
             Assert.IsNotNull(Car, "The car prefab needs a VehicleController.");
 

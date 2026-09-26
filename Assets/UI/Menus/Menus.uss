@@ -1,0 +1,628 @@
+/* Main menu and garage. Sizes are for a 1920x1080 reference screen; the panel scales them to the real resolution.
+   Rally look: near-black translucent panels, one yellow accent, bold italic capitals. */
+
+.screen {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.caption {
+    margin: 0;
+    padding: 0;
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: rgb(255, 196, 36);
+    -unity-font-style: bold;
+}
+
+.hint-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 56px;
+    padding: 0 64px;
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(3, 5, 9, 0.9);
+    border-top-width: 2px;
+    border-color: rgba(255, 196, 36, 0.55);
+}
+
+.hint {
+    margin: 0;
+    padding: 0;
+    font-size: 18px;
+    letter-spacing: 1px;
+    color: rgb(170, 178, 192);
+    -unity-font-style: bold;
+}
+
+/* Main menu */
+
+.menu-side {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 56px;
+    width: 760px;
+    padding: 120px 0 0 110px;
+    background-color: rgba(3, 5, 9, 0.74);
+    border-right-width: 4px;
+    border-color: rgb(255, 196, 36);
+}
+
+.logo {
+    flex-direction: row;
+    align-items: flex-end;
+}
+
+.logo-rally {
+    margin: 0;
+    padding: 0;
+    font-size: 136px;
+    letter-spacing: 6px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold-and-italic;
+}
+
+.logo-x {
+    margin: 0 0 0 18px;
+    padding: 0;
+    font-size: 156px;
+    color: rgb(255, 196, 36);
+    -unity-font-style: bold-and-italic;
+}
+
+.logo-stripe {
+    width: 470px;
+    height: 8px;
+    margin: 2px 0 14px 8px;
+    background-color: rgb(255, 196, 36);
+}
+
+.logo-tagline {
+    margin: 0 0 76px 8px;
+    padding: 0;
+    font-size: 24px;
+    letter-spacing: 10px;
+    color: rgb(190, 198, 210);
+    -unity-font-style: bold;
+}
+
+.menu-items {
+    width: 500px;
+}
+
+.menu-item {
+    height: 78px;
+    margin: 0 0 14px 0;
+    padding: 0 0 0 30px;
+    -unity-text-align: middle-left;
+    font-size: 42px;
+    letter-spacing: 4px;
+    color: rgb(200, 206, 216);
+    -unity-font-style: bold-and-italic;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-width: 0;
+    border-left-width: 6px;
+    border-color: rgba(255, 255, 255, 0.18);
+    border-radius: 0;
+    transition-property: translate, background-color, color;
+    transition-duration: 0.12s;
+}
+
+.menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgb(200, 206, 216);
+}
+
+.menu-item.is-selected,
+.menu-item.is-selected:hover {
+    translate: 16px 0;
+    color: rgb(14, 14, 14);
+    background-color: rgb(255, 196, 36);
+    border-color: rgb(255, 255, 255);
+}
+
+.menu-item:disabled {
+    color: rgba(200, 206, 216, 0.35);
+}
+
+.menu-footer {
+    position: absolute;
+    left: 110px;
+    right: 40px;
+    bottom: 56px;
+}
+
+.career {
+    flex-direction: row;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top-width: 1px;
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.career-item {
+    margin-right: 52px;
+}
+
+.career-value {
+    margin: 2px 0 0 0;
+    padding: 0;
+    font-size: 30px;
+    letter-spacing: 1px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.current-car-name {
+    margin: 4px 0 0 0;
+    padding: 0;
+    font-size: 46px;
+    letter-spacing: 2px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold-and-italic;
+}
+
+.current-car-category {
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: rgb(170, 178, 192);
+}
+
+/* Garage */
+
+.viewport {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.top-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    height: 112px;
+    padding: 0 64px;
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(3, 5, 9, 0.82);
+    border-bottom-width: 2px;
+    border-color: rgba(255, 196, 36, 0.55);
+}
+
+.title-accent {
+    width: 10px;
+    height: 52px;
+    margin-right: 22px;
+    background-color: rgb(255, 196, 36);
+}
+
+.screen-title {
+    margin: 0;
+    padding: 0;
+    font-size: 56px;
+    letter-spacing: 6px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold-and-italic;
+}
+
+.top-bar-spacer {
+    flex-grow: 1;
+}
+
+.credits-pill {
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 20px;
+    background-color: rgba(255, 196, 36, 0.12);
+    border-width: 2px;
+    border-color: rgb(255, 196, 36);
+    border-radius: 3px;
+}
+
+.credits-caption {
+    margin: 0 14px 0 0;
+    padding: 0;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: rgb(190, 198, 210);
+    -unity-font-style: bold;
+}
+
+.credits-value {
+    margin: 0;
+    padding: 0;
+    font-size: 30px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.screen-counter {
+    margin: 0 0 0 44px;
+    padding: 0;
+    -unity-text-align: middle-right;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: rgb(170, 178, 192);
+    -unity-font-style: bold;
+}
+
+.panel {
+    position: absolute;
+    top: 150px;
+    padding: 28px 34px 30px 34px;
+    background-color: rgba(3, 5, 9, 0.78);
+    border-left-width: 4px;
+    border-color: rgb(255, 196, 36);
+}
+
+.garage-info {
+    left: 64px;
+    width: 560px;
+}
+
+.garage-stats {
+    right: 64px;
+    width: 540px;
+}
+
+.car-category {
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+    letter-spacing: 4px;
+    color: rgb(255, 196, 36);
+    -unity-font-style: bold;
+}
+
+.car-name {
+    margin: 2px 0 0 0;
+    padding: 0;
+    font-size: 72px;
+    letter-spacing: 2px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold-and-italic;
+}
+
+.name-stripe {
+    width: 170px;
+    height: 6px;
+    margin: 6px 0 18px 2px;
+    background-color: rgb(255, 196, 36);
+}
+
+.car-description {
+    margin: 0;
+    padding: 0;
+    font-size: 22px;
+    white-space: normal;
+    color: rgb(200, 206, 216);
+}
+
+.status {
+    align-self: flex-start;
+    margin: 24px 0 0 0;
+    padding: 8px 16px;
+    font-size: 20px;
+    letter-spacing: 2px;
+    border-radius: 3px;
+    -unity-font-style: bold;
+    display: none;
+}
+
+.status--chosen {
+    color: rgb(8, 22, 12);
+    background-color: rgb(70, 206, 116);
+}
+
+.status--locked {
+    color: rgb(255, 255, 255);
+    background-color: rgb(196, 48, 38);
+}
+
+.stats-caption {
+    margin-bottom: 22px;
+}
+
+.stat-row {
+    margin-bottom: 20px;
+}
+
+.stat-header {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 7px;
+}
+
+.stat-name {
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: rgb(220, 226, 236);
+    -unity-font-style: bold;
+}
+
+.stat-value {
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+}
+
+.stat-track {
+    height: 14px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.stat-fill {
+    height: 100%;
+    background-color: rgb(255, 196, 36);
+    transition-property: width;
+    transition-duration: 0.25s;
+}
+
+.stat-gain {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background-color: rgb(70, 206, 116);
+}
+
+.stat-value--preview {
+    color: rgb(120, 232, 156);
+    -unity-font-style: bold;
+}
+
+.stat-marker {
+    position: absolute;
+    top: -5px;
+    bottom: -5px;
+    width: 4px;
+    margin-left: -2px;
+    background-color: rgb(255, 255, 255);
+}
+
+.stats-legend {
+    margin: 4px 0 0 0;
+    padding: 0;
+    font-size: 16px;
+    color: rgb(140, 148, 162);
+}
+
+.garage-bottom {
+    position: absolute;
+    left: 64px;
+    right: 64px;
+    bottom: 88px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.action {
+    min-width: 290px;
+    height: 74px;
+    margin: 0;
+    font-size: 32px;
+    letter-spacing: 4px;
+    border-width: 0;
+    border-radius: 2px;
+    -unity-font-style: bold-and-italic;
+}
+
+.action--primary {
+    color: rgb(14, 14, 14);
+    background-color: rgb(255, 196, 36);
+}
+
+.action--primary:hover {
+    background-color: rgb(255, 216, 100);
+}
+
+.action--primary:disabled {
+    color: rgba(255, 255, 255, 0.55);
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.action--secondary {
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.action--secondary:hover {
+    background-color: rgba(255, 255, 255, 0.24);
+}
+
+.action-group {
+    flex-direction: row;
+}
+
+.action-group .action {
+    margin-left: 18px;
+}
+
+.car-switcher {
+    flex-direction: row;
+    align-items: center;
+}
+
+.arrow-button {
+    width: 76px;
+    height: 76px;
+    margin: 0 24px;
+    font-size: 40px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(3, 5, 9, 0.78);
+    border-width: 2px;
+    border-color: rgba(255, 196, 36, 0.8);
+    border-radius: 38px;
+    -unity-font-style: bold;
+}
+
+.arrow-button:hover {
+    color: rgb(14, 14, 14);
+    background-color: rgb(255, 196, 36);
+}
+
+.car-dots {
+    flex-direction: row;
+    align-items: center;
+}
+
+.car-dot {
+    width: 14px;
+    height: 14px;
+    margin: 0 6px;
+    border-radius: 7px;
+    background-color: rgba(255, 255, 255, 0.3);
+    transition-property: width, background-color;
+    transition-duration: 0.15s;
+}
+
+.car-dot--current {
+    width: 36px;
+    background-color: rgb(255, 196, 36);
+}
+
+/* Garage: upgrades */
+
+.upgrade-panel {
+    display: none;
+}
+
+.upgrade-car {
+    margin: 2px 0 18px 0;
+    padding: 0;
+    font-size: 44px;
+    letter-spacing: 2px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold-and-italic;
+}
+
+.upgrade-list {
+    margin-bottom: 16px;
+}
+
+.upgrade-row {
+    flex-direction: row;
+    align-items: center;
+    height: 50px;
+    margin-bottom: 6px;
+    padding: 0 14px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left-width: 4px;
+    border-color: rgba(255, 255, 255, 0);
+}
+
+.upgrade-row.is-selected {
+    background-color: rgba(255, 196, 36, 0.16);
+    border-color: rgb(255, 196, 36);
+}
+
+.upgrade-name {
+    width: 180px;
+    margin: 0;
+    padding: 0;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.upgrade-pips {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.pip {
+    width: 30px;
+    height: 10px;
+    margin-right: 6px;
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+.pip--on {
+    background-color: rgb(255, 196, 36);
+}
+
+.upgrade-cost {
+    min-width: 140px;
+    margin: 0;
+    padding: 0;
+    -unity-text-align: middle-right;
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.upgrade-cost--short {
+    color: rgb(255, 118, 96);
+}
+
+.upgrade-cost--maxed {
+    color: rgb(120, 232, 156);
+}
+
+.upgrade-description {
+    min-height: 56px;
+}
+
+.confirm {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.62);
+    display: none;
+}
+
+.confirm-card {
+    min-width: 780px;
+    padding: 34px 48px 36px 48px;
+    align-items: center;
+    background-color: rgba(8, 11, 18, 0.97);
+    border-width: 2px;
+    border-color: rgb(255, 196, 36);
+    border-radius: 6px;
+}
+
+.confirm-title {
+    margin: 12px 0 8px 0;
+    padding: 0;
+    font-size: 46px;
+    letter-spacing: 2px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold-and-italic;
+}
+
+.confirm-details {
+    margin: 0 0 28px 0;
+    padding: 0;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    font-size: 24px;
+    color: rgb(210, 216, 226);
+}
+
+.confirm-buttons {
+    flex-direction: row;
+}
+
+.confirm-buttons .action {
+    margin: 0 14px;
+}

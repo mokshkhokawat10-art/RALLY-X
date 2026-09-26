@@ -1,4 +1,6 @@
 using RallyX.Core;
+using RallyX.Player;
+using RallyX.Progression;
 using RallyX.Racing;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -7,8 +9,10 @@ namespace RallyX.UI
 {
     /// <summary>
     /// Race HUD and results screen for the player's racer: position, lap, race and lap times, speed, the start
-    /// countdown, the wrong-way warning and lap messages, then results with a restart button. The restart input
-    /// works at any time. Layout and styling are in Assets/UI/Race/RaceHud.uxml and RaceHud.uss.
+    /// countdown, the wrong-way warning and lap messages, then results with the credits earned (from the player's
+    /// <see cref="PlayerRaceEntry"/>) and restart and main menu buttons. The restart input works at any time; the pause
+    /// input leaves for the main menu once the results are up. Layout and styling are in Assets/UI/Race/RaceHud.uxml
+    /// and RaceHud.uss.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
@@ -17,6 +21,9 @@ namespace RallyX.UI
         private const string NoTime = "-:--.---";
 
         [SerializeField] private RaceManager race;
+
+        [Tooltip("The player's entry, for the credits and unlocks shown with the results. Optional.")]
+        [SerializeField] private PlayerRaceEntry playerEntry;
 
         [Tooltip("How long lap and finish messages stay on screen, seconds.")]
         [SerializeField, Min(0.5f)] private float messageDuration = 2f;
@@ -39,6 +46,11 @@ namespace RallyX.UI
         private Label resultsSummary;
         private Label resultsLaps;
         private Button restartButton;
+        private Button menuButton;
+        private VisualElement rewards;
+        private Label rewardCredits;
+        private Label rewardBalance;
+        private Label rewardNews;
 
         private float messageTimeLeft;
         private float playerFinishedAt = -1f;
@@ -53,7 +65,11 @@ namespace RallyX.UI
         /// <summary>True while the results screen is on show.</summary>
         public bool ResultsVisible => resultsVisible;
 
-        public void Configure(RaceManager newRace) => race = newRace;
+        public void Configure(RaceManager newRace, PlayerRaceEntry newPlayerEntry = null)
+        {
+            race = newRace;
+            playerEntry = newPlayerEntry;
+        }
 
         /// <summary>Starts the race again from the grid. Used by the results button and the restart input.</summary>
         public void RestartRace()
@@ -61,6 +77,9 @@ namespace RallyX.UI
             if (race != null)
                 race.Restart();
         }
+
+        /// <summary>Leaves the race for the main menu, if the game has one.</summary>
+        public void GoToMainMenu() => GameScenes.Load(GameScenes.MainMenu);
 
         private void Awake()
         {
@@ -71,6 +90,8 @@ namespace RallyX.UI
         private void OnEnable()
         {
             input.Enable();
+            if (playerEntry != null)
+                playerEntry.ResultRecorded += OnResultRecorded;
             if (race == null)
                 return;
 
@@ -82,6 +103,8 @@ namespace RallyX.UI
         private void OnDisable()
         {
             input.Disable();
+            if (playerEntry != null)
+                playerEntry.ResultRecorded -= OnResultRecorded;
             if (race == null)
                 return;
 
@@ -96,6 +119,8 @@ namespace RallyX.UI
         {
             if (input.RestartRace.WasPressedThisFrame())
                 RestartRace();
+            else if (resultsVisible && input.Pause.WasPressedThisFrame() && GameScenes.CanLoad(GameScenes.MainMenu))
+                GoToMainMenu();
 
             if (race == null || !Bind())
                 return;
@@ -206,9 +231,42 @@ namespace RallyX.UI
             resultsLaps.text = laps.ToString();
 
             FillResultsTable();
+            FillRewards(playerEntry != null ? playerEntry.LastReward : null);
             messageLabel.text = string.Empty;
             SetResultsVisible(true);
             restartButton.Focus();
+        }
+
+        private void OnResultRecorded(RaceReward reward)
+        {
+            if (resultsVisible)
+                FillRewards(reward);
+        }
+
+        /// <summary>Credits earned, the new total, and any record or unlock. Hidden until the race has been paid.</summary>
+        private void FillRewards(RaceReward reward)
+        {
+            if (rewards == null)
+                return;
+
+            SetVisible(rewards, reward != null);
+            if (reward == null)
+            {
+                SetVisible(rewardNews, false);
+                return;
+            }
+
+            rewardCredits.text = "+" + Credits.Format(reward.CreditsEarned);
+            rewardBalance.text = Credits.Format(reward.TotalCredits);
+            var news = new System.Collections.Generic.List<string>();
+            if (reward.NewLapRecord)
+                news.Add("NEW TRACK RECORD");
+            foreach (string vehicle in reward.UnlockedVehicles)
+                news.Add($"{vehicle.ToUpperInvariant()} UNLOCKED");
+            foreach (string unlockedTrack in reward.UnlockedTracks)
+                news.Add($"{unlockedTrack.ToUpperInvariant()} UNLOCKED");
+            rewardNews.text = string.Join("   |   ", news);
+            SetVisible(rewardNews, news.Count > 0);
         }
 
         private void FillResultsTable()
@@ -290,6 +348,25 @@ namespace RallyX.UI
 
             boundRoot = root;
             restartButton.clicked += RestartRace;
+
+            // Optional: the rewards, filled once the player's race has been paid.
+            rewards = root.Q("results-rewards");
+            rewardCredits = root.Q<Label>("results-credits");
+            rewardBalance = root.Q<Label>("results-balance");
+            rewardNews = root.Q<Label>("results-news");
+            if (rewardCredits == null || rewardBalance == null || rewardNews == null)
+                rewards = null;
+            else
+                FillRewards(null);
+
+            // Optional: only shown when the game has a main menu to go back to.
+            menuButton = root.Q<Button>("menu-button");
+            if (menuButton != null)
+            {
+                menuButton.clicked += GoToMainMenu;
+                SetVisible(menuButton, GameScenes.CanLoad(GameScenes.MainMenu));
+            }
+
             shownPosition = shownRacers = shownLap = shownSpeed = -1;
             messageLabel.text = string.Empty;
             SetVisible(results, resultsVisible);

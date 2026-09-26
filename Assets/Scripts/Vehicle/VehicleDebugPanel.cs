@@ -21,6 +21,13 @@ namespace RallyX.Vehicle
         private string text = string.Empty;
         private float timeSinceRefresh;
 
+        /// <summary>Whether the panel is on screen. F2 toggles it.</summary>
+        public bool Visible
+        {
+            get => visible;
+            set => visible = value;
+        }
+
         private void Awake() => vehicle = GetComponent<VehicleController>();
 
         private void Update()

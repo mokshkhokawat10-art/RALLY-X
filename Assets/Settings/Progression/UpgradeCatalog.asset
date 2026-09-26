@@ -1,0 +1,202 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2709efdb44d4b234c8439d92de1070b7, type: 3}
+  m_Name: UpgradeCatalog
+  m_EditorClassIdentifier: RallyX::RallyX.Garage.UpgradeCatalog
+  upgrades:
+  - type: 0
+    displayName: Engine
+    description: 'More power everywhere: quicker off the line and out of every corner.'
+    stages:
+    - cost: 1500
+      tuning:
+        acceleration: 0.06
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0
+        braking: 0
+        steering: 0
+        stability: 0
+    - cost: 3000
+      tuning:
+        acceleration: 0.12
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0
+        braking: 0
+        steering: 0
+        stability: 0
+    - cost: 5000
+      tuning:
+        acceleration: 0.2
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0
+        braking: 0
+        steering: 0
+        stability: 0
+  - type: 1
+    displayName: Turbo
+    description: 'Boost that builds with speed: stronger pull at high speed and a
+      little more top speed.'
+    stages:
+    - cost: 2000
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0.1
+        topSpeed: 0.01
+        grip: 0
+        braking: 0
+        steering: 0
+        stability: 0
+    - cost: 3500
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0.2
+        topSpeed: 0.02
+        grip: 0
+        braking: 0
+        steering: 0
+        stability: 0
+    - cost: 6000
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0.3
+        topSpeed: 0.03
+        grip: 0
+        braking: 0
+        steering: 0
+        stability: 0
+  - type: 2
+    displayName: Tires
+    description: 'Stickier compounds: more grip in corners on every surface.'
+    stages:
+    - cost: 1000
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0.04
+        braking: 0
+        steering: 0
+        stability: 0
+    - cost: 2200
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0.08
+        braking: 0
+        steering: 0
+        stability: 0
+    - cost: 4000
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0.12
+        braking: 0
+        steering: 0
+        stability: 0
+  - type: 3
+    displayName: Brakes
+    description: 'Bigger discs and calipers: stop shorter and brake later.'
+    stages:
+    - cost: 800
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0
+        braking: 0.08
+        steering: 0
+        stability: 0
+    - cost: 1800
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0
+        braking: 0.16
+        steering: 0
+        stability: 0
+    - cost: 3200
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0
+        braking: 0.25
+        steering: 0
+        stability: 0
+  - type: 4
+    displayName: Suspension
+    description: 'Stiffer, sharper set-up: more steering at speed and less body roll.'
+    stages:
+    - cost: 1200
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0
+        braking: 0
+        steering: 0.08
+        stability: 0.05
+    - cost: 2500
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0
+        braking: 0
+        steering: 0.16
+        stability: 0.1
+    - cost: 4200
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0
+        grip: 0
+        braking: 0
+        steering: 0.25
+        stability: 0.15
+  - type: 5
+    displayName: Gearbox
+    description: 'Longer ratios: a higher top speed on the straights.'
+    stages:
+    - cost: 1500
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0.03
+        grip: 0
+        braking: 0
+        steering: 0
+        stability: 0
+    - cost: 3000
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0.06
+        grip: 0
+        braking: 0
+        steering: 0
+        stability: 0
+    - cost: 5200
+      tuning:
+        acceleration: 0
+        highSpeedPull: 0
+        topSpeed: 0.09
+        grip: 0
+        braking: 0
+        steering: 0
+        stability: 0

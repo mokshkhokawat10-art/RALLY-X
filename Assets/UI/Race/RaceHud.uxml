@@ -29,10 +29,22 @@
                 <ui:Label text="RACE COMPLETE" class="results-title" />
                 <ui:Label name="results-place" text="1st" class="results-place" />
                 <ui:Label name="results-summary" class="results-summary" />
+                <ui:VisualElement name="results-rewards" class="results-rewards">
+                    <ui:VisualElement class="reward">
+                        <ui:Label text="CREDITS EARNED" class="reward-caption" />
+                        <ui:Label name="results-credits" class="reward-value reward-value--earned" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="reward">
+                        <ui:Label text="TOTAL CREDITS" class="reward-caption" />
+                        <ui:Label name="results-balance" class="reward-value" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label name="results-news" class="results-news" />
                 <ui:VisualElement name="results-table" class="results-table" />
                 <ui:Label name="results-laps" class="results-laps" />
                 <ui:Button name="restart-button" text="RESTART RACE" class="restart-button" />
-                <ui:Label text="Backspace  /  gamepad View button" class="hint" />
+                <ui:Button name="menu-button" text="MAIN MENU" class="restart-button menu-button" />
+                <ui:Label text="Restart: Backspace / gamepad View      Main menu: Esc / gamepad Start" class="hint" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
