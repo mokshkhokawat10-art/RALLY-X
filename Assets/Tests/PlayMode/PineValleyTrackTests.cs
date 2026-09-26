@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using RallyX.Core;
 using RallyX.Player;
+using RallyX.Racing;
 using RallyX.Tracks;
 using RallyX.Vehicle;
 using UnityEngine;
@@ -14,7 +15,8 @@ namespace RallyX.Tests
     /// <summary>
     /// Loads the generated Pine Valley scene and checks that it is drivable: road under the whole lap, nothing in
     /// the space above it, trees standing back, a usable starting grid, and a full lap by a scripted driver in the
-    /// real car. Rebuild the track (RALLY X > Build > Rebuild Pine Valley Track) before running these.
+    /// real car. The race is switched off, so these check free driving. Rebuild the track
+    /// (RALLY X > Build > Rebuild Pine Valley Track) before running these.
     /// </summary>
     public sealed class PineValleyTrackTests : VehicleTestBase
     {
@@ -30,11 +32,6 @@ namespace RallyX.Tests
 
         private const float MinTreeGapFromRoadEdge = 5f;
 
-        // Scripted driver: deliberately cautious. It proves the track can be driven, not how fast.
-        private const float DriverCornerGrip = 5f;
-        private const float DriverBraking = 5f;
-        private const float DriverTopSpeed = 28f;
-        private const float DriverWheelbase = 2.6f;
         private const float LapTimeout = 300f;
         private const float StuckWindow = 10f;
 
@@ -57,6 +54,11 @@ namespace RallyX.Tests
             int vehicleLayer = LayerMask.NameToLayer(GameLayers.Vehicle);
             Assert.GreaterOrEqual(vehicleLayer, 0, "The Vehicle layer is missing. Run RALLY X > Setup > Run Project Setup.");
             probeMask = ~(1 << vehicleLayer);
+
+            // Free driving: no countdown holding the car, no race rules.
+            var race = Object.FindFirstObjectByType<RaceManager>();
+            if (race != null)
+                race.enabled = false;
 
             // Let the scene's car settle on its grid slot.
             Car = Object.FindFirstObjectByType<VehicleController>();
@@ -206,9 +208,8 @@ namespace RallyX.Tests
             if (playerInput != null)
                 playerInput.enabled = false;
 
-            float[] targetSpeeds = SpeedProfile();
-            float spacing = path.Length / path.Count;
-            float distance = path.FindClosestDistance(Car.Body.position);
+            var driver = new ScriptedDriver(Car, path);
+            float distance = driver.Distance;
             float progress = 0f;
             float elapsed = 0f;
             float fastest = 0f;
@@ -249,26 +250,11 @@ namespace RallyX.Tests
             {
                 while (progress < path.Length)
                 {
-                    Vector3 position = Car.Body.position;
-                    float speed = Car.Body.linearVelocity.magnitude;
-
-                    // Pure pursuit on the centreline, with a look-ahead that grows with speed.
-                    float lookAhead = Mathf.Clamp(4f + speed * 0.6f, 6f, 22f);
-                    Vector3 toTarget = Flat(path.EvaluatePosition(distance + lookAhead) - position);
-                    float alpha = Vector3.SignedAngle(Heading(), toTarget, Vector3.up) * Mathf.Deg2Rad;
-                    float wheelAngle = Mathf.Atan2(2f * DriverWheelbase * Mathf.Sin(alpha), toTarget.magnitude) * Mathf.Rad2Deg;
-                    float steer = Mathf.Clamp(wheelAngle / Car.Config.MaxSteerAngle, -1f, 1f);
-
-                    int ahead = Mathf.RoundToInt(Mathf.Repeat(distance + speed * 0.5f, path.Length) / spacing) % path.Count;
-                    float speedError = targetSpeeds[ahead] - speed;
-                    float throttle = speedError > 0f ? Mathf.Clamp01(speedError / 2f) : 0f;
-                    float brake = speedError < -1f ? Mathf.Clamp01(-speedError / 4f) : 0f;
-                    Car.SetInput(new VehicleInputState(throttle, brake, steer, false));
-
+                    driver.Steer();
                     yield return NextPhysicsStep;
                     elapsed += Time.fixedDeltaTime;
 
-                    position = Car.Body.position;
+                    Vector3 position = Car.Body.position;
                     float newDistance = path.FindClosestDistance(position, distance, 30f);
                     float step = Mathf.Repeat(newDistance - distance + path.Length * 0.5f, path.Length) - path.Length * 0.5f;
                     progress += step;
@@ -309,37 +295,6 @@ namespace RallyX.Tests
             TestContext.WriteLine($"Longest jump: {longestAir:0.00} s at {longestAirAt:0} m; lowest uprightness {lowestUpright:0.00}");
             TestContext.WriteLine($"Collisions: {impacts}, biggest {biggestImpact:0} N·s at {biggestImpactAt:0} m");
             Assert.Less(worstOffRoad, 1f, $"The car left the road (plus its bevel) at {worstOffRoadAt:0} m.");
-        }
-
-        /// <summary>Planned speed along the lap: limited by corner radius, then braking in time for each corner.</summary>
-        private float[] SpeedProfile()
-        {
-            int count = path.Count;
-            float spacing = path.Length / count;
-            var speeds = new float[count];
-            for (int i = 0; i < count; i++)
-            {
-                float radius = CircleRadius(Flat(path.GetPoint(i - 4)), Flat(path.GetPoint(i)), Flat(path.GetPoint(i + 4)));
-                speeds[i] = Mathf.Min(DriverTopSpeed, Mathf.Sqrt(DriverCornerGrip * radius));
-            }
-
-            // Walk backwards twice round the loop so corners just after the start line are braked for too.
-            for (int pass = 0; pass < count * 2; pass++)
-            {
-                int i = count - 1 - pass % count;
-                float next = speeds[(i + 1) % count];
-                speeds[i] = Mathf.Min(speeds[i], Mathf.Sqrt(next * next + 2f * DriverBraking * spacing));
-            }
-
-            return speeds;
-        }
-
-        private static float CircleRadius(Vector3 a, Vector3 b, Vector3 c)
-        {
-            float twiceArea = Vector3.Cross(b - a, c - a).magnitude;
-            return twiceArea < 1e-4f
-                ? float.PositiveInfinity
-                : Vector3.Distance(a, b) * Vector3.Distance(b, c) * Vector3.Distance(c, a) / (2f * twiceArea);
         }
 
         private float GapFromRoadEdge(Vector3 position)

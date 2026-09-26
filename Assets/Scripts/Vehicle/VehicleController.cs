@@ -22,6 +22,10 @@ namespace RallyX.Vehicle
         // Degrees past the max drift angle over which anti-spin ramps up to full strength.
         private const float AntiSpinRampDegrees = 10f;
 
+        // A car with locked input is slowed with this much brake (0..1), then held by the handbrake below the hold speed (m/s).
+        private const float LockedBrake = 0.35f;
+        private const float LockedHoldSpeed = 2f;
+
         [SerializeField] private VehicleConfig config;
         [SerializeField] private VehicleWheel[] wheels = Array.Empty<VehicleWheel>();
 
@@ -44,7 +48,15 @@ namespace RallyX.Vehicle
         public Rigidbody Body => body;
         public VehicleDrift Drift { get; } = new VehicleDrift();
         public IReadOnlyList<VehicleWheel> Wheels => wheels;
-        public VehicleInputState CurrentInput => input;
+
+        /// <summary>The input most recently requested by the driver (player or AI), even while input is locked.</summary>
+        public VehicleInputState CurrentInput => requestedInput;
+
+        /// <summary>
+        /// While locked (race countdown, after the finish) the driver's input is ignored: the car brakes gently
+        /// to a stop in a straight line and is then held by the handbrake.
+        /// </summary>
+        public bool InputLocked { get; set; }
 
         /// <summary>Speed along the vehicle's heading, m/s. Negative when reversing.</summary>
         public float ForwardSpeed { get; private set; }
@@ -62,19 +74,20 @@ namespace RallyX.Vehicle
         public float AirborneTime { get; private set; }
 
         private Rigidbody body;
+        private VehicleInputState requestedInput;
         private VehicleInputState input;
         private int groundMask;
         private int frontWheelCount;
         private int rearWheelCount;
 
-        public void SetInput(in VehicleInputState state) => input = state;
+        public void SetInput(in VehicleInputState state) => requestedInput = state;
 
         /// <summary>Puts the vehicle back on its wheels, facing its current heading, with no velocity.</summary>
-        public void ResetVehicle()
-        {
-            Quaternion rotation = UprightRotation(body.rotation);
-            Vector3 position = body.position + Vector3.up * resetLift;
+        public void ResetVehicle() => PlaceAt(body.position + Vector3.up * resetLift, UprightRotation(body.rotation));
 
+        /// <summary>Moves the vehicle to a pose at rest, as if it had just been placed there (e.g. a grid slot).</summary>
+        public void PlaceAt(Vector3 position, Quaternion rotation)
+        {
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
             body.position = position;
@@ -126,6 +139,7 @@ namespace RallyX.Vehicle
 
         private void FixedUpdate()
         {
+            input = InputLocked ? LockedInput() : requestedInput;
             float deltaTime = Time.fixedDeltaTime;
             Quaternion rotation = body.rotation;
             Vector3 up = rotation * Vector3.up;
@@ -399,6 +413,17 @@ namespace RallyX.Vehicle
                              - pitchRollVelocity * (2f * Mathf.Sqrt(stiffness))
                              + up * (input.Steer * config.AirControl);
             body.AddTorque(torque, ForceMode.Acceleration);
+        }
+
+        private VehicleInputState LockedInput()
+        {
+            // Brake is only used while clearly moving: near standstill it would engage reverse.
+            // Rolling backwards, the throttle is what slows the car.
+            if (ForwardSpeed > LockedHoldSpeed)
+                return new VehicleInputState(0f, LockedBrake, 0f, false);
+            if (ForwardSpeed < -LockedHoldSpeed)
+                return new VehicleInputState(LockedBrake, 0f, 0f, false);
+            return new VehicleInputState(0f, 0f, 0f, true);
         }
 
         private static float OpposeMotion(float speed, float force, float mass, float deltaTime) =>

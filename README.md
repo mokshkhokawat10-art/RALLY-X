@@ -22,6 +22,7 @@ Arcade rally racer for Windows PC, built with Unity 6 (URP) and the Unity Input 
 | RALLY X > Build > Create Missing Vehicle Content | Surfaces, car config, placeholder car prefab (never overwrites) |
 | RALLY X > Build > Rebuild Placeholder Car Prefab | Regenerates the car prefab (overwrites manual edits) |
 | RALLY X > Build > Create Missing Camera Content | Default chase camera settings (never overwrites) |
+| RALLY X > Build > Create Missing Race Content | Default race settings and the UI panel settings (never overwrites) |
 | RALLY X > Build > Rebuild Sandbox Test Course | Regenerates the Sandbox test course and player car |
 | RALLY X > Build > Rebuild Pine Valley Track | Regenerates the Pine Valley scene from its track definition (overwrites the scene) |
 | RALLY X > Dev > Capture Pine Valley Screenshots | Renders an overview, views around the lap and both bridges to `Captures/` |
@@ -40,10 +41,10 @@ REM Setup + regenerate the track scenes
 REM Track review screenshots
 %U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.TrackCaptureTool.CaptureBatch -captureDir Captures -logFile -
 
-REM Edit Mode tests (track layout geometry)
+REM Edit Mode tests (track layout geometry, race rules)
 %U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform EditMode -testResults editmode.xml -logFile -
 
-REM Play Mode tests (vehicle physics, chase camera, Pine Valley drivability)
+REM Play Mode tests (vehicle physics, chase camera, Pine Valley drivability, races)
 %U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform PlayMode -testResults results.xml -logFile -
 ```
 
@@ -56,9 +57,10 @@ REM Play Mode tests (vehicle physics, chase camera, Pine Valley drivability)
 | Steer         | A D / Left Right  | Left Stick     |
 | Handbrake     | Space             | South (A / ✕)  |
 | Reset car     | R                 | North (Y / △)  |
-| Pause         | Esc               | Start          |
+| Restart race  | Backspace         | View / Select  |
+| Pause         | Esc (not used yet) | Start         |
 
-Dev panels: **F1** foundation overlay, **F2** vehicle telemetry.
+Dev panels: **F1** foundation overlay, **F2** vehicle telemetry (hidden by default in track scenes).
 All bindings are defined in `Assets/Scripts/Core/RallyInputActions.cs`.
 
 ## Tuning
@@ -68,6 +70,10 @@ Handling lives in `Assets/Settings/Vehicles/RallyCar_Config.asset`, surface beha
 All are read live, so changes made during Play Mode apply immediately
 (and persist after stopping, like any asset edit).
 
+Race rules (laps, countdown, wrong-way warning, results delay) are in
+`Assets/Settings/Racing/RaceSettings_Default.asset`; the HUD's layout and styles in `Assets/UI/Race/`
+(`RaceHud.uxml`, `RaceHud.uss`).
+
 ## Tracks
 
 Tracks are generated rather than built by hand. `Assets/Settings/Tracks/PineValley_Track.asset` holds Pine Valley's
@@ -75,7 +81,24 @@ layout (control points with position, height, width and surface), jumps, bridges
 and scenery density. Edit it, then run **RALLY X > Build > Rebuild Pine Valley Track**. The scene
 `Assets/Scenes/Tracks/PineValley.unity` and the terrain and road meshes in `Assets/Scenes/Tracks/PineValley/`
 are recreated on every rebuild, so edits made to them by hand are lost. In the scene, `TrackPath` holds the
-baked centreline and `SpawnGrid` the four starting slots.
+baked centreline, `SpawnGrid` the four starting slots and `RaceCircuit` the checkpoint gates. Gate spacing,
+width and height are in the definition's **Race** section; the builder keeps gates off main road that a
+shortcut bypasses, so both routes pass every gate.
+
+## Racing
+
+A track scene is raceable when it has a `RaceCircuit` (its `TrackPath`, `TrackSpawnGrid` and `Checkpoint`
+gates in driving order, the first being the start/finish line), a `RaceManager` and cars with a
+`RaceParticipant`. The track builder adds all of these, plus the `RaceHud`.
+
+- Checkpoints are planes, not colliders: a car passes one by crossing it forwards within its width and
+  height. They never touch physics, wheel raycasts or the camera. A lap only counts if every gate was passed in order.
+- Positions come from completed laps, then checkpoints passed this lap, then the distance along the track
+  to the next checkpoint; never from straight-line distances.
+- Each racer's progress (`RaceTracker`: laps, lap times, next gate, distance along the track, wrong way) is
+  plain C#, shared by the player and AI racers.
+- `VehicleController.InputLocked` holds cars on the grid during the countdown and brings finished cars to a stop.
+- Disabling the `RaceManager` releases the cars for free driving.
 
 ## Layout
 
@@ -88,6 +111,7 @@ Assets/
   Prefabs/        Vehicles, Environment, UI, Track
   Scenes/         MainMenu, Garage, Tracks (Pine Valley), Dev (Sandbox test scene)
   Settings/       URP, vehicle, camera and track configs, surfaces, physics materials
+  UI/             UI Toolkit theme, panel settings and layouts (Race/ = race HUD and results)
   Materials/ Models/ Textures/ Audio/ VFX/   (Environment/ and Generated/ subfolders are builder output)
 ```
 

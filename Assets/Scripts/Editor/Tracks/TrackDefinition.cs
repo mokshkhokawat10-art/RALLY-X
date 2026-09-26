@@ -59,6 +59,16 @@ namespace RallyX.EditorTools
         [SerializeField, Range(0f, 1f)] private float roadsideRockChance = 0.35f;
         [SerializeField, Min(0)] private int forestBoulderCount = 45;
 
+        [Header("Race")]
+        [Tooltip("Approximate distance between checkpoint gates, metres. The start/finish line is always a gate.")]
+        [SerializeField, Min(20f)] private float checkpointSpacing = 120f;
+        [Tooltip("How far each gate reaches beyond the road edges, metres, so cars running wide still pass through.")]
+        [SerializeField, Min(0f)] private float checkpointMargin = 6f;
+        [Tooltip("Height of the gates, metres. Tall enough for cars in the air over jumps.")]
+        [SerializeField, Min(2f)] private float checkpointHeight = 12f;
+        [Tooltip("Gates keep at least this far from where a shortcut leaves or rejoins the main road, metres.")]
+        [SerializeField, Min(0f)] private float checkpointJunctionClearance = 20f;
+
         public string DisplayName => displayName;
         public string SceneName => sceneName;
         public TrackNode[] Nodes => nodes;
@@ -84,6 +94,10 @@ namespace RallyX.EditorTools
         public float ClearingAmount => clearingAmount;
         public float RoadsideRockChance => roadsideRockChance;
         public int ForestBoulderCount => forestBoulderCount;
+        public float CheckpointSpacing => checkpointSpacing;
+        public float CheckpointMargin => checkpointMargin;
+        public float CheckpointHeight => checkpointHeight;
+        public float CheckpointJunctionClearance => checkpointJunctionClearance;
 
         /// <summary>Replaces the authored content. Used by the builder that creates the default definition.</summary>
         public void SetLayout(string newDisplayName, string newSceneName, TrackNode[] newNodes, TrackJump[] newJumps,

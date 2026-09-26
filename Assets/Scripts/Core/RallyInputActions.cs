@@ -27,6 +27,9 @@ namespace RallyX.Core
 
         public InputAction Pause { get; }
 
+        /// <summary>Starts the race again from the grid.</summary>
+        public InputAction RestartRace { get; }
+
         public RallyInputActions()
         {
             Driving = new InputActionMap("Driving");
@@ -63,6 +66,10 @@ namespace RallyX.Core
             Pause = Driving.AddAction("Pause", InputActionType.Button);
             Pause.AddBinding("<Keyboard>/escape");
             Pause.AddBinding("<Gamepad>/start");
+
+            RestartRace = Driving.AddAction("RestartRace", InputActionType.Button);
+            RestartRace.AddBinding("<Keyboard>/backspace");
+            RestartRace.AddBinding("<Gamepad>/select");
         }
 
         public void Enable() => Driving.Enable();

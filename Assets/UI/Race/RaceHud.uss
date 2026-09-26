@@ -1,0 +1,235 @@
+/* Race HUD. Sizes are for a 1920x1080 reference screen; the panel scales them to the real resolution. */
+
+.race-hud {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.hud-panel {
+    position: absolute;
+    padding: 10px 22px 12px 22px;
+    background-color: rgba(8, 12, 20, 0.72);
+    border-radius: 8px;
+}
+
+.hud-panel--top-left {
+    left: 36px;
+    top: 30px;
+    flex-direction: row;
+}
+
+.hud-panel--top-right {
+    right: 36px;
+    top: 30px;
+    align-items: flex-end;
+}
+
+.hud-panel--bottom-right {
+    right: 36px;
+    bottom: 30px;
+    align-items: flex-end;
+}
+
+.stat {
+    margin-right: 36px;
+}
+
+.stat--last {
+    margin-right: 0;
+}
+
+.caption {
+    padding: 0;
+    margin: 0;
+    font-size: 20px;
+    color: rgb(255, 196, 36);
+    -unity-font-style: bold;
+}
+
+.stat-value {
+    padding: 0;
+    margin: 0;
+    font-size: 56px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.timer {
+    padding: 0;
+    margin: 0;
+    font-size: 44px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.minor {
+    padding: 0;
+    margin: 0;
+    font-size: 22px;
+    color: rgb(205, 212, 224);
+}
+
+.speed {
+    padding: 0;
+    margin: 0;
+    font-size: 72px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.countdown {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 26%;
+    -unity-text-align: middle-center;
+    font-size: 200px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    text-shadow: 0 6px 12px rgba(0, 0, 0, 0.7);
+}
+
+.wrong-way {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 20%;
+    -unity-text-align: middle-center;
+    font-size: 84px;
+    color: rgb(255, 64, 40);
+    -unity-font-style: bold;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+    display: none;
+}
+
+.centre-message {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 14%;
+    -unity-text-align: middle-center;
+    font-size: 56px;
+    color: rgb(255, 196, 36);
+    -unity-font-style: bold;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* Results screen */
+
+.results {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.55);
+    display: none;
+}
+
+.results-card {
+    min-width: 720px;
+    padding: 30px 48px 26px 48px;
+    align-items: center;
+    background-color: rgba(10, 14, 24, 0.95);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgb(255, 196, 36);
+}
+
+.results-title {
+    font-size: 30px;
+    color: rgb(255, 196, 36);
+    -unity-font-style: bold;
+}
+
+.results-place {
+    font-size: 96px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.results-summary {
+    margin-bottom: 18px;
+    font-size: 26px;
+    color: rgb(255, 255, 255);
+}
+
+.results-table {
+    align-self: stretch;
+    margin-bottom: 14px;
+}
+
+.results-row {
+    flex-direction: row;
+    padding: 4px 8px;
+    border-bottom-width: 1px;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.results-cell {
+    padding: 0;
+    margin: 0;
+    font-size: 24px;
+    color: rgb(225, 230, 238);
+}
+
+.results-cell--position {
+    width: 90px;
+}
+
+.results-cell--driver {
+    flex-grow: 1;
+}
+
+.results-cell--time {
+    width: 180px;
+    -unity-text-align: middle-right;
+}
+
+.results-row--header .results-cell {
+    font-size: 18px;
+    color: rgb(255, 196, 36);
+    -unity-font-style: bold;
+}
+
+.results-row--player .results-cell {
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.results-laps {
+    margin-bottom: 22px;
+    font-size: 20px;
+    color: rgb(205, 212, 224);
+}
+
+.restart-button {
+    min-width: 320px;
+    padding: 12px 28px;
+    font-size: 28px;
+    color: rgb(20, 20, 20);
+    -unity-font-style: bold;
+    background-color: rgb(255, 196, 36);
+    border-width: 0;
+    border-radius: 8px;
+}
+
+.restart-button:hover {
+    background-color: rgb(255, 216, 100);
+}
+
+.restart-button:focus {
+    border-width: 3px;
+    border-color: rgb(255, 255, 255);
+}
+
+.hint {
+    margin-top: 10px;
+    font-size: 18px;
+    color: rgb(160, 168, 182);
+}

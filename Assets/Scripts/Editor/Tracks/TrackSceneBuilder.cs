@@ -3,7 +3,9 @@ using System.IO;
 using RallyX.Cameras;
 using RallyX.Core;
 using RallyX.Player;
+using RallyX.Racing;
 using RallyX.Tracks;
+using RallyX.UI;
 using RallyX.Vehicle;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -11,6 +13,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 
 namespace RallyX.EditorTools
 {
@@ -28,6 +31,7 @@ namespace RallyX.EditorTools
         private const float GridRowSpacing = 6.5f;
         private const float CameraNearClip = 0.1f;
         private const float CameraFarClip = 900f;
+        private const string PlayerDisplayName = "You";
 
         public static string ScenePath(TrackDefinition definition) => $"{TracksFolder}/{definition.SceneName}.unity";
 
@@ -50,6 +54,13 @@ namespace RallyX.EditorTools
                 return false;
             }
 
+            if (RaceContentBuilder.LoadRaceSettings() == null || RaceContentBuilder.LoadPanelSettings() == null ||
+                RaceContentBuilder.LoadRaceHudLayout() == null)
+            {
+                Debug.LogError(LogPrefix + "Race content is missing. Run RALLY X > Build > Create Missing Race Content first.");
+                return false;
+            }
+
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
                 Debug.LogError(LogPrefix + "Track build cancelled: unsaved changes in the open scene were not saved.");
@@ -65,6 +76,9 @@ namespace RallyX.EditorTools
             var layout = TrackLayout.Build(definition);
             var carPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(VehicleContentBuilder.CarPrefabPath);
             var cameraConfig = CameraContentBuilder.LoadChaseCameraConfig();
+            var raceSettings = RaceContentBuilder.LoadRaceSettings();
+            var panelSettings = RaceContentBuilder.LoadPanelSettings();
+            var hudLayout = RaceContentBuilder.LoadRaceHudLayout();
 
             string generatedFolder = $"{TracksFolder}/{definition.SceneName}";
             AssetDatabase.DeleteAsset(generatedFolder);
@@ -82,7 +96,12 @@ namespace RallyX.EditorTools
             var grid = CreateSpawnGrid(layout, path);
             var car = SpawnPlayerCar(carPrefab, grid.GetSlot(0));
             ConfigureCamera(scene, car, cameraConfig);
-            new GameObject(nameof(DevOverlay), typeof(DevOverlay));
+            var circuit = CreateRaceCircuit(layout, path, grid);
+            SetUpRace(car, circuit, raceSettings, panelSettings, hudLayout);
+
+            // The race HUD uses the screen corners; the dev panels stay available on F1 and F2.
+            HideDevPanel(new GameObject(nameof(DevOverlay), typeof(DevOverlay)).GetComponent<DevOverlay>());
+            HideDevPanel(car.GetComponent<VehicleDebugPanel>());
 
             string scenePath = ScenePath(definition);
             if (!EditorSceneManager.SaveScene(scene, scenePath))
@@ -93,7 +112,7 @@ namespace RallyX.EditorTools
 
             EditorAssetUtility.AddSceneToBuildSettings(scenePath);
             AssetDatabase.SaveAssets();
-            Debug.Log(LogPrefix + $"Built {definition.DisplayName}: {layout.Main.Length:0} m lap, " +
+            Debug.Log(LogPrefix + $"Built {definition.DisplayName}: {layout.Main.Length:0} m lap, {circuit.CheckpointCount} checkpoints, " +
                       $"{terrain.Data.treeInstanceCount} trees, scene {scenePath}.");
             return true;
         }
@@ -250,6 +269,49 @@ namespace RallyX.EditorTools
                 root.transform.LookAt(car.position + Vector3.up * config.LookHeight);
                 return;
             }
+        }
+
+        private static RaceCircuit CreateRaceCircuit(TrackLayout layout, TrackPath path, TrackSpawnGrid grid)
+        {
+            var definition = layout.Definition;
+            var root = new GameObject("RaceCircuit");
+            var distances = CheckpointPlacement.Distances(layout);
+            var checkpoints = new Checkpoint[distances.Count];
+            for (int i = 0; i < distances.Count; i++)
+            {
+                var sample = layout.Main.Get(layout.SampleIndexAt(distances[i]));
+                var gate = new GameObject(i == 0 ? "Checkpoint_00_StartFinish" : $"Checkpoint_{i:00}").AddComponent<Checkpoint>();
+                gate.transform.SetParent(root.transform, false);
+                gate.transform.SetPositionAndRotation(sample.Position, Quaternion.LookRotation(sample.Forward));
+                gate.SetSize(sample.Width + 2f * definition.CheckpointMargin, definition.CheckpointHeight);
+                checkpoints[i] = gate;
+            }
+
+            var circuit = root.AddComponent<RaceCircuit>();
+            circuit.Configure(path, grid, checkpoints);
+            return circuit;
+        }
+
+        private static void SetUpRace(VehicleController car, RaceCircuit circuit, RaceSettings settings, PanelSettings panelSettings,
+            VisualTreeAsset hudLayout)
+        {
+            car.gameObject.AddComponent<RaceParticipant>().Configure(PlayerDisplayName, player: true);
+
+            var race = new GameObject(nameof(RaceManager)).AddComponent<RaceManager>();
+            race.Configure(settings, circuit);
+
+            var hud = new GameObject(nameof(RaceHud));
+            var document = hud.AddComponent<UIDocument>();
+            document.panelSettings = panelSettings;
+            document.visualTreeAsset = hudLayout;
+            hud.AddComponent<RaceHud>().Configure(race);
+        }
+
+        private static void HideDevPanel(Component panel)
+        {
+            var serialized = new SerializedObject(panel);
+            serialized.FindProperty("visible").boolValue = false;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>True when the track's scene file exists.</summary>

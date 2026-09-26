@@ -13,6 +13,7 @@ namespace RallyX.EditorTools
             bool success = ProjectSetup.Run()
                            && VehicleContentBuilder.BuildMissing()
                            && CameraContentBuilder.BuildMissing()
+                           && RaceContentBuilder.BuildMissing()
                            && PineValleyTrack.LoadOrCreate() != null
                            && SandboxCourseBuilder.Rebuild();
             if (!success)
@@ -25,6 +26,7 @@ namespace RallyX.EditorTools
             bool success = ProjectSetup.Run()
                            && VehicleContentBuilder.BuildMissing()
                            && CameraContentBuilder.BuildMissing()
+                           && RaceContentBuilder.BuildMissing()
                            && TrackSceneBuilder.Build(PineValleyTrack.LoadOrCreate());
             if (!success)
                 EditorApplication.Exit(1);

@@ -21,6 +21,30 @@ namespace RallyX.Tests
         }
 
         [Test]
+        public void Checkpoints_StartAtTheLineAndStayOffRoadThatShortcutsBypass()
+        {
+            var distances = CheckpointPlacement.Distances(layout);
+            var excluded = CheckpointPlacement.ExcludedSpans(layout);
+            float length = layout.Main.Length;
+            TestContext.WriteLine($"{distances.Count} gates at {string.Join(", ", distances.Select(d => d.ToString("0")))} m");
+
+            Assert.AreEqual(0f, distances[0], "The first gate is the start/finish line.");
+            Assert.GreaterOrEqual(distances.Count, 8, "Too few gates to stop cars cutting the course.");
+            float largestGap = length - distances[distances.Count - 1];
+            for (int i = 1; i < distances.Count; i++)
+            {
+                Assert.Greater(distances[i], distances[i - 1], "Gates must be in driving order.");
+                largestGap = Mathf.Max(largestGap, distances[i] - distances[i - 1]);
+                foreach (var (start, spanLength) in excluded)
+                    Assert.Greater(Mathf.Repeat(distances[i] - start, length), spanLength,
+                        $"Gate {i} at {distances[i]:0} m is on road a shortcut bypasses, so shortcut takers would miss it.");
+            }
+
+            float longestSpan = excluded.Count > 0 ? excluded.Max(span => span.length) : 0f;
+            Assert.LessOrEqual(largestGap, layout.Definition.CheckpointSpacing + longestSpan + 1f, "Gates are too far apart.");
+        }
+
+        [Test]
         public void PineValley_LayoutHasNoTightCornersSteepGradesOrOverlaps()
         {
             var samples = layout.Main.Samples;
