@@ -34,7 +34,7 @@ namespace RallyX.Tests
         private readonly List<GameObject> spawned = new List<GameObject>();
         private float previousTimeScale;
 
-        protected VehicleController Car { get; private set; }
+        protected VehicleController Car { get; set; }
 
         [SetUp]
         public void SetUpSimulation()

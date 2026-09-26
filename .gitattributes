@@ -57,3 +57,6 @@
 *.dll       binary
 *.so        binary
 *.exe       binary
+
+# Unity saves TerrainData in binary even with Force Text serialization.
+Assets/Scenes/Tracks/*/Terrain.asset binary

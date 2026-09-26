@@ -219,15 +219,6 @@ namespace RallyX.EditorTools
             return true;
         }
 
-        private static void AddSceneToBuildSettings(string scenePath)
-        {
-            var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-            if (scenes.Any(s => s.path == scenePath))
-                return;
-
-            scenes.Add(new EditorBuildSettingsScene(scenePath, true));
-            EditorBuildSettings.scenes = scenes.ToArray();
-            Debug.Log(LogPrefix + $"Added {scenePath} to the build scene list.");
-        }
+        private static void AddSceneToBuildSettings(string scenePath) => EditorAssetUtility.AddSceneToBuildSettings(scenePath);
     }
 }

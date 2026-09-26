@@ -8,5 +8,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Dev/Sandbox.unity
     guid: 85bf0bd1cad6ec1459c064448b7438c1
+  - enabled: 1
+    path: Assets/Scenes/Tracks/PineValley.unity
+    guid: 724f29f2cf1bacf43916d836d14985e6
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

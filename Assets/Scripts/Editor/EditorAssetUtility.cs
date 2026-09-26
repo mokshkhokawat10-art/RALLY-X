@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -43,6 +44,17 @@ namespace RallyX.EditorTools
                 material.SetFloat("_Smoothness", smoothness);
                 return material;
             });
+        }
+
+        public static void AddSceneToBuildSettings(string scenePath)
+        {
+            var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            if (scenes.Exists(s => s.path == scenePath))
+                return;
+
+            scenes.Add(new EditorBuildSettingsScene(scenePath, true));
+            EditorBuildSettings.scenes = scenes.ToArray();
+            Debug.Log($"[RALLY X Build] Added {scenePath} to the build scene list.");
         }
 
         public static void SetLayerRecursively(GameObject root, int layer)
