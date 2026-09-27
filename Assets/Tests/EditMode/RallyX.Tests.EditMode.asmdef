@@ -4,6 +4,8 @@
     "references": [
         "RallyX",
         "RallyX.Editor",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

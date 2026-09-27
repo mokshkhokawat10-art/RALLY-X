@@ -6,8 +6,9 @@ using UnityEngine;
 namespace RallyX.Vehicle
 {
     /// <summary>
-    /// Arcade raycast vehicle: suspension, drive, brakes, reverse, steering, tyre grip, drift assist,
-    /// downforce and air control. Driven through <see cref="SetInput"/> by a player or AI component.
+    /// Arcade raycast vehicle: suspension, drive, brakes, reverse, steering, tyre grip with load transfer and wheelspin,
+    /// drift assist, downforce, air control and settling after landings and knocks. Driven through <see cref="SetInput"/>
+    /// by a player or AI component.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     [DisallowMultipleComponent]
@@ -25,6 +26,21 @@ namespace RallyX.Vehicle
         // A car with locked input is slowed with this much brake (0..1), then held by the handbrake below the hold speed (m/s).
         private const float LockedBrake = 0.35f;
         private const float LockedHoldSpeed = 2f;
+
+        // Measured accelerations are clamped to this, m/s², so a collision can't throw the load transfer or body lean about.
+        private const float MaxMeasuredAcceleration = 30f;
+
+        // In the air the landing spot is looked for this many seconds of travel ahead, up to this far below, metres.
+        // Ground steeper than the slope limit (normal's y below it) is ignored.
+        private const float LandingProbeLead = 0.35f;
+        private const float LandingProbeDistance = 30f;
+        private const float LandingSlopeLimit = 0.5f;
+
+        // Seconds for steering in the air to bring the yaw rate to what it asks for.
+        private const float AirYawResponseTime = 0.25f;
+
+        // Hops shorter than this, seconds, don't need settling on landing.
+        private const float SettleMinAirTime = 0.25f;
 
         [SerializeField] private VehicleConfig config;
         [SerializeField] private VehicleWheel[] wheels = Array.Empty<VehicleWheel>();
@@ -73,12 +89,26 @@ namespace RallyX.Vehicle
         /// <summary>Seconds since every wheel left the ground (0 while grounded).</summary>
         public float AirborneTime { get; private set; }
 
+        /// <summary>
+        /// The car's smoothed acceleration in its own space (x right, y up, z forward), m/s²: negative z while braking,
+        /// x in corners. Drives the load transfer between the axles; body lean and the camera read it too.
+        /// </summary>
+        public Vector3 LocalAcceleration { get; private set; }
+
+        /// <summary>The input the car is actually driving with this step: the driver's, or the brake and hold while input is locked.</summary>
+        public VehicleInputState AppliedInput => input;
+
         private Rigidbody body;
         private VehicleInputState requestedInput;
         private VehicleInputState input;
         private int groundMask;
         private int frontWheelCount;
         private int rearWheelCount;
+        private float frontAxle;
+        private float rearAxle;
+        private Vector3 previousVelocity;
+        private bool hasPreviousVelocity;
+        private float settleTimeLeft;
 
         public void SetInput(in VehicleInputState state) => requestedInput = state;
 
@@ -118,6 +148,10 @@ namespace RallyX.Vehicle
 
             SteerAngle = 0f;
             IsReversing = false;
+            AirborneTime = 0f;
+            LocalAcceleration = Vector3.zero;
+            hasPreviousVelocity = false;
+            settleTimeLeft = 0f;
             Drift.Reset();
             foreach (var wheel in wheels)
                 wheel.ResetState(config);
@@ -136,12 +170,22 @@ namespace RallyX.Vehicle
             foreach (var wheel in wheels)
             {
                 wheel.Initialize(body, config);
+                float along = transform.InverseTransformPoint(wheel.transform.position).z;
                 if (wheel.IsFront)
+                {
+                    frontAxle += along;
                     frontWheelCount++;
+                }
                 else
+                {
+                    rearAxle += along;
                     rearWheelCount++;
+                }
             }
 
+            // Axle positions along the car, for the load transfer between them. A car without both axles has none.
+            frontAxle = frontWheelCount > 0 ? frontAxle / frontWheelCount : 0f;
+            rearAxle = rearWheelCount > 0 ? rearAxle / rearWheelCount : 0f;
             ApplyBodySettings();
         }
 
@@ -168,16 +212,22 @@ namespace RallyX.Vehicle
             Vector3 forward = rotation * Vector3.forward;
             Vector3 velocity = body.linearVelocity;
             ForwardSpeed = Vector3.Dot(velocity, forward);
+            MeasureAcceleration(velocity, rotation, deltaTime);
 
             UpdateReverseState();
             UpdateSteering(deltaTime);
             UpdateSuspension(deltaTime);
-            Drift.Step(config, input.Handbrake, IsReversing, IsGrounded, velocity, forward, up, deltaTime);
+            Drift.Step(config, input.Handbrake, input.Throttle, IsReversing, IsGrounded, velocity, forward, up, deltaTime);
 
             if (IsGrounded)
             {
                 if (AirborneTime > 0f)
+                {
+                    if (AirborneTime >= SettleMinAirTime)
+                        settleTimeLeft = config.SettleTime;
                     Landed?.Invoke(AirborneTime, Mathf.Max(0f, -velocity.y));
+                }
+
                 AirborneTime = 0f;
                 ApplyTyreForces(rotation, up, deltaTime);
                 ApplyDriftAssist(up);
@@ -189,8 +239,10 @@ namespace RallyX.Vehicle
                 AirborneTime += deltaTime;
                 foreach (var wheel in wheels)
                     wheel.AdvanceSpin(deltaTime);
-                ApplyAirControl(up);
+                ApplyAirControl(rotation, up, velocity);
             }
+
+            ApplySettling(up, deltaTime);
         }
 
         private void Update()
@@ -201,10 +253,14 @@ namespace RallyX.Vehicle
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (Impact == null || collision.contactCount == 0)
+            if (collision.contactCount == 0)
                 return;
 
-            Impact.Invoke(collision.impulse.magnitude, collision.GetContact(0).point);
+            // A hard knock starts the settling, so a hit to the side rocks the car instead of rolling it.
+            float impulse = collision.impulse.magnitude;
+            if (config != null && body != null && impulse / body.mass >= config.KnockSpeed)
+                settleTimeLeft = config.SettleTime;
+            Impact?.Invoke(impulse, collision.GetContact(0).point);
         }
 
         private bool IsSetUpCorrectly()
@@ -236,6 +292,17 @@ namespace RallyX.Vehicle
             body.linearDamping = 0f;
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        }
+
+        /// <summary>The car's acceleration over the last step in its own space, smoothed over the weight transfer time.</summary>
+        private void MeasureAcceleration(Vector3 velocity, Quaternion rotation, float deltaTime)
+        {
+            Vector3 measured = hasPreviousVelocity ? (velocity - previousVelocity) / deltaTime : Vector3.zero;
+            previousVelocity = velocity;
+            hasPreviousVelocity = true;
+
+            Vector3 local = Vector3.ClampMagnitude(Quaternion.Inverse(rotation) * measured, MaxMeasuredAcceleration);
+            LocalAcceleration = Vector3.Lerp(LocalAcceleration, local, 1f - Mathf.Exp(-deltaTime / config.WeightTransferTime));
         }
 
         private void UpdateReverseState()
@@ -280,11 +347,13 @@ namespace RallyX.Vehicle
 
         private void ApplyTyreForces(Quaternion rotation, Vector3 up, float deltaTime)
         {
-            float massPerWheel = body.mass / wheels.Length;
+            float mass = body.mass;
+            float massPerWheel = mass / wheels.Length;
             Vector3 centerOfMass = body.worldCenterOfMass;
             ResolveLongitudinalInput(out float driveAcceleration, out float brakeInput);
             bool coasting = input.Throttle <= 0f && input.Brake <= 0f;
             float stiffness = 1f - Mathf.Pow(1f - config.LateralStiffness, deltaTime / StiffnessReferenceTimestep);
+            AxleLoadScales(out float frontLoadScale, out float rearLoadScale);
 
             foreach (var wheel in wheels)
             {
@@ -303,32 +372,69 @@ namespace RallyX.Vehicle
                 SurfaceProperties surface = wheel.Surface;
                 bool rearLocked = !wheel.IsFront && input.Handbrake;
 
-                // Sideways: cancel sliding up to the tyre's friction limit, which scales with the wheel's load.
+                // The tyre's load: the spring's force, plus or minus the load braking and accelerating move between the axles.
+                float load = wheel.SuspensionForce * (wheel.IsFront ? frontLoadScale : rearLoadScale);
+
+                // Sideways: cancel sliding up to the tyre's friction limit, which scales with its load. Loose surfaces lose
+                // less grip as the slide grows, so slides on them are progressive.
                 float slip = Mathf.Abs(lateralSpeed) / Mathf.Max(pointVelocity.magnitude, 1f);
                 float axleGrip = wheel.IsFront ? config.FrontGrip : config.RearGrip * Drift.RearGripScale;
-                float friction = config.TyreFriction * axleGrip * surface.Grip * config.GripBySlip.Evaluate(slip);
-                float maxLateralForce = friction * wheel.SuspensionForce;
+                float slideGrip = 1f - (1f - config.GripBySlip.Evaluate(slip)) * surface.SlideFalloff;
+                float friction = config.TyreFriction * axleGrip * surface.Grip * slideGrip;
+                float maxLateralForce = friction * load;
                 float lateralForce = Mathf.Clamp(-lateralSpeed * stiffness * massPerWheel / deltaTime, -maxLateralForce, maxLateralForce);
 
-                // Along the tyre: drive, then brakes and drag, which never push past standstill.
+                // Along the tyre: drive, up to what the tyre can put down (beyond it the wheel spins), then brakes and
+                // drag, which never push past standstill.
                 float driveShare = wheel.IsFront
                     ? config.FrontDriveShare / frontWheelCount
                     : (1f - config.FrontDriveShare) / rearWheelCount;
-                float longitudinalForce = driveAcceleration * surface.Acceleration * body.mass * driveShare;
+                float driveForce = driveAcceleration * surface.Acceleration * mass * driveShare;
+                float traction = config.DriveTraction * config.TyreFriction * surface.Grip * load;
+                float wheelSpin = 0f;
+                if (Mathf.Abs(driveForce) > traction)
+                {
+                    wheelSpin = Mathf.Clamp01(Mathf.Abs(driveForce) / Mathf.Max(traction, 1f) - 1f);
+                    driveForce = Mathf.Sign(driveForce) * traction;
+                }
 
-                float resistance = massPerWheel * (brakeInput * config.BrakeDeceleration * surface.Grip
-                                                   + surface.RollingResistance
-                                                   + (coasting ? config.CoastDeceleration : 0f));
+                float brakeShare = wheel.IsFront ? config.BrakeBias / frontWheelCount : (1f - config.BrakeBias) / rearWheelCount;
+                float resistance = brakeInput * config.BrakeDeceleration * surface.Grip * mass * brakeShare
+                                   + massPerWheel * (surface.RollingResistance + (coasting ? config.CoastDeceleration : 0f));
                 if (rearLocked)
-                    resistance += config.HandbrakeDeceleration * surface.Grip * body.mass / rearWheelCount;
-                longitudinalForce += OpposeMotion(rollingSpeed, resistance, massPerWheel, deltaTime);
+                    resistance += config.HandbrakeDeceleration * surface.Grip * mass / rearWheelCount;
+                float longitudinalForce = driveForce + OpposeMotion(rollingSpeed, resistance, massPerWheel, deltaTime);
 
                 // Applying tyre forces nearer the centre of mass limits body roll and pitch.
                 Vector3 forcePoint = hit.point + up * (Vector3.Dot(centerOfMass - hit.point, up) * config.AntiRoll);
                 body.AddForceAtPosition(wheelRight * lateralForce + wheelForward * longitudinalForce, forcePoint);
 
-                wheel.UpdateSpin(rollingSpeed, rearLocked, config.WheelRadius, deltaTime);
+                wheel.Load = load;
+                wheel.SidewaysSpeed = Mathf.Abs(lateralSpeed);
+                wheel.WheelSpin = wheelSpin;
+                wheel.Locked = rearLocked && Mathf.Abs(rollingSpeed) > ReverseEngageSpeed;
+                wheel.UpdateSpin(rollingSpeed, rearLocked, wheelSpin, config.WheelRadius, deltaTime);
             }
+        }
+
+        /// <summary>
+        /// Factors on each axle's tyre load for the weight braking and accelerating move between them, beyond what the
+        /// springs carry (<see cref="VehicleConfig.WeightTransfer"/>). The car's total load is unchanged.
+        /// </summary>
+        private void AxleLoadScales(out float front, out float rear)
+        {
+            front = rear = 1f;
+            float wheelbase = frontAxle - rearAxle;
+            if (frontWheelCount == 0 || rearWheelCount == 0 || wheelbase < 0.5f || config.WeightTransfer <= 0f)
+                return;
+
+            // Weight on the front axle at rest, from where the centre of mass sits between the axles.
+            float frontShare = Mathf.Clamp((config.CenterOfMass.z - rearAxle) / wheelbase, 0.2f, 0.8f);
+
+            // Load moved to the rear as a share of the car's weight: acceleration x centre of mass height / (g x wheelbase).
+            float moved = config.WeightTransfer * LocalAcceleration.z * config.CenterOfMass.y / (Physics.gravity.magnitude * wheelbase);
+            front = Mathf.Max(0f, 1f - moved / frontShare);
+            rear = Mathf.Max(0f, 1f + moved / (1f - frontShare));
         }
 
         private void ResolveLongitudinalInput(out float driveAcceleration, out float brakeInput)
@@ -424,17 +530,51 @@ namespace RallyX.Vehicle
             body.AddForce(-up * force);
         }
 
-        private void ApplyAirControl(Vector3 up)
+        private void ApplyAirControl(Quaternion rotation, Vector3 up, Vector3 velocity)
         {
-            // A critically damped spring levels pitch and roll; steering controls yaw.
+            // A critically damped spring levels pitch and roll towards the ground the car will land on. Steering sets the
+            // yaw rate up to a limit, and without steering the spin the car took off with fades. The brake dips the nose.
             float stiffness = config.AirAutoLevel;
             Vector3 angularVelocity = body.angularVelocity;
-            Vector3 pitchRollVelocity = angularVelocity - up * Vector3.Dot(angularVelocity, up);
+            float yawRate = Vector3.Dot(angularVelocity, up);
+            Vector3 pitchRollVelocity = angularVelocity - up * yawRate;
+            float yawAcceleration = Mathf.Clamp((input.Steer * config.AirYawRate - yawRate) / AirYawResponseTime, -config.AirControl, config.AirControl);
 
-            Vector3 torque = Vector3.Cross(up, Vector3.up) * stiffness
+            Vector3 torque = Vector3.Cross(up, LandingUp(velocity)) * stiffness
                              - pitchRollVelocity * (2f * Mathf.Sqrt(stiffness))
-                             + up * (input.Steer * config.AirControl);
+                             + up * yawAcceleration
+                             + rotation * Vector3.right * (input.Brake * config.AirPitchControl);
             body.AddTorque(torque, ForceMode.Acceleration);
+        }
+
+        /// <summary>
+        /// The up direction to level to in the air: part way from world up to the normal of the ground below where the car
+        /// is heading, so it lands square on a slope. World up when there is no usable ground below.
+        /// </summary>
+        private Vector3 LandingUp(Vector3 velocity)
+        {
+            if (config.LandingAlignment <= 0f)
+                return Vector3.up;
+
+            Vector3 lead = new Vector3(velocity.x, 0f, velocity.z) * LandingProbeLead;
+            if (!Physics.Raycast(body.worldCenterOfMass + lead, Vector3.down, out RaycastHit hit, LandingProbeDistance, groundMask,
+                    QueryTriggerInteraction.Ignore) || hit.normal.y < LandingSlopeLimit)
+                return Vector3.up;
+
+            return Vector3.Slerp(Vector3.up, hit.normal, config.LandingAlignment);
+        }
+
+        /// <summary>After a landing or a hard knock, damps pitch and roll for a moment so the car settles instead of rocking or rolling.</summary>
+        private void ApplySettling(Vector3 up, float deltaTime)
+        {
+            if (settleTimeLeft <= 0f)
+                return;
+
+            settleTimeLeft -= deltaTime;
+            Vector3 angularVelocity = body.angularVelocity;
+            Vector3 pitchRollVelocity = angularVelocity - up * Vector3.Dot(angularVelocity, up);
+            float removed = 1f - Mathf.Exp(-config.SettleDamping * deltaTime);
+            body.AddTorque(-pitchRollVelocity * (removed / deltaTime), ForceMode.Acceleration);
         }
 
         private VehicleInputState LockedInput()

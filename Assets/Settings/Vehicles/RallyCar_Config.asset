@@ -23,7 +23,25 @@ MonoBehaviour:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 1
+      value: 0.8
+      inSlope: 1.0833
+      outSlope: 1.0833
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.12
+      value: 0.93
+      inSlope: 0.5333
+      outSlope: 0.5333
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.3
+      value: 0.96
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -31,10 +49,28 @@ MonoBehaviour:
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 0.6
-      value: 0.75
-      inSlope: 0
-      outSlope: 0
+      time: 0.55
+      value: 0.74
+      inSlope: -1.1667
+      outSlope: -1.1667
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.78
+      value: 0.4
+      inSlope: -1.7714
+      outSlope: -1.7714
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.9
+      value: 0.12
+      inSlope: -1.8182
+      outSlope: -1.8182
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
@@ -55,8 +91,12 @@ MonoBehaviour:
   reverseAcceleration: 6
   frontDriveShare: 0.4
   coastDeceleration: 1.5
+  driveTraction: 1.8
   brakeDeceleration: 18
+  brakeBias: 0.55
   handbrakeDeceleration: 5
+  weightTransfer: 0.15
+  weightTransferTime: 0.12
   maxSteerAngle: 32
   steerSpeed: 200
   steerBySpeed:
@@ -124,6 +164,7 @@ MonoBehaviour:
   driftGrip: 0.3
   driftMultiplier: 2.5
   driftRecoveryTime: 0.6
+  driftSustainGrip: 0.65
   driftAngleThreshold: 12
   maxDriftAngle: 70
   antiSpin: 6
@@ -132,6 +173,15 @@ MonoBehaviour:
   wheelRadius: 0.36
   springFrequency: 1.8
   dampingRatio: 0.55
+  reboundDamping: 1.5
+  bumpStopTravel: 0.06
+  bumpStopStiffness: 8
   downforce: 0.5
   airControl: 2
+  airYawRate: 1.2
   airAutoLevel: 4
+  landingAlignment: 0.8
+  airPitchControl: 1.5
+  settleTime: 0.4
+  settleDamping: 5
+  knockSpeed: 2

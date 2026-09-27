@@ -20,7 +20,7 @@ namespace RallyX.Tests
             try
             {
                 Assert.AreEqual(string.Empty, theme.ArtFolder, "The forest's art is the shared art Pine Valley was built with.");
-                Assert.IsFalse(theme.CustomSky);
+                Assert.AreEqual(forest.CustomSky, theme.CustomSky, "Pine Valley's sky is the forest theme's (its own since Phase 10).");
                 Assert.IsTrue(theme.CreekWater);
                 Assert.IsNull(theme.OffRoadSurface, "Off the road is grass.");
                 Assert.AreEqual(forest.SunRotation, theme.SunRotation);
@@ -30,6 +30,8 @@ namespace RallyX.Tests
                 Assert.AreEqual(forest.FogDensity, theme.FogDensity);
                 Assert.AreEqual(forest.RockSlope, theme.RockSlope);
                 Assert.AreEqual(forest.Grass.light, theme.Grass.light);
+                Assert.AreEqual(forest.Contrast, theme.Contrast);
+                Assert.AreEqual(forest.GrassTufts.light, theme.GrassTufts.light);
                 CollectionAssert.AreEqual(new[] { "PineTall", "PineBushy" }, System.Array.ConvertAll(theme.Trees, tree => tree.name));
             }
             finally

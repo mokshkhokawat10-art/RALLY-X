@@ -22,6 +22,9 @@ namespace RallyX.Cameras
         [Tooltip("How far ahead of the car the camera aims, metres. Puts more road in view.")]
         [SerializeField, Min(0f)] private float lookAhead = 2f;
 
+        [Tooltip("Extra aim distance ahead at full speed, metres, so fast sections show more of the road coming up.")]
+        [SerializeField, Min(0f)] private float lookAheadAtSpeed = 3.5f;
+
         [Header("Smoothing")]
         [Tooltip("How quickly the camera swings behind the car's heading. Higher = tighter.")]
         [SerializeField, Min(0.1f)] private float rotationSharpness = 5f;
@@ -54,6 +57,28 @@ namespace RallyX.Cameras
 
         [Tooltip("Largest drift swing, degrees.")]
         [SerializeField, Range(0f, 45f)] private float maxDriftSwing = 18f;
+
+        [Tooltip("Extra distance at the largest drift swing, metres: the camera eases back a little to show the slide.")]
+        [SerializeField, Min(0f)] private float driftDistance = 0.4f;
+
+        [Header("Landing Dip and Impact Kick")]
+        [Tooltip("How far the camera dips on the hardest landing, metres (a spring, on top of the shake).")]
+        [SerializeField, Min(0f)] private float landingDip = 0.3f;
+
+        [Tooltip("How far a hard hit pushes the camera away from the impact, metres.")]
+        [SerializeField, Min(0f)] private float impactKick = 0.15f;
+
+        [Tooltip("Natural frequency of the dip and kick spring, Hz.")]
+        [SerializeField, Range(0.5f, 8f)] private float bumpFrequency = 2.4f;
+
+        [Tooltip("1 = returns without overshoot. Lower bounces back past once.")]
+        [SerializeField, Range(0.2f, 1.5f)] private float bumpDamping = 0.65f;
+
+        [Header("Speed Rumble")]
+        [Tooltip("Faint vibration at full speed, degrees: about a third on smooth asphalt, full on the roughest gravel. 0 = off.")]
+        [SerializeField, Range(0f, 1f)] private float speedRumble = 0.2f;
+
+        [SerializeField, Min(0.1f)] private float speedRumbleFrequency = 11f;
 
         [Header("Shake")]
         [Tooltip("Rotation shake at full trauma, degrees.")]
@@ -103,6 +128,7 @@ namespace RallyX.Cameras
         public float Height => height;
         public float LookHeight => lookHeight;
         public float LookAhead => lookAhead;
+        public float LookAheadAtSpeed => lookAheadAtSpeed;
 
         public float RotationSharpness => rotationSharpness;
         public float HeightSharpness => heightSharpness;
@@ -117,6 +143,14 @@ namespace RallyX.Cameras
 
         public float DriftSwing => driftSwing;
         public float MaxDriftSwing => maxDriftSwing;
+        public float DriftDistance => driftDistance;
+
+        public float LandingDip => landingDip;
+        public float ImpactKick => impactKick;
+        public float BumpFrequency => bumpFrequency;
+        public float BumpDamping => bumpDamping;
+        public float SpeedRumble => speedRumble;
+        public float SpeedRumbleFrequency => speedRumbleFrequency;
 
         public float MaxShakeAngle => maxShakeAngle;
         public float MaxShakeOffset => maxShakeOffset;

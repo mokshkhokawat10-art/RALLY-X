@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1e85f3be9c63a648be03dbb22285f38, type: 3}
+  m_Name: VehicleEffects_Default
+  m_EditorClassIdentifier: RallyX::RallyX.VFX.VehicleEffectsConfig
+  puffMaterial: {fileID: 2100000, guid: 4de710e8c60717d4bb619506d91b78e3, type: 2}
+  debrisMaterial: {fileID: 2100000, guid: 36fae3f2c5af158458ddeaa18d21e4f5, type: 2}
+  sparkMaterial: {fileID: 2100000, guid: 757ea1fb4c5c4d646a2b07bd460a4adc, type: 2}
+  skidMaterial: {fileID: 2100000, guid: 11032d1f7901307489a9aa9b05cf34df, type: 2}
+  slideStart: 1.2
+  slideFull: 6
+  lockedFullSpeed: 15
+  brakeEffect: 0.4
+  brakeEffectSpeed: 8
+  launchSpray: 1
+  launchSpeed: 12
+  puffRate: 36
+  rollingSprayFullSpeedKmh: 90
+  puffSize: {x: 1.1, y: 3}
+  puffLifetime: {x: 1.2, y: 2.6}
+  puffOpacity: 0.5
+  puffInherit: 0.25
+  puffDrag: 1.6
+  gravelRate: 55
+  mudRate: 40
+  grassRate: 26
+  debrisSize: {x: 0.05, y: 0.13}
+  mudSize: {x: 0.08, y: 0.22}
+  debrisLifetime: {x: 0.5, y: 1.1}
+  debrisThrowSpeed: 6
+  sparkImpactSpeed: 2.5
+  sparkBurst: {x: 10, y: 45}
+  sparkFullImpactSpeed: 10
+  scrapeSpeed: 3
+  scrapeRate: 70
+  sparkLifetime: {x: 0.18, y: 0.5}
+  sparkSpeed: 7
+  sparkColor: {r: 3, g: 1.86, b: 0.6, a: 3}
+  landingAirTime: 0.3
+  landingFullSpeed: 7
+  landingPuffs: {x: 2, y: 7}
+  markWidth: 0.24
+  markThreshold: 0.2
+  markSegmentLength: 0.4
+  markCapacity: 1024
+  exhaustIdleRate: 3
+  exhaustThrottleRate: 12
+  exhaustOpacity: 0.18
+  exhaustSize: {x: 0.2, y: 0.7}
+  backfireSpeed: 0.5
+  backfireChance: 0.6
+  backfireColor: {r: 4, g: 1.8, b: 0.48, a: 4}
+  maxPuffs: 260
+  maxDebris: 180
+  maxSparks: 90
+  maxExhaust: 50

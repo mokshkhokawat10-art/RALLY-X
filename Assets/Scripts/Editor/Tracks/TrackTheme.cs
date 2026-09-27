@@ -17,22 +17,47 @@ namespace RallyX.EditorTools
         [SerializeField] private string artFolder = string.Empty;
 
         [Header("Sun and Sky")]
-        [SerializeField] private Vector3 sunRotation = new Vector3(40f, -35f, 0f);
-        [SerializeField, Min(0f)] private float sunIntensity = 1.3f;
-        [SerializeField] private Color sunColor = new Color(1f, 0.95f, 0.86f);
-        [SerializeField] private Color fogColor = new Color(0.64f, 0.72f, 0.78f);
-        [SerializeField, Min(0f)] private float fogDensity = 0.0032f;
+        [Tooltip("A low sun throws long shadows across the road, which reads well at speed.")]
+        [SerializeField] private Vector3 sunRotation = new Vector3(30f, -38f, 0f);
+        [SerializeField, Min(0f)] private float sunIntensity = 1.7f;
+        [SerializeField] private Color sunColor = new Color(1f, 0.9f, 0.76f);
+        [SerializeField] private Color fogColor = new Color(0.6f, 0.68f, 0.75f);
+        [SerializeField, Min(0f)] private float fogDensity = 0.0028f;
 
         [Tooltip("Use this theme's own sky and ambient light. Off = Unity's default sky, lighting the scene.")]
-        [SerializeField] private bool customSky;
-        [SerializeField] private Color skyTint = new Color(0.5f, 0.5f, 0.5f);
-        [SerializeField] private Color skyGround = new Color(0.37f, 0.35f, 0.34f);
-        [SerializeField, Range(0f, 5f)] private float atmosphereThickness = 1f;
-        [SerializeField, Range(0f, 8f)] private float skyExposure = 1.3f;
+        [SerializeField] private bool customSky = true;
+        [SerializeField] private Color skyTint = new Color(0.47f, 0.52f, 0.6f);
+        [SerializeField] private Color skyGround = new Color(0.36f, 0.35f, 0.32f);
+        [SerializeField, Range(0f, 5f)] private float atmosphereThickness = 1.05f;
+        [SerializeField, Range(0f, 8f)] private float skyExposure = 1.35f;
         [Tooltip("Ambient light from above, the horizon and below, with a custom sky.")]
-        [SerializeField] private Color ambientSky = new Color(0.55f, 0.6f, 0.68f);
-        [SerializeField] private Color ambientEquator = new Color(0.45f, 0.44f, 0.42f);
-        [SerializeField] private Color ambientGround = new Color(0.25f, 0.22f, 0.2f);
+        [SerializeField] private Color ambientSky = new Color(0.62f, 0.7f, 0.82f);
+        [SerializeField] private Color ambientEquator = new Color(0.52f, 0.54f, 0.52f);
+        [SerializeField] private Color ambientGround = new Color(0.27f, 0.25f, 0.21f);
+
+        [Tooltip("How dark the sun's shadows are, 0..1. Below 1 the sky light fills them a little.")]
+        [SerializeField, Range(0f, 1f)] private float shadowStrength = 0.85f;
+
+        [Header("Colour Grade")]
+        [Tooltip("Exposure after tonemapping, EV.")]
+        [SerializeField, Range(-2f, 2f)] private float postExposure = 0.55f;
+        [SerializeField, Range(-100f, 100f)] private float contrast = 10f;
+        [SerializeField, Range(-100f, 100f)] private float saturation = 6f;
+        [Tooltip("White balance: negative is cooler (bluer), positive warmer.")]
+        [SerializeField, Range(-100f, 100f)] private float temperature = -3f;
+        [Tooltip("Tint of the shadows and of the highlights (grey = none).")]
+        [SerializeField] private Color shadowTint = new Color(0.45f, 0.5f, 0.57f);
+        [SerializeField] private Color highlightTint = new Color(0.56f, 0.53f, 0.47f);
+        [SerializeField, Range(0f, 2f)] private float bloom = 0.35f;
+        [SerializeField, Range(0f, 1f)] private float vignette = 0.24f;
+
+        [Header("Trackside Vegetation")]
+        [Tooltip("Grass tufts and bushes along the roads and in open ground (terrain details). 0 = none.")]
+        [SerializeField, Range(0f, 2f)] private float vegetationDensity = 1f;
+        [Tooltip("Grass tufts: dark and light blades (the third colour is unused).")]
+        [SerializeField] private Palette grassTufts = new Palette(new Color(0.16f, 0.3f, 0.09f), new Color(0.36f, 0.52f, 0.18f), new Color(0.36f, 0.52f, 0.18f));
+        [Tooltip("Low bushes and ferns: dark and light leaves (the third colour is unused).")]
+        [SerializeField] private Palette bushes = new Palette(new Color(0.09f, 0.22f, 0.07f), new Color(0.2f, 0.36f, 0.12f), new Color(0.2f, 0.36f, 0.12f));
 
         [Header("Ground")]
         [Tooltip("What the wheels feel off the road. None = Grass.")]
@@ -91,6 +116,18 @@ namespace RallyX.EditorTools
         public Color AmbientSky => ambientSky;
         public Color AmbientEquator => ambientEquator;
         public Color AmbientGround => ambientGround;
+        public float ShadowStrength => shadowStrength;
+        public float PostExposure => postExposure;
+        public float Contrast => contrast;
+        public float Saturation => saturation;
+        public float Temperature => temperature;
+        public Color ShadowTint => shadowTint;
+        public Color HighlightTint => highlightTint;
+        public float Bloom => bloom;
+        public float Vignette => vignette;
+        public float VegetationDensity => vegetationDensity;
+        public Palette GrassTufts => grassTufts;
+        public Palette Bushes => bushes;
         public SurfaceType OffRoadSurface => offRoadSurface;
         public float RockSlope => rockSlope;
         public float RockBlend => rockBlend;
@@ -138,6 +175,24 @@ namespace RallyX.EditorTools
             this.foliage = foliage;
             this.creekWater = creekWater;
             this.offRoadSurface = offRoadSurface;
+        }
+
+        /// <summary>Sets the theme's colour grade, shadow strength and trackside vegetation. Anything left out keeps the forest default.</summary>
+        public void SetMood(float shadowStrength, float postExposure, float contrast, float saturation, float temperature, Color shadowTint,
+            Color highlightTint, float bloom, float vignette, float vegetationDensity, Palette grassTufts, Palette bushes)
+        {
+            this.shadowStrength = shadowStrength;
+            this.postExposure = postExposure;
+            this.contrast = contrast;
+            this.saturation = saturation;
+            this.temperature = temperature;
+            this.shadowTint = shadowTint;
+            this.highlightTint = highlightTint;
+            this.bloom = bloom;
+            this.vignette = vignette;
+            this.vegetationDensity = vegetationDensity;
+            this.grassTufts = grassTufts;
+            this.bushes = bushes;
         }
 
         /// <summary>Gives the theme its own sun, fog, sky and ambient light.</summary>

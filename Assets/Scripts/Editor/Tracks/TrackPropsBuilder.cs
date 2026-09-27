@@ -5,8 +5,9 @@ using UnityEngine;
 namespace RallyX.EditorTools
 {
     /// <summary>
-    /// Places track furniture from the layout: guard rails, bridge structures, corner chevrons, marker posts,
-    /// the start/finish gantry, rocks, creek water and invisible map-edge walls.
+    /// Places track furniture from the layout: guard rails, bridge structures, corner chevrons, jump warnings, marker
+    /// posts, the start/finish gantry, rocks, creek water and invisible map-edge walls. Guard rails collide as plain
+    /// boxes and are drawn as galvanised rails on posts; bridge posts and beams are visual only.
     /// </summary>
     public static class TrackPropsBuilder
     {
@@ -27,13 +28,20 @@ namespace RallyX.EditorTools
         private const float JunctionClearance = 20f;
         private const float DeckThickness = 0.6f;
 
-        public static void Build(Transform root, TrackLayout layout, GeneratedTerrain terrain, EnvironmentAssets assets)
+        // Guard rail look: the rail's height above the road and its posts' spacing (samples).
+        private const float RailTop = 0.6f;
+        private const int RailPostSpacingSamples = 2;
+        private const float JumpWarningDistance = 45f;
+
+        /// <param name="generatedFolder">Folder for the meshes the props are drawn with (the track's generated folder).</param>
+        public static void Build(Transform root, TrackLayout layout, GeneratedTerrain terrain, EnvironmentAssets assets, string generatedFolder)
         {
-            var context = new Context(root, layout, terrain, assets);
+            var context = new Context(root, layout, terrain, assets, generatedFolder);
             bool[,] barriers = BarrierFlags(context);
             BuildBarriers(context, barriers);
             BuildBridges(context);
             BuildChevrons(context);
+            BuildJumpSigns(context);
             BuildMarkerPosts(context, barriers);
             BuildStartGantry(context);
             BuildRocks(context);
@@ -43,8 +51,9 @@ namespace RallyX.EditorTools
 
         private sealed class Context
         {
-            public Context(Transform root, TrackLayout layout, GeneratedTerrain terrain, EnvironmentAssets assets)
+            public Context(Transform root, TrackLayout layout, GeneratedTerrain terrain, EnvironmentAssets assets, string generatedFolder)
             {
+                GeneratedFolder = generatedFolder;
                 Root = root;
                 Layout = layout;
                 Terrain = terrain;
@@ -58,6 +67,7 @@ namespace RallyX.EditorTools
                 }
             }
 
+            public string GeneratedFolder { get; }
             public Transform Root { get; }
             public TrackLayout Layout { get; }
             public GeneratedTerrain Terrain { get; }
@@ -150,21 +160,73 @@ namespace RallyX.EditorTools
             var main = context.Layout.Main;
             int count = main.Count;
             float offset = context.Definition.RoadBevelWidth + 0.35f;
+            var steel = new LowPolyMeshBuilder();
+            var reflectors = new LowPolyMeshBuilder();
 
             for (int side = 0; side < 2; side++)
             {
+                float sign = Sign(side);
                 foreach (var (start, length) in Runs(flags, side, count))
                 {
+                    // What the cars hit: plain boxes, unchanged from the first tracks.
                     for (int k = 0; k < length - 1; k += BarrierSegmentSamples)
                     {
                         var a = main.Get(start + k);
                         var b = main.Get(start + Mathf.Min(k + BarrierSegmentSamples, length - 1));
-                        Vector3 from = a.Position + a.Right * (Sign(side) * (a.HalfWidth + offset));
-                        Vector3 to = b.Position + b.Right * (Sign(side) * (b.HalfWidth + offset));
-                        Rail(group, "Rail", from, to, BarrierHeight, 0.25f, BarrierSink, context.Assets.Barrier);
+                        Vector3 from = a.Position + a.Right * (sign * (a.HalfWidth + offset));
+                        Vector3 to = b.Position + b.Right * (sign * (b.HalfWidth + offset));
+                        var collider = Rail(group, "Rail", from, to, BarrierHeight, 0.25f, BarrierSink, context.Assets.Barrier);
+                        if (collider == null)
+                            continue;
+                        Object.DestroyImmediate(collider.GetComponent<MeshRenderer>());
+                        Object.DestroyImmediate(collider.GetComponent<MeshFilter>());
+                    }
+
+                    // What the player sees: a W-beam (two stacked bulges) facing the road, on posts, with a reflector on every third.
+                    for (int k = 0; k < length - 1; k++)
+                    {
+                        var a = main.Get(start + k);
+                        var b = main.Get(start + k + 1);
+                        Vector3 from = a.Position + a.Right * (sign * (a.HalfWidth + offset - 0.1f));
+                        Vector3 to = b.Position + b.Right * (sign * (b.HalfWidth + offset - 0.1f));
+                        Vector3 inset = a.Right * (sign * 0.02f);
+                        steel.Beam(from + Vector3.up * (RailTop - 0.08f), to + Vector3.up * (RailTop - 0.08f), 0.05f, 0.15f, Vector3.up);
+                        steel.Beam(from + Vector3.up * (RailTop - 0.24f) + inset, to + Vector3.up * (RailTop - 0.24f) + inset, 0.05f, 0.15f, Vector3.up);
+                    }
+
+                    for (int k = 0; k < length; k += RailPostSpacingSamples)
+                    {
+                        var s = main.Get(start + k);
+                        Vector3 post = s.Position + s.Right * (sign * (s.HalfWidth + offset - 0.02f));
+                        float bottom = Mathf.Max(Mathf.Min(post.y, context.GroundHeight(post)) - 0.2f, post.y - 3f);
+                        float top = post.y + RailTop - 0.02f;
+                        var rotation = Quaternion.LookRotation(s.Forward);
+                        steel.Box(new Vector3(post.x, (top + bottom) * 0.5f, post.z), new Vector3(0.1f, top - bottom, 0.12f), rotation);
+                        if ((k / RailPostSpacingSamples) % 3 == 0)
+                            reflectors.Box(post + Vector3.up * (RailTop + 0.02f), new Vector3(0.1f, 0.08f, 0.14f), rotation);
                     }
                 }
             }
+
+            DrawMesh(context, group, "GuardRailVisuals", LowPolyMeshBuilder.Combine("GuardRails", Vector3.zero, steel, reflectors),
+                context.Assets.Galvanised, context.Assets.PostRed);
+        }
+
+        /// <summary>Saves a props mesh into the track's generated folder and draws it (no collider).</summary>
+        private static void DrawMesh(Context context, Transform group, string name, Mesh mesh, params Material[] materials)
+        {
+            if (mesh.vertexCount == 0)
+            {
+                Object.DestroyImmediate(mesh);
+                return;
+            }
+
+            AssetDatabase.CreateAsset(mesh, $"{context.GeneratedFolder}/{name}.asset");
+            var drawn = new GameObject(name);
+            drawn.transform.SetParent(group, false);
+            drawn.AddComponent<MeshFilter>().sharedMesh = mesh;
+            drawn.AddComponent<MeshRenderer>().sharedMaterials = materials;
+            GameObjectUtility.SetStaticEditorFlags(drawn, StaticEditorFlags.BatchingStatic);
         }
 
         // ---------------------------------------------------------------- bridges
@@ -211,6 +273,31 @@ namespace RallyX.EditorTools
                             new Vector3(0.7f, height, 0.7f), context.Assets.Concrete, collider: true);
                     }
                 }
+
+                // Timber detail, drawn only: railing posts, and stringers and cross beams under the deck.
+                var timber = new LowPolyMeshBuilder();
+                for (int k = 0; k < deck.Count; k += 2)
+                {
+                    var s = deck[k];
+                    var rotation = Quaternion.LookRotation(s.Forward);
+                    for (int side = 0; side < 2; side++)
+                        timber.Box(s.Position + s.Right * (Sign(side) * (s.HalfWidth - 0.12f)) + Vector3.up * 0.55f, new Vector3(0.16f, 1.15f, 0.16f), rotation);
+                    timber.Box(s.Position + Vector3.down * (DeckThickness + 0.12f), new Vector3(s.Width + 0.4f, 0.24f, 0.3f), rotation);
+                }
+
+                for (int k = 0; k < deck.Count - 1; k++)
+                {
+                    var a = deck[k];
+                    var c = deck[k + 1];
+                    for (int side = 0; side < 2; side++)
+                    {
+                        float across = Sign(side) * (a.HalfWidth - 1.1f);
+                        timber.Beam(a.Position + a.Right * across + Vector3.down * (DeckThickness + 0.35f),
+                            c.Position + c.Right * across + Vector3.down * (DeckThickness + 0.35f), 0.35f, 0.5f, Vector3.up);
+                    }
+                }
+
+                DrawMesh(context, group, $"BridgeDetails_{b + 1}", timber.ToMesh($"BridgeDetails_{b + 1}"), context.Assets.BridgeDeck);
             }
         }
 
@@ -272,6 +359,22 @@ namespace RallyX.EditorTools
 
             // A quad is visible from its -Z side, which faces drivers approaching along `facing`.
             EditorPrimitives.Quad("Face", root, root.position + Vector3.up * 1.45f, root.rotation, new Vector2(1.1f, 0.8f), face);
+        }
+
+        /// <summary>A yellow crest warning on the right of the road before each jump.</summary>
+        private static void BuildJumpSigns(Context context)
+        {
+            var group = context.Group("JumpSigns");
+            var main = context.Layout.Main;
+            float offset = context.Definition.RoadBevelWidth + 1.4f;
+            foreach (var jump in context.Definition.Jumps)
+            {
+                var s = main.Get(context.Layout.SampleIndexAt(context.Layout.AnchorDistance(jump.start) - JumpWarningDistance));
+                if (s.IsBridge || context.NearJunction(s.Distance))
+                    continue;
+                Vector3 basePosition = s.Position + s.Right * (s.HalfWidth + offset);
+                PlaceChevron(group, basePosition, context.GroundHeight(basePosition), s.Forward, context.Assets.JumpSign, context.Assets.PostWhite);
+            }
         }
 
         private static void BuildMarkerPosts(Context context, bool[,] barriers)
@@ -460,15 +563,15 @@ namespace RallyX.EditorTools
 
         // ---------------------------------------------------------------- helpers
 
-        private static void Rail(Transform group, string name, Vector3 from, Vector3 to, float height, float thickness, float sink, Material material)
+        private static GameObject Rail(Transform group, string name, Vector3 from, Vector3 to, float height, float thickness, float sink, Material material)
         {
             Vector3 span = to - from;
             float length = span.magnitude + 0.1f;
             if (length < 0.2f)
-                return;
+                return null;
 
             Vector3 center = (from + to) * 0.5f + Vector3.up * (height * 0.5f - sink);
-            EditorPrimitives.Box(name, group, center, Quaternion.LookRotation(span), new Vector3(thickness, height, length), material, collider: true);
+            return EditorPrimitives.Box(name, group, center, Quaternion.LookRotation(span), new Vector3(thickness, height, length), material, collider: true);
         }
 
         /// <summary>Contiguous runs of set flags on one side as (start, length); runs may wrap past the end.</summary>

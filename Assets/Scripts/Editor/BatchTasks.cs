@@ -46,6 +46,17 @@ namespace RallyX.EditorTools
                 EditorApplication.Exit(1);
         }
 
+        /// <summary>Setup plus a regeneration of every car prefab (handling configs, definitions and the roster are kept).</summary>
+        public static void SetupAndRebuildCars()
+        {
+            bool success = ProjectSetup.Run()
+                           && VehicleContentBuilder.BuildMissing()
+                           && GarageContentBuilder.BuildMissing()
+                           && GarageContentBuilder.RebuildCars();
+            if (!success)
+                EditorApplication.Exit(1);
+        }
+
         /// <summary>Setup plus the garage content and the main menu and garage scenes.</summary>
         public static void SetupAndBuildMenus()
         {

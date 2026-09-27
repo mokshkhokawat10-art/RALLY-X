@@ -32,6 +32,11 @@ namespace RallyX.EditorTools
         private const float GridRowSpacing = 6.5f;
         private const float CameraNearClip = 0.1f;
         private const float CameraFarClip = 900f;
+        private const float DetailDistance = 80f;
+
+        // The reflection cubemap is taken this high above the start line, at this size per face.
+        private const float ReflectionHeight = 3f;
+        private const int ReflectionResolution = 128;
 
         public static string ScenePath(TrackDefinition definition) => $"{TracksFolder}/{definition.SceneName}.unity";
 
@@ -82,12 +87,29 @@ namespace RallyX.EditorTools
                 return false;
             }
 
-            // Opening a scene unloads assets that only scripts hold on to, which turns earlier references to the
-            // definition, its surfaces and the camera config into destroyed objects. Load everything afterwards.
-            string definitionPath = AssetDatabase.GetAssetPath(definition);
+            // Opening a scene, deleting the old generated assets and generating art (imports) all unload assets that only
+            // scripts hold on to, which turns earlier references to the definition, its theme and surfaces and the camera
+            // config into destroyed objects. So those come first: the old assets are deleted, the art is generated, then
+            // the definition and the art are loaded afresh (the art is only loaded the second time), and everything else
+            // is loaded after that.
+            // By instance id: a definition loaded before another track was built may already be unloaded, and then only
+            // its id still leads to its file.
+            string definitionPath = AssetDatabase.GetAssetPath(definition.GetInstanceID());
+            string generatedFolder = $"{TracksFolder}/{definition.SceneName}";
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
-            if (!string.IsNullOrEmpty(definitionPath))
-                definition = AssetDatabase.LoadAssetAtPath<TrackDefinition>(definitionPath);
+            AssetDatabase.DeleteAsset(generatedFolder);
+            EditorAssetUtility.EnsureFolder(generatedFolder);
+            definition = LoadFresh(definitionPath, definition);
+
+            // A track without a theme is the pine forest.
+            var forest = definition.Theme == null ? TrackTheme.CreateForest() : null;
+            if (forest != null)
+                forest.hideFlags = HideFlags.DontUnloadUnusedAsset;
+            EnvironmentAssetBuilder.LoadOrCreate(forest != null ? forest : definition.Theme);
+            definition = LoadFresh(definitionPath, definition);
+            var theme = forest != null ? forest : definition.Theme;
+            var assets = EnvironmentAssetBuilder.LoadOrCreate(theme);
+
             var layout = TrackLayout.Build(definition);
             var carPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(VehicleContentBuilder.CarPrefabPath);
             var cameraConfig = CameraContentBuilder.LoadChaseCameraConfig();
@@ -100,19 +122,15 @@ namespace RallyX.EditorTools
             var progression = ProgressionContentBuilder.LoadSettings();
             var trackInfo = FindTrackForScene(progression, definition.SceneName);
 
-            string generatedFolder = $"{TracksFolder}/{definition.SceneName}";
-            AssetDatabase.DeleteAsset(generatedFolder);
-            EditorAssetUtility.EnsureFolder(generatedFolder);
-
-            // A track without a theme is the pine forest.
-            var theme = definition.Theme != null ? definition.Theme : TrackTheme.CreateForest();
-            var assets = EnvironmentAssetBuilder.LoadOrCreate(theme);
             ConfigureLighting(scene, theme, assets.Sky);
 
+            var offRoad = theme.OffRoadSurface != null ? theme.OffRoadSurface : VehicleContentBuilder.LoadSurface("Grass");
             var terrain = TerrainGenerator.Generate(definition, layout, assets, theme, $"{generatedFolder}/Terrain.asset");
-            CreateTerrainObject(terrain.Data, theme.OffRoadSurface != null ? theme.OffRoadSurface : VehicleContentBuilder.LoadSurface("Grass"));
+            CreateTerrainObject(terrain.Data, offRoad, assets.TerrainMaterial);
             BuildRoads(layout, assets, generatedFolder);
-            TrackPropsBuilder.Build(new GameObject("Props").transform, layout, terrain, assets);
+            TrackPropsBuilder.Build(new GameObject("Props").transform, layout, terrain, assets, generatedFolder);
+            CreatePostProcessing(theme, generatedFolder);
+            CreateSurfacePalette(theme, offRoad);
 
             var path = CreateTrackPath(layout);
             CreateBranches(layout, path);
@@ -131,6 +149,9 @@ namespace RallyX.EditorTools
             // The race HUD uses the screen corners; the dev panels stay available on F1 and F2.
             HideDevPanel(new GameObject(nameof(DevOverlay), typeof(DevOverlay)).GetComponent<DevOverlay>());
 
+            // Last, so the reflections show the finished scene.
+            BakeReflections(layout.Main.Samples[0].Position, generatedFolder);
+
             string scenePath = ScenePath(definition);
             if (!EditorSceneManager.SaveScene(scene, scenePath))
             {
@@ -140,11 +161,34 @@ namespace RallyX.EditorTools
 
             EditorAssetUtility.AddSceneToBuildSettings(scenePath);
             AssetDatabase.SaveAssets();
-            if (definition.Theme == null)
-                Object.DestroyImmediate(theme);
+            if (forest != null)
+                Object.DestroyImmediate(forest);
             Debug.Log(LogPrefix + $"Built {definition.DisplayName}: {layout.Main.Length:0} m lap, {circuit.CheckpointCount} checkpoints, " +
                       $"{terrain.Data.treeInstanceCount} trees, scene {scenePath}.");
             return true;
+        }
+
+        /// <summary>
+        /// The definition at a path read afresh from disk, with its theme: both are unloaded first, since a copy loaded
+        /// earlier (say, before another track was built) can hold references to assets unloaded since. An unsaved
+        /// definition is kept as it is.
+        /// </summary>
+        private static TrackDefinition LoadFresh(string path, TrackDefinition current)
+        {
+            if (string.IsNullOrEmpty(path))
+                return current;
+
+            var loaded = AssetDatabase.LoadAssetAtPath<TrackDefinition>(path);
+            if (loaded != null)
+            {
+                var theme = new SerializedObject(loaded).FindProperty("theme")?.objectReferenceValue;
+                if (theme != null && EditorUtility.IsPersistent(theme))
+                    Resources.UnloadAsset(theme);
+                Resources.UnloadAsset(loaded);
+            }
+
+            EditorUtility.UnloadUnusedAssetsImmediate();
+            return AssetDatabase.LoadAssetAtPath<TrackDefinition>(path);
         }
 
         private static void ConfigureLighting(Scene scene, TrackTheme theme, Material sky)
@@ -158,6 +202,7 @@ namespace RallyX.EditorTools
                 light.intensity = theme.SunIntensity;
                 light.color = theme.SunColor;
                 light.shadows = LightShadows.Soft;
+                light.shadowStrength = theme.ShadowStrength;
                 RenderSettings.sun = light;
             }
 
@@ -177,17 +222,21 @@ namespace RallyX.EditorTools
             }
         }
 
-        private static void CreateTerrainObject(TerrainData data, SurfaceType offRoad)
+        private static void CreateTerrainObject(TerrainData data, SurfaceType offRoad, Material material)
         {
             var terrainObject = Terrain.CreateTerrainGameObject(data);
             terrainObject.name = "Terrain";
             var terrain = terrainObject.GetComponent<Terrain>();
-            terrain.materialTemplate = GraphicsSettings.defaultRenderPipeline.defaultTerrainMaterial;
+            terrain.materialTemplate = material != null ? material : GraphicsSettings.defaultRenderPipeline.defaultTerrainMaterial;
             terrain.drawInstanced = true;
             terrain.heightmapPixelError = 4f;
             terrain.basemapDistance = 250f;
             terrain.treeDistance = 400f;
             terrain.treeBillboardDistance = 400f;
+
+            // Grass and bushes are drawn near the camera only; the fog hides where they stop.
+            terrain.detailObjectDistance = DetailDistance;
+            terrain.detailObjectDensity = 1f;
 
             // Anything off the road is the theme's off-road surface as far as the wheels are concerned.
             terrainObject.AddComponent<SurfaceMarker>().Surface = offRoad;
@@ -227,16 +276,104 @@ namespace RallyX.EditorTools
                         ? assets.BridgeDeck
                         : surface != null && materials.TryGetValue(surface, out var surfaceMaterial) ? surfaceMaterial : assets.RoadDirt;
 
+                    // Roads have a second submesh, their shoulders, drawn as the verge; bridge decks are one piece.
                     var piece = new GameObject(name);
                     piece.transform.SetParent(root, false);
                     piece.AddComponent<MeshFilter>().sharedMesh = mesh;
-                    piece.AddComponent<MeshRenderer>().sharedMaterial = material;
+                    piece.AddComponent<MeshRenderer>().sharedMaterials = section.IsBridge ? new[] { material } : new[] { material, assets.Verge };
                     piece.AddComponent<MeshCollider>().sharedMesh = mesh;
                     piece.AddComponent<SurfaceMarker>().Surface = surface;
                     GameObjectUtility.SetStaticEditorFlags(piece, StaticEditorFlags.BatchingStatic);
                     index++;
                 }
             }
+        }
+
+        /// <summary>
+        /// The track's colour grade, as a global volume over the pipeline's defaults: filmic (ACES) tonemapping, exposure,
+        /// contrast and saturation, white balance, split toning of shadows and highlights, bloom and a light vignette.
+        /// </summary>
+        private static void CreatePostProcessing(TrackTheme theme, string generatedFolder)
+        {
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            AssetDatabase.CreateAsset(profile, $"{generatedFolder}/PostProcessing.asset");
+
+            AddOverride<Tonemapping>(profile).mode.Override(TonemappingMode.ACES);
+            var colour = AddOverride<ColorAdjustments>(profile);
+            colour.postExposure.Override(theme.PostExposure);
+            colour.contrast.Override(theme.Contrast);
+            colour.saturation.Override(theme.Saturation);
+            AddOverride<WhiteBalance>(profile).temperature.Override(theme.Temperature);
+            var split = AddOverride<SplitToning>(profile);
+            split.shadows.Override(theme.ShadowTint);
+            split.highlights.Override(theme.HighlightTint);
+            var bloom = AddOverride<Bloom>(profile);
+            bloom.threshold.Override(1f);
+            bloom.intensity.Override(theme.Bloom);
+            bloom.scatter.Override(0.65f);
+            var vignette = AddOverride<Vignette>(profile);
+            vignette.intensity.Override(theme.Vignette);
+            vignette.smoothness.Override(0.45f);
+
+            var volume = new GameObject("PostProcessing").AddComponent<Volume>();
+            volume.isGlobal = true;
+            volume.priority = 1f;
+            volume.sharedProfile = profile;
+            EditorUtility.SetDirty(profile);
+        }
+
+        private static T AddOverride<T>(VolumeProfile profile) where T : VolumeComponent
+        {
+            var component = profile.Add<T>();
+            component.name = typeof(T).Name;
+            AssetDatabase.AddObjectToAsset(component, profile);
+            return component;
+        }
+
+        /// <summary>The track's own dust, spray and tyre-mark colours for its road surfaces and off-road ground, from its theme.</summary>
+        private static void CreateSurfacePalette(TrackTheme theme, SurfaceType offRoad)
+        {
+            var dirt = VehicleContentBuilder.LoadSurface("Dirt");
+            var gravel = VehicleContentBuilder.LoadSurface("Gravel");
+            var palette = new GameObject(nameof(SurfacePalette)).AddComponent<SurfacePalette>();
+            palette.SetEntries(new[]
+            {
+                new SurfacePalette.Entry(dirt, theme.RoadDirt.light, Mark(theme.RoadDirt.dark, 0.5f, 0.55f)),
+                new SurfacePalette.Entry(gravel, theme.RoadGravel.light, Mark(theme.RoadGravelDarkStones, 0.6f, 0.5f)),
+                new SurfacePalette.Entry(offRoad, theme.Grass.light, Mark(theme.Dirt.dark, 0.6f, 0.5f)),
+            });
+        }
+
+        private static Color Mark(Color color, float shade, float alpha) => new Color(color.r * shade, color.g * shade, color.b * shade, alpha);
+
+        /// <summary>
+        /// Renders the finished scene into a cubemap from above the start line and uses it for every reflection on the
+        /// track (car paint, glass, wet mud), so reflections show this track's sky and ground rather than a default sky.
+        /// </summary>
+        private static void BakeReflections(Vector3 start, string generatedFolder)
+        {
+            var probe = new GameObject("ReflectionProbe").AddComponent<ReflectionProbe>();
+            probe.transform.position = start + Vector3.up * ReflectionHeight;
+            probe.mode = ReflectionProbeMode.Baked;
+            probe.resolution = ReflectionResolution;
+            probe.hdr = true;
+            probe.size = new Vector3(4000f, 1000f, 4000f);
+            probe.importance = 0;
+
+            string path = $"{generatedFolder}/Reflections.exr";
+            if (!Lightmapping.BakeReflectionProbe(probe, path))
+            {
+                Debug.LogWarning(LogPrefix + "Could not bake the track's reflections; it will use the sky's.");
+                Object.DestroyImmediate(probe.gameObject);
+                return;
+            }
+
+            AssetDatabase.ImportAsset(path);
+            var cubemap = AssetDatabase.LoadAssetAtPath<Cubemap>(path);
+            probe.mode = ReflectionProbeMode.Custom;
+            probe.customBakedTexture = cubemap;
+            RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
+            RenderSettings.customReflectionTexture = cubemap;
         }
 
         private static TrackPath CreateTrackPath(TrackLayout layout)

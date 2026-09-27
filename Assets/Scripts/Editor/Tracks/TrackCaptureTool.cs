@@ -74,6 +74,10 @@ namespace RallyX.EditorTools
 
             Directory.CreateDirectory(folder);
             var layout = TrackLayout.Build(definition);
+
+            // Compile shaders before drawing, or the first view of a new material shows the placeholder shader.
+            bool asyncCompilation = EditorSettings.asyncShaderCompilation;
+            EditorSettings.asyncShaderCompilation = false;
             var cameraObject = new GameObject("CaptureCamera");
             var renderTexture = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
             try
@@ -106,6 +110,7 @@ namespace RallyX.EditorTools
             }
             finally
             {
+                EditorSettings.asyncShaderCompilation = asyncCompilation;
                 Object.DestroyImmediate(cameraObject);
                 renderTexture.Release();
                 Object.DestroyImmediate(renderTexture);

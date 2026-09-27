@@ -18,6 +18,9 @@ namespace RallyX.AI
     [DisallowMultipleComponent]
     public sealed class AIOpponents : MonoBehaviour
     {
+        // Door numbers for the AI cars, in grid order (the player's cars carry their own).
+        private static readonly int[] RaceNumbers = { 12, 23, 44, 5, 9 };
+
         [SerializeField] private RaceManager race;
         [SerializeField] private GameObject carPrefab;
         [SerializeField] private AISettings settings;
@@ -88,7 +91,10 @@ namespace RallyX.AI
                 SceneManager.MoveGameObjectToScene(car, gameObject.scene);
                 car.name = $"AI_{profile.DisplayName}";
                 if (car.TryGetComponent(out VehicleLivery livery))
+                {
                     livery.SetPaint(profile.Paint);
+                    livery.SetRaceNumber(RaceNumbers[i % RaceNumbers.Length]);
+                }
 
                 var participant = car.AddComponent<RaceParticipant>();
                 participant.Configure(profile.DisplayName, player: false);

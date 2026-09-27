@@ -68,7 +68,11 @@ namespace RallyX.EditorTools
             return sections;
         }
 
-        /// <summary>Road surface with a sloped bevel either side, so wheels roll on and off it smoothly.</summary>
+        /// <summary>
+        /// Road surface with a sloped bevel either side, so wheels roll on and off it smoothly. The surface is submesh 0
+        /// (texture across the road's width once); the bevels are submesh 1, the verge, textured in metres / 8 like the
+        /// road's length so their texture has the same scale whatever the road's width.
+        /// </summary>
         public static Mesh BuildRoad(TrackSample[] samples, float bevelWidth, float bevelDrop, string name)
         {
             int count = samples.Length;
@@ -85,11 +89,11 @@ namespace RallyX.EditorTools
                 outerRight[k] = right[k] + s.Right * bevelWidth + Vector3.down * bevelDrop;
             }
 
-            float bevelU = bevelWidth / Mathf.Max(samples[0].Width, 1f);
+            float bevelU = bevelWidth / UvMetresPerTile;
             var builder = new StripMeshBuilder(AlongUv(samples));
-            builder.AddStrip(outerLeft, left, -bevelU, 0f);
+            builder.AddStrip(outerLeft, left, -bevelU, 0f, submesh: 1);
             builder.AddStrip(left, right, 0f, 1f);
-            builder.AddStrip(right, outerRight, 1f, 1f + bevelU);
+            builder.AddStrip(right, outerRight, 0f, bevelU, submesh: 1);
             return builder.Build(name);
         }
 
@@ -140,12 +144,15 @@ namespace RallyX.EditorTools
             private readonly float[] alongUv;
             private readonly List<Vector3> vertices = new List<Vector3>();
             private readonly List<Vector2> uvs = new List<Vector2>();
-            private readonly List<int> triangles = new List<int>();
+            private readonly List<List<int>> submeshes = new List<List<int>> { new List<int>() };
 
             public StripMeshBuilder(float[] alongUv) => this.alongUv = alongUv;
 
-            public void AddStrip(Vector3[] firstEdge, Vector3[] secondEdge, float firstU, float secondU)
+            public void AddStrip(Vector3[] firstEdge, Vector3[] secondEdge, float firstU, float secondU, int submesh = 0)
             {
+                while (submeshes.Count <= submesh)
+                    submeshes.Add(new List<int>());
+                var triangles = submeshes[submesh];
                 int baseIndex = vertices.Count;
                 for (int k = 0; k < firstEdge.Length; k++)
                 {
@@ -177,8 +184,11 @@ namespace RallyX.EditorTools
                     mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
                 mesh.SetVertices(vertices);
                 mesh.SetUVs(0, uvs);
-                mesh.SetTriangles(triangles, 0);
+                mesh.subMeshCount = submeshes.Count;
+                for (int i = 0; i < submeshes.Count; i++)
+                    mesh.SetTriangles(submeshes[i], i);
                 mesh.RecalculateNormals();
+                mesh.RecalculateTangents();
                 mesh.RecalculateBounds();
                 return mesh;
             }

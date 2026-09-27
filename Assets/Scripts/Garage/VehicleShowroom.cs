@@ -11,6 +11,7 @@ namespace RallyX.Garage
     public sealed class VehicleShowroom : MonoBehaviour
     {
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
+        private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
 
         [Tooltip("Rotates with the car on it. The car sits at this transform's position.")]
         [SerializeField] private Transform turntable;
@@ -83,10 +84,18 @@ namespace RallyX.Garage
                 turntable.Rotate(0f, autoRotateSpeed * Time.unscaledDeltaTime, 0f, Space.World);
         }
 
-        /// <summary>A car that stands still for display: no driving, no physics, no collisions.</summary>
+        /// <summary>A car that stands still for display: no driving, no physics, no collisions, no tyre effects; lights on.</summary>
         private static void MakeDisplayOnly(VehicleController car)
         {
             car.enabled = false;
+            foreach (var behaviour in car.GetComponents<MonoBehaviour>())
+            {
+                if (behaviour is VehicleVisuals visuals)
+                    visuals.ShowAsDisplay();
+                else if (behaviour != car && behaviour is not VehicleLivery)
+                    behaviour.enabled = false;
+            }
+
             var body = car.Body != null ? car.Body : car.GetComponent<Rigidbody>();
             if (body == null)
                 return;
@@ -104,6 +113,7 @@ namespace RallyX.Garage
             {
                 renderer.GetPropertyBlock(block);
                 block.SetColor(BaseColor, color);
+                block.SetColor(EmissionColor, Color.black);
                 renderer.SetPropertyBlock(block);
             }
         }

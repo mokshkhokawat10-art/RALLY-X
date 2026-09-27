@@ -23,7 +23,25 @@ MonoBehaviour:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 1
+      value: 0.72
+      inSlope: 0.7333
+      outSlope: 0.7333
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.15
+      value: 0.83
+      inSlope: 0.5
+      outSlope: 0.5
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.42
+      value: 0.93
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -31,10 +49,28 @@ MonoBehaviour:
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 0.6
-      value: 0.75
-      inSlope: 0
-      outSlope: 0
+      time: 0.64
+      value: 0.8
+      inSlope: -1.1667
+      outSlope: -1.1667
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.84
+      value: 0.44
+      inSlope: -2.0968
+      outSlope: -2.0968
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.95
+      value: 0.15
+      inSlope: -2.75
+      outSlope: -2.75
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
@@ -53,10 +89,14 @@ MonoBehaviour:
     m_RotationOrder: 4
   maxReverseSpeedKmh: 40
   reverseAcceleration: 6
-  frontDriveShare: 0.4
+  frontDriveShare: 0.6
   coastDeceleration: 1.5
+  driveTraction: 1.8
   brakeDeceleration: 20
+  brakeBias: 0.6
   handbrakeDeceleration: 5
+  weightTransfer: 0.12
+  weightTransferTime: 0.12
   maxSteerAngle: 35
   steerSpeed: 240
   steerBySpeed:
@@ -122,8 +162,9 @@ MonoBehaviour:
     m_RotationOrder: 4
   driftEnabled: 1
   driftGrip: 0.3
-  driftMultiplier: 2.5
+  driftMultiplier: 2.8
   driftRecoveryTime: 0.6
+  driftSustainGrip: 0.72
   driftAngleThreshold: 12
   maxDriftAngle: 70
   antiSpin: 6
@@ -131,8 +172,17 @@ MonoBehaviour:
   minDriftSpeedKmh: 25
   suspensionTravel: 0.3
   wheelRadius: 0.36
-  springFrequency: 1.8
-  dampingRatio: 0.55
+  springFrequency: 2
+  dampingRatio: 0.6
+  reboundDamping: 1.4
+  bumpStopTravel: 0.06
+  bumpStopStiffness: 8
   downforce: 0.5
   airControl: 2
+  airYawRate: 1.4
   airAutoLevel: 4
+  landingAlignment: 0.8
+  airPitchControl: 1.5
+  settleTime: 0.4
+  settleDamping: 5
+  knockSpeed: 2

@@ -18,6 +18,9 @@ namespace RallyX.AI
         // Other cars within this distance along the route (either way) count as alongside, metres.
         private const float AlongsideDistance = 5f;
 
+        // A side is only used for passing if its room lasts this far past the car being passed, metres.
+        private const float PassingRoomDistance = 40f;
+
         // The shortcut decision is made in this window before a branch leaves the main loop, metres.
         private const float BranchDecisionNearest = 60f;
         private const float BranchDecisionFurthest = 250f;
@@ -204,6 +207,10 @@ namespace RallyX.AI
             float throttle = error > 0f ? Mathf.Clamp01(error * settings.ThrottleGain) : 0f;
             float brake = error < -settings.BrakeDeadband ? Mathf.Clamp01((-error - settings.BrakeDeadband) * settings.BrakeGain) : 0f;
 
+            // Brakes do nothing in the air, where the pedal would only dip the nose (air pitch control).
+            if (!vehicle.IsGrounded)
+                brake = 0f;
+
             // Sliding: ease off so the rear tyres can grip again, fully off at twice the slip the driver tolerates.
             float excessSlide = Mathf.Abs(Slide) - settings.SlideAngle;
             if (excessSlide > 0f)
@@ -334,11 +341,13 @@ namespace RallyX.AI
 
             if (blocked)
             {
-                // Pass on whichever side has room, preferring the one needing the smaller move; not before a jump.
+                // Pass on whichever side has room, preferring the one needing the smaller move; not before a jump. The room
+                // must last while passing: a side that closes up just past the other car (the line swinging to that edge)
+                // would leave no way back onto the road.
                 float left = blockerOffset - separation;
                 float right = blockerOffset + separation;
-                bool leftFits = !jumpAhead && left >= -route.RoomLeft(blockerIndex);
-                bool rightFits = !jumpAhead && right <= route.RoomRight(blockerIndex);
+                bool leftFits = !jumpAhead && left >= -RoomAhead(route, blockerIndex, rightSide: false);
+                bool rightFits = !jumpAhead && right <= RoomAhead(route, blockerIndex, rightSide: true);
                 if (leftFits && (!rightFits || Mathf.Abs(left - lateralOffset) <= Mathf.Abs(right - lateralOffset)))
                     wanted = left;
                 else if (rightFits)
@@ -354,6 +363,20 @@ namespace RallyX.AI
             wanted = Mathf.Clamp(wanted, -route.RoomLeft(here), route.RoomRight(here));
             lateralOffset = Mathf.MoveTowards(lateralOffset, wanted, settings.SideStepSpeed * deltaTime);
             return targetSpeed;
+        }
+
+        /// <summary>The least room on one side of the line from route point <paramref name="from"/> over the passing distance, metres.</summary>
+        private static float RoomAhead(AIRoute route, int from, bool rightSide)
+        {
+            float room = float.MaxValue;
+            float covered = 0f;
+            for (int i = from; covered < PassingRoomDistance && i - from < route.Count; i++)
+            {
+                room = Mathf.Min(room, rightSide ? route.RoomRight(i) : route.RoomLeft(i));
+                covered += route.SegmentLength(i);
+            }
+
+            return room;
         }
 
         /// <summary>True if the car will be in the air within <paramref name="distance"/> metres of route point <paramref name="from"/>.</summary>

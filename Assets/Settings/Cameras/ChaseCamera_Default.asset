@@ -17,6 +17,7 @@ MonoBehaviour:
   height: 2.4
   lookHeight: 1.1
   lookAhead: 2
+  lookAheadAtSpeed: 3.5
   rotationSharpness: 5
   heightSharpness: 6
   airborneHeightSharpness: 2.5
@@ -60,6 +61,13 @@ MonoBehaviour:
   fieldOfViewSharpness: 3
   driftSwing: 0.3
   maxDriftSwing: 18
+  driftDistance: 0.4
+  landingDip: 0.3
+  impactKick: 0.15
+  bumpFrequency: 2.4
+  bumpDamping: 0.65
+  speedRumble: 0.2
+  speedRumbleFrequency: 11
   maxShakeAngle: 1.5
   maxShakeOffset: 0.08
   shakeFrequency: 18

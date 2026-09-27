@@ -51,7 +51,8 @@ namespace RallyX.EditorTools
 
     /// <summary>
     /// Builds the TerrainData for a track: valley-shaped hills, the road carved in with embankments,
-    /// creeks under bridges, painted ground layers and a forest of terrain trees kept clear of the road.
+    /// creeks under bridges, painted ground layers with ragged natural edges, a forest of terrain trees kept clear of the
+    /// road, and grass and bushes (terrain details, which don't collide) along the verges and in open ground.
     /// </summary>
     public static class TerrainGenerator
     {
@@ -66,6 +67,11 @@ namespace RallyX.EditorTools
 
         private const float MapEdgeMargin = 12f;
         private const float MaxTreeSlope = 38f;
+
+        // Vegetation: one detail cell per this many metres; none on slopes steeper than this, or this close to a road edge.
+        private const float DetailCellSize = 2f;
+        private const float MaxDetailSlope = 35f;
+        private const float DetailRoadClearance = 1.2f;
 
         public static GeneratedTerrain Generate(TrackDefinition definition, TrackLayout layout, EnvironmentAssets assets, TrackTheme theme,
             string assetPath)
@@ -98,6 +104,7 @@ namespace RallyX.EditorTools
 
             data.treePrototypes = assets.TreePrefabs.Select(prefab => new TreePrototype { prefab = prefab }).ToArray();
             data.SetTreeInstances(PlaceTrees(definition, field, creeks, data, assets.TreeShares), snapToHeightmap: true);
+            PlaceDetails(definition, theme, field, creeks, data, assets);
             EditorUtility.SetDirty(data);
 
             return new GeneratedTerrain { Data = data, Creeks = creeks, Field = field };
@@ -226,6 +233,7 @@ namespace RallyX.EditorTools
             float cell = size / resolution;
             var field = RoadField.Compute(roads, resolution, cell, cell * 0.5f, 8f);
             var maps = new float[resolution, resolution, 4];
+            var verge = SeedOffset(definition.Seed, 3);
 
             for (int iz = 0; iz < resolution; iz++)
             {
@@ -233,14 +241,17 @@ namespace RallyX.EditorTools
                 for (int ix = 0; ix < resolution; ix++)
                 {
                     float x = field.WorldCoordinate(ix);
+                    // The worn verge beside the road, with a ragged edge that wanders in and out.
                     float roadEdge = field.Distance[iz, ix] - field.HalfWidth[iz, ix];
-                    float dirt = float.IsPositiveInfinity(roadEdge) ? 0f : 1f - SmoothStep((roadEdge - 0.5f) / 4f);
+                    float wander = Mathf.PerlinNoise(x * 0.12f + verge.x, z * 0.12f + verge.y) * 2f - 1f;
+                    float dirt = float.IsPositiveInfinity(roadEdge) ? 0f : 1f - SmoothStep((roadEdge - 0.5f - wander * 1f) / (4f + wander * 1.5f));
 
                     // Dry creeks are washes of bare, worn ground.
                     if (!theme.CreekWater)
                         dirt = Mathf.Max(dirt, DryWash(creeks, new Vector2(x, z)));
 
-                    float rock = SmoothStep((data.GetSteepness(x / size, z / size) - theme.RockSlope) / theme.RockBlend) * (1f - dirt);
+                    float outcrop = (Mathf.PerlinNoise(x * 0.05f + verge.y, z * 0.05f + verge.x) - 0.5f) * 10f;
+                    float rock = SmoothStep((data.GetSteepness(x / size, z / size) - theme.RockSlope + outcrop) / theme.RockBlend) * (1f - dirt);
                     float forest = SmoothStep((ForestDensity(definition, x, z) - definition.ClearingAmount - 0.2f) / 0.15f)
                                    * (1f - dirt) * (1f - rock);
                     float grass = (1f - dirt) * (1f - rock) * (1f - forest);
@@ -312,6 +323,97 @@ namespace RallyX.EditorTools
             }
 
             return trees.ToArray();
+        }
+
+        /// <summary>
+        /// Grass tufts and bushes as terrain details: thick along the verges, in patches across open ground, sparse under
+        /// the trees; none on the road, its shoulders, creeks or steep slopes. They are drawn only near the camera.
+        /// </summary>
+        private static void PlaceDetails(TrackDefinition definition, TrackTheme theme, RoadField field, List<Creek> creeks, TerrainData data,
+            EnvironmentAssets assets)
+        {
+            if (assets.DetailPrefabs == null || assets.DetailPrefabs.Length < 2 || theme.VegetationDensity <= 0f)
+            {
+                data.detailPrototypes = new DetailPrototype[0];
+                return;
+            }
+
+            float size = definition.TerrainSize;
+            int resolution = Mathf.RoundToInt(size / DetailCellSize);
+            data.SetDetailResolution(resolution, 16);
+            data.SetDetailScatterMode(DetailScatterMode.InstanceCountMode);
+            data.detailPrototypes = new[]
+            {
+                DetailLayer(assets.DetailPrefabs[EnvironmentAssets.GrassDetail], 0.8f, 1.4f, 0.7f, 1.4f),
+                DetailLayer(assets.DetailPrefabs[EnvironmentAssets.BushDetail], 0.7f, 1.5f, 0.6f, 1.3f),
+            };
+
+            var random = new System.Random(definition.Seed + 303);
+            var patches = SeedOffset(definition.Seed, 4);
+            var grass = new int[resolution, resolution];
+            var bushes = new int[resolution, resolution];
+            float cell = size / resolution;
+            float clearance = definition.RoadBevelWidth + DetailRoadClearance;
+            for (int iz = 0; iz < resolution; iz++)
+            {
+                float z = (iz + 0.5f) * cell;
+                for (int ix = 0; ix < resolution; ix++)
+                {
+                    float x = (ix + 0.5f) * cell;
+                    double roll = random.NextDouble();
+                    float edge = field.EdgeDistanceAt(x, z);
+                    if (edge < clearance || data.GetSteepness(x / size, z / size) > MaxDetailSlope || InCreek(creeks, x, z))
+                        continue;
+
+                    float open = 1f - SmoothStep((ForestDensity(definition, x, z) - definition.ClearingAmount - 0.1f) / 0.25f);
+                    float roadside = float.IsPositiveInfinity(edge) ? 0f : 1f - SmoothStep((edge - clearance - 2f) / 6f);
+                    float patch = Mathf.PerlinNoise(x / 9f + patches.x, z / 9f + patches.y);
+                    float amount = theme.VegetationDensity * (0.9f * roadside + 1.1f * open * patch + 0.15f);
+                    grass[iz, ix] = Mathf.Clamp(Mathf.FloorToInt(amount * 2.2f + (float)roll), 0, 4);
+
+                    float bushChance = theme.VegetationDensity * (0.08f * roadside + 0.05f * open + 0.06f * (1f - open)) * patch;
+                    bushes[iz, ix] = roll < bushChance ? 1 : 0;
+                }
+            }
+
+            data.SetDetailLayer(0, 0, EnvironmentAssets.GrassDetail, grass);
+            data.SetDetailLayer(0, 0, EnvironmentAssets.BushDetail, bushes);
+        }
+
+        private static DetailPrototype DetailLayer(GameObject prefab, float minWidth, float maxWidth, float minHeight, float maxHeight)
+        {
+            var prototype = new DetailPrototype
+            {
+                prototype = prefab,
+                usePrototypeMesh = true,
+                useInstancing = true,
+                renderMode = DetailRenderMode.VertexLit,
+                minWidth = minWidth,
+                maxWidth = maxWidth,
+                minHeight = minHeight,
+                maxHeight = maxHeight,
+                noiseSpread = 0.4f,
+                healthyColor = Color.white,
+                dryColor = Color.white,
+                alignToGround = 0.6f,
+                positionJitter = 1f,
+            };
+
+            if (!prototype.Validate(out string problem))
+                Debug.LogWarning($"[RALLY X Build] Detail {prefab.name}: {problem}");
+            return prototype;
+        }
+
+        private static bool InCreek(List<Creek> creeks, float x, float z)
+        {
+            var point = new Vector2(x, z);
+            foreach (var creek in creeks)
+            {
+                if (creek.Contains(point, 1f))
+                    return true;
+            }
+
+            return false;
         }
 
         /// <summary>The tree shape for a random number in 0..1, each shape taking its share of the range in order.</summary>

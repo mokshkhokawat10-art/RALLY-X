@@ -17,12 +17,19 @@ namespace RallyX.Tracks
         /// <summary>Extra deceleration from surface drag, m/s².</summary>
         public readonly float RollingResistance;
 
-        public SurfaceProperties(float grip, float topSpeed, float acceleration, float rollingResistance)
+        /// <summary>
+        /// Share of the grip-by-slip drop the tyres suffer when sliding: 1 = the car's full drop, below 1 the surface
+        /// keeps more grip in a slide (loose ground the tyres dig into), so slides build up and die down progressively.
+        /// </summary>
+        public readonly float SlideFalloff;
+
+        public SurfaceProperties(float grip, float topSpeed, float acceleration, float rollingResistance, float slideFalloff = 1f)
         {
             Grip = grip;
             TopSpeed = topSpeed;
             Acceleration = acceleration;
             RollingResistance = rollingResistance;
+            SlideFalloff = slideFalloff;
         }
     }
 }

@@ -20,7 +20,9 @@ Arcade rally racer for Windows PC, built with Unity 6 (URP) and the Unity Input 
 |------|--------------|
 | RALLY X > Setup > Run Project Setup | Project settings, physics layers, URP check, Sandbox scene |
 | RALLY X > Build > Create Missing Vehicle Content | Surfaces, car config, placeholder car prefab (never overwrites) |
-| RALLY X > Build > Rebuild Placeholder Car Prefab | Regenerates the car prefab (overwrites manual edits) |
+| RALLY X > Build > Rebuild Placeholder Car Prefab | Regenerates the RallyCar (Falcon RX) prefab (overwrites manual edits; its config is kept) |
+| RALLY X > Build > Rebuild All Car Prefabs | Regenerates every garage car's prefab from its spec (handling configs, definitions and roster are kept) |
+| RALLY X > Build > Create Missing Effects Content | The tyre/impact/exhaust effect textures and materials, and the effects config (the config is never overwritten) |
 | RALLY X > Build > Create Missing Camera Content | Default chase camera settings (never overwrites) |
 | RALLY X > Build > Create Missing Race Content | Default race settings and the UI panel settings (never overwrites) |
 | RALLY X > Build > Create Missing AI Content | AI settings (incl. difficulty levels) and the three AI driver profiles (never overwrites) |
@@ -32,6 +34,7 @@ Arcade rally racer for Windows PC, built with Unity 6 (URP) and the Unity Input 
 | RALLY X > Build > Rebuild Red Canyon Track | Regenerates the Red Canyon scene from its track definition (overwrites the scene) |
 | RALLY X > Build > Rebuild All Tracks | Regenerates every track scene |
 | RALLY X > Dev > Capture Track Screenshots | Renders an overview, views around the lap and each bridge of every track to `Captures/<track>/` |
+| RALLY X > Dev > Capture Car Screenshots | Renders every garage car from the front, side, rear, above and at a wheel to `Captures/Cars/` |
 | RALLY X > Dev > Unlock All Cars | Unlocks every garage car in the player profile |
 | RALLY X > Dev > Add 10,000 Credits | Adds credits to the player profile, for trying upgrades |
 | RALLY X > Dev > Reset Player Profile | Deletes the player profile (credits, upgrades, chosen car, wins, unlocks, best laps) |
@@ -48,6 +51,12 @@ REM Setup + build all generated content (including the scene of any track that h
 REM Setup + garage content + regenerate the main menu and garage scenes
 %U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.SetupAndBuildMenus -logFile -
 
+REM Setup + regenerate every car prefab (handling configs, definitions and the roster are kept)
+%U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.SetupAndRebuildCars -logFile -
+
+REM Car review screenshots (every garage car) into <captureDir>/Cars
+%U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.VehicleCaptureTool.CaptureBatch -captureDir Captures -logFile -
+
 REM Setup + regenerate every track scene
 %U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.SetupAndBuildTracks -logFile -
 
@@ -57,10 +66,10 @@ REM Setup + regenerate one track scene (by scene name)
 REM Track review screenshots (every track, or one with -track <scene name>)
 %U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.TrackCaptureTool.CaptureBatch -captureDir Captures -logFile -
 
-REM Edit Mode tests (every track's layout and terrain, track themes, race rules and laps, AI racing lines and speed plans, difficulty tuning, garage cars and stats, player profile and save file, upgrades, credits, track unlocks)
+REM Edit Mode tests (every track's layout and terrain, track themes and look, race rules and laps, AI racing lines and speed plans, difficulty tuning, garage cars, their stats, look and collision boxes, effects config, player profile and save file, upgrades, credits, track unlocks)
 %U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform EditMode -testResults editmode.xml -logFile -
 
-REM Play Mode tests (vehicle physics, chase camera, drivability, races and AI races on every difficulty on every track, pause menu, menus and track selection, garage, every car, upgrades driven for real, race rewards)
+REM Play Mode tests (vehicle physics and Phase 10 handling, tyre/landing/impact effects, lights and body lean, chase camera, drivability, races and AI races on every difficulty on every track, pause menu, menus and track selection, garage, every car, upgrades driven for real, race rewards)
 %U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform PlayMode -testResults results.xml -logFile -
 ```
 
@@ -86,7 +95,31 @@ All bindings are defined in `Assets/Scripts/Core/RallyInputActions.cs`.
 
 ## Tuning
 
-Handling lives in `Assets/Settings/Vehicles/RallyCar_Config.asset`, surface behaviour in
+Everything below is data: edit the assets, not the code.
+
+- **Handling** (`VehicleConfig`, one per car in `Assets/Settings/Vehicles/`). Besides engine, brakes, steering, grip, drift,
+  suspension and air control: *drive traction* (wheelspin limit), *brake bias* (front share of braking; the stopping
+  distance doesn't change), *weight transfer* (extra load moved between the axles under braking and power, and how fast),
+  *drift sustain grip* (full throttle holds a handbrake drift; lifting off lets the rear grip), *rebound damping* and
+  *bump stops* (settle after bumps and hard landings without bottoming out), *air yaw rate*, *landing alignment* (level
+  towards the slope below) and *air pitch control* (the brake dips the nose in the air), and *settling* after landings and
+  hard knocks. The acceleration curve is a soft launch, a mid-range plateau and a fade to top speed; each car has its own.
+  Each car differs: the Falcon (all-wheel drive, the AI's car) is balanced; the Kestrel is front-biased, stiff and quick
+  to turn; the Titan is rear-biased and heavy with a lot of weight transfer, so its tail steps out under braking and it
+  holds throttle drifts. The garage stats are still worked out from the config and match the cars when driven.
+- **Surfaces** (`Assets/Settings/Surfaces/`): grip, top speed, pull and drag, plus *slide falloff* (loose surfaces keep
+  more grip in a slide, so slides are progressive), what the tyres throw up (*spray*: tyre smoke, dust, gravel, mud or
+  grass), its colour, the tyre-mark colour, dust trailed at speed (*rolling spray*) and *roughness* (body chatter and
+  camera rumble). A track can recolour its surfaces' dust and marks with its `SurfacePalette` (set from its theme).
+- **Effects** (`Assets/Settings/VFX/VehicleEffects_Default.asset`): when a tyre counts as sliding, rates, sizes and
+  lifetimes of smoke, dust, stones, mud, sparks and exhaust, landing dust, skid mark width and capacity, backfires and
+  the particle budget per car.
+- **Body lean and lights** (`VehicleVisuals` on each car prefab): pitch and roll per g, lean spring, chatter, light colours.
+- **Chase camera** (`ChaseCamera_Default.asset`): besides framing, smoothing, FOV and shake, the extra look-ahead at speed,
+  a small pull-out while drifting, the spring dip on landings and push away from hits, and a faint rumble at speed that
+  grows on rough ground (set *speed rumble* to 0 to turn it off). Shake still fades out completely.
+
+Each car's handling lives in its config in `Assets/Settings/Vehicles/` (`RallyCar_Config.asset` for the Falcon RX), surface behaviour in
 `Assets/Settings/Surfaces/` and the chase camera in `Assets/Settings/Cameras/ChaseCamera_Default.asset`.
 All are read live, so changes made during Play Mode apply immediately
 (and persist after stopping, like any asset edit). The exception is a player's car with upgrades installed: it drives
@@ -118,6 +151,16 @@ shortcut bypasses, so both routes pass every gate.
   surface. The forest theme (Pine Valley) uses the shared art folders; other themes generate their art once into
   their own subfolder (e.g. `Assets/Materials/Environment/RedCanyon/`). Delete a theme's art folders to regenerate
   its art after changing its colours or shapes.
+- **Look (Phase 10).** A theme also sets the colour grade (a global volume in the scene: ACES tonemapping, exposure,
+  contrast, saturation, white balance, shadow and highlight tints, bloom, vignette), shadow strength, and the trackside
+  grass tufts and bushes (terrain details: colours and density). Road textures show wheel ruts, stones and frayed edges;
+  the roads' sloped shoulders are drawn with the verge material, which matches the worn ground painted beside the roads;
+  ground layers have normal and mask maps and blend by height. Guard rails collide as the same plain boxes as before but
+  are drawn as galvanised rails on posts; bridges gain timber posts and beams; a warning board stands before each jump.
+  Each build bakes the track's reflections into `Reflections.exr` (used by car paint and glass). Generated textures carry
+  a revision (`EnvironmentAssetBuilder.ArtRevision`); bump it after changing a painter and they are repainted in place.
+  None of this touches the racing: roads, colliders, surfaces, terrain heights, trees, checkpoints and the grid are
+  rebuilt exactly as before.
 - **Adding a track:** write its authoring class (like `PineValleyTrack` / `RedCanyonTrack` in
   `Assets/Scripts/Editor/Tracks/`), list it in `TrackCatalog`, give it a `TrackInfo` in the career's track roster
   (`ProgressionContentBuilder`), then build it. Every track-based test runs on each track listed in the test fixtures.
@@ -180,6 +223,14 @@ change the builder, the layouts (`Assets/UI/Menus/`) or the assets rather than t
   100 km/h, cornering grip and 100-0 km/h braking distance. Play Mode tests check them against the real cars. The
   roster's **Stat Bars** section sets what an empty and a full bar mean (wide enough for every car fully upgraded; an
   Edit Mode test checks it).
+- **How the cars are built.** `PlaceholderCarBuilder` generates each car from its spec (`VehicleContentBuilder` for the
+  Falcon, `GarageContentBuilder` for the others): a lofted body with wheel arches and flares, a glass cabin with pillars and
+  a roof, bumpers, lights, mirrors, mud flaps, door numbers, exhausts and the car's own details, and spoked wheels with
+  knobbly tyres that spin inside steering-only brakes. The body's visible parts hang from a pivot that `VehicleVisuals`
+  leans (visual only); the collision boxes are separate and unchanged. Rebuilding keeps the prefab's root, so the garage
+  and track scenes keep pointing at it. AI cars share the Falcon's prefab with their own paint and door numbers.
+- **Effects.** `VehicleEffects` gives each car one particle system per kind of effect, fed only from what the car is
+  doing, plus a skid-mark mesh that reuses its oldest marks: nothing is created while driving.
 - Placeholder cars: Falcon RX (the original RallyCar, balanced), Kestrel S (light and nimble, lower top speed) and
   Titan GT (fastest, heavy; locked until the player wins a race).
 

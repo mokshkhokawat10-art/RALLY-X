@@ -146,9 +146,16 @@ namespace RallyX.EditorTools
                 skyGround: new Color(0.45f, 0.3f, 0.2f),
                 atmosphereThickness: 1.3f,
                 skyExposure: 1.25f,
-                ambientSky: new Color(0.72f, 0.66f, 0.6f),
-                ambientEquator: new Color(0.62f, 0.48f, 0.36f),
-                ambientGround: new Color(0.36f, 0.22f, 0.14f));
+                ambientSky: new Color(0.78f, 0.72f, 0.66f),
+                ambientEquator: new Color(0.68f, 0.54f, 0.42f),
+                ambientGround: new Color(0.42f, 0.28f, 0.2f));
+
+            // Warm light with cool, slightly purple shadows; sparse dry grass and sage.
+            theme.SetMood(shadowStrength: 0.82f, postExposure: 0.45f, contrast: 12f, saturation: 10f, temperature: 9f,
+                shadowTint: new Color(0.47f, 0.46f, 0.56f), highlightTint: new Color(0.6f, 0.52f, 0.42f), bloom: 0.4f, vignette: 0.26f,
+                vegetationDensity: 0.55f,
+                grassTufts: new Palette(new Color(0.55f, 0.46f, 0.28f), new Color(0.78f, 0.68f, 0.44f), new Color(0.78f, 0.68f, 0.44f)),
+                bushes: new Palette(new Color(0.3f, 0.34f, 0.2f), new Color(0.46f, 0.5f, 0.32f), new Color(0.46f, 0.5f, 0.32f)));
             return theme;
         }
 

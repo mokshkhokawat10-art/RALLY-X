@@ -39,8 +39,11 @@ namespace RallyX.Vehicle
         /// <summary>Seconds the current drift has lasted (0 when not drifting).</summary>
         public float CurrentDriftDuration { get; private set; }
 
-        internal void Step(VehicleConfig config, bool handbrake, bool reversing, bool grounded, Vector3 velocity, Vector3 forward,
-            Vector3 up, float deltaTime)
+        // Set while the handbrake is held and through the drift it starts.
+        private bool handbrakeDrift;
+
+        internal void Step(VehicleConfig config, bool handbrake, float throttle, bool reversing, bool grounded, Vector3 velocity,
+            Vector3 forward, Vector3 up, float deltaTime)
         {
             Vector3 planarVelocity = Vector3.ProjectOnPlane(velocity, up);
             PlanarSpeed = planarVelocity.magnitude;
@@ -52,16 +55,24 @@ namespace RallyX.Vehicle
             if (!config.DriftEnabled)
             {
                 RearGripScale = 1f;
+                handbrakeDrift = false;
                 SetDrifting(false);
                 return;
             }
 
-            // Grip drops the moment the handbrake is pulled and recovers gradually after release,
-            // which lets a drift be held on the throttle.
+            // Grip drops the moment the handbrake is pulled and recovers gradually after release. In a drift the handbrake
+            // started, the throttle keeps the tail loose, so the slide can be held and steered on the throttle; lifting
+            // off lets the rear grip again. Slides the handbrake didn't start (a car running wide) always recover.
             if (handbrake)
+            {
+                handbrakeDrift = true;
                 RearGripScale = Mathf.Min(RearGripScale, config.DriftGrip);
+            }
             else
-                RearGripScale = Mathf.MoveTowards(RearGripScale, 1f, deltaTime / config.DriftRecoveryTime);
+            {
+                float target = handbrakeDrift && IsDrifting ? Mathf.Lerp(1f, config.DriftSustainGrip, throttle) : 1f;
+                RearGripScale = Mathf.MoveTowards(RearGripScale, target, deltaTime / config.DriftRecoveryTime);
+            }
 
             float threshold = IsDrifting ? config.DriftAngleThreshold * ExitThresholdFactor : config.DriftAngleThreshold;
             float slip = Mathf.Abs(SlipAngle);
@@ -69,6 +80,8 @@ namespace RallyX.Vehicle
             if (drifting)
                 CurrentDriftDuration += deltaTime;
             SetDrifting(drifting);
+            if (!drifting && !handbrake)
+                handbrakeDrift = false;
         }
 
         internal void Reset()
@@ -76,6 +89,7 @@ namespace RallyX.Vehicle
             RearGripScale = 1f;
             SlipAngle = 0f;
             PlanarSpeed = 0f;
+            handbrakeDrift = false;
             SetDrifting(false);
         }
 

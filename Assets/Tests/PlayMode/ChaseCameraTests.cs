@@ -174,6 +174,36 @@ namespace RallyX.Tests
         }
 
         [UnityTest]
+        public IEnumerator AtSpeed_LooksFurtherDownTheRoad()
+        {
+            yield return CreateCourseWithCamera();
+            float atRest = AimDistanceAhead();
+
+            yield return Drive(FullThrottle, 12f);
+            float atSpeed = AimDistanceAhead();
+
+            TestContext.WriteLine($"Camera aim meets the ground {atRest:0.0} m ahead of the car at rest, {atSpeed:0.0} m at {Car.SpeedKmh:0} km/h");
+            Assert.Greater(atSpeed, atRest + 2f, "At speed the camera should look further ahead.");
+            AssertFramesClean();
+        }
+
+        [UnityTest]
+        public IEnumerator HardLanding_DipsTheCameraThenReturns()
+        {
+            yield return CreateCourseWithCamera(SpawnPosition + Vector3.up * 4f, settleCar: false);
+            float deepest = 0f;
+
+            yield return Drive(default, 2f, () => deepest = Mathf.Min(deepest, chaseCamera.BumpOffset.y));
+            yield return WaitSimulated(3f);
+
+            TestContext.WriteLine($"Landing dip: deepest {deepest:0.000} m (config {config.LandingDip}), left over {chaseCamera.BumpOffset.magnitude:0.0000} m");
+            Assert.Less(deepest, -0.05f, "A hard landing should dip the camera.");
+            Assert.GreaterOrEqual(deepest, -config.LandingDip * 1.5f, "The dip should stay small.");
+            Assert.Less(chaseCamera.BumpOffset.magnitude, 0.01f, "The camera should return to its place.");
+            AssertFramesClean();
+        }
+
+        [UnityTest]
         public IEnumerator Teleport_SnapsInsteadOfSwinging()
         {
             yield return CreateCourseWithCamera();
@@ -215,6 +245,18 @@ namespace RallyX.Tests
         }
 
         private IEnumerator WaitSimulated(float seconds) => Drive(Car.CurrentInput, seconds);
+
+        /// <summary>How far ahead of the car, along its heading, the camera's line of sight meets the car's ground level, metres.</summary>
+        private float AimDistanceAhead()
+        {
+            var view = chaseCamera.transform;
+            float groundLevel = Car.Body.position.y;
+            float down = -view.forward.y;
+            if (down <= 1e-4f)
+                return float.PositiveInfinity;
+            Vector3 hit = view.position + view.forward * ((view.position.y - groundLevel) / down);
+            return Vector3.Dot(hit - Car.Body.position, Heading());
+        }
 
         private void AssertFramesClean()
         {

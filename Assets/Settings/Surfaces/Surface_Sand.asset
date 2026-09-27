@@ -17,3 +17,9 @@ MonoBehaviour:
   topSpeed: 0.68
   acceleration: 0.75
   rollingResistance: 1.8
+  slideFalloff: 0.6
+  spray: 1
+  sprayColor: {r: 0.83, g: 0.66, b: 0.46, a: 1}
+  markColor: {r: 0.55, g: 0.4, b: 0.28, a: 0.45}
+  rollingSpray: 0.35
+  roughness: 0.45
