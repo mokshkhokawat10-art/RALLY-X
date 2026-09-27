@@ -1,8 +1,22 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace RallyX.Vehicle
 {
+    /// <summary>Which wheels the engine drives.</summary>
+    public enum Drivetrain
+    {
+        /// <summary>All four, split by <see cref="VehicleConfig.FrontDriveShare"/> through a centre differential.</summary>
+        AllWheelDrive,
+
+        /// <summary>The front wheels only: stable under power, pushes wide on the throttle, rotates when lifting off.</summary>
+        FrontWheelDrive,
+
+        /// <summary>The rear wheels only: the throttle swings the tail, most on loose ground.</summary>
+        RearWheelDrive,
+    }
+
     /// <summary>
     /// Designer-tunable handling for one vehicle. The controller reads it live,
     /// so edits made in Play Mode apply immediately (and persist, as with any asset).
@@ -39,15 +53,32 @@ namespace RallyX.Vehicle
         [SerializeField, Min(1f)] private float maxReverseSpeedKmh = 40f;
         [SerializeField, Min(0f)] private float reverseAcceleration = 6f;
 
-        [Tooltip("Share of drive force sent to the front wheels. 0 = rear-wheel drive, 1 = front-wheel drive.")]
-        [SerializeField, Range(0f, 1f)] private float frontDriveShare = 0.4f;
-
         [Tooltip("Deceleration when neither throttle nor brake is pressed, m/s².")]
         [SerializeField, Min(0f)] private float coastDeceleration = 1.5f;
 
-        [Tooltip("Drive force a tyre can put down, as a multiple of its grip limit (tyre friction x surface grip x load). " +
-                 "Beyond it the wheel spins: on loose ground, or where drive is concentrated on few wheels.")]
+        [Header("Drivetrain")]
+        [Tooltip("Which wheels the engine drives.")]
+        [SerializeField] private Drivetrain drivetrain = Drivetrain.AllWheelDrive;
+
+        [Tooltip("All-wheel drive: share of the drive sent to the front wheels. 0 = all to the rear, 1 = all to the front.")]
+        [SerializeField, Range(0f, 1f)] private float frontDriveShare = 0.4f;
+
+        [Tooltip("Drive force a tyre can put down, as a multiple of its grip limit (tyre friction x surface grip x surface " +
+                 "traction x load). Beyond it the wheel spins: on loose ground, or where drive is concentrated on few wheels.")]
         [SerializeField, Min(0.1f)] private float driveTraction = 1.8f;
+
+        [Tooltip("All-wheel drive: share of the drive one axle can't put down (its wheels spinning or in the air) that the " +
+                 "centre differential passes to the other axle. 0 = open (fixed split), 1 = locked.")]
+        [SerializeField, Range(0f, 1f)] private float centerCoupling = 0.5f;
+
+        [Tooltip("Share of the drive a wheel can't put down (spinning or in the air) that the differential passes to the " +
+                 "other wheel on its axle. 0 = open (the wheel with least grip spins), 1 = locked.")]
+        [SerializeField, Range(0f, 1f)] private float limitedSlip = 0.3f;
+
+        [Tooltip("Sideways grip a driven axle gives up when it puts down its full traction, as a share (the friction circle); " +
+                 "more once its wheels spin. The throttle then pushes the nose wide on a front-driven car and swings the tail " +
+                 "on a rear-driven one, most on loose ground. 0 = drive never costs sideways grip.")]
+        [SerializeField, Range(0f, 0.8f)] private float driveGripLoss = 0.2f;
 
         [Header("Brakes")]
         [Tooltip("Brake deceleration on a full-grip surface, m/s².")]
@@ -57,14 +88,39 @@ namespace RallyX.Vehicle
                  "below it the tail steps out more readily when braking into a corner. The stopping distance is the same.")]
         [SerializeField, Range(0.2f, 0.8f)] private float brakeBias = 0.55f;
 
+        [Tooltip("Sideways grip an axle gives up while braking at its full traction, as a share, so the axle doing more of the " +
+                 "braking for its load slides first: with the bias to the rear the tail steps out when braking into a corner. " +
+                 "0 = braking never costs sideways grip.")]
+        [SerializeField, Range(0f, 0.8f)] private float brakeGripLoss = 0.08f;
+
         [Tooltip("Deceleration from the locked rear wheels while the handbrake is held, m/s².")]
         [SerializeField, Min(0f)] private float handbrakeDeceleration = 5f;
 
         [Header("Weight Transfer")]
-        [Tooltip("Extra share of the full load transfer between the axles under braking and acceleration that the tyres feel " +
-                 "(on top of what the suspension already carries). Braking loads the front tyres for sharper turn-in; " +
-                 "accelerating loads the rear. 0 = off.")]
-        [SerializeField, Range(0f, 1f)] private float weightTransfer = 0.15f;
+        [Tooltip("Extra share of the full load transfer between the axles under braking that the tyres feel (on top of what " +
+                 "the suspension already carries): the front tyres bite harder on turn-in and the rear goes light. 0 = off.")]
+        [FormerlySerializedAs("weightTransfer")]
+        [SerializeField, Range(0f, 1f)] private float brakingWeightTransfer = 0.15f;
+
+        [Tooltip("The same under power (squat): load moves onto the rear tyres, so a rear-driven car puts its power down " +
+                 "better and a front-driven one pushes wide. 0 = off.")]
+        [SerializeField, Range(0f, 1f)] private float accelerationWeightTransfer = 0.15f;
+
+        [Tooltip("Extra share of the full sideways load transfer in corners that the tyres feel: load moves onto the outside " +
+                 "tyres. With load sensitivity above 0 this costs grip, most on the axle that takes more of it. 0 = off.")]
+        [SerializeField, Range(0f, 1f)] private float lateralWeightTransfer = 0.2f;
+
+        [Tooltip("Share of the sideways load transfer taken by the front axle, like a stiffer front anti-roll bar. Above the " +
+                 "front's share of the weight (about 0.5) the car understeers at the limit; below it, it oversteers.")]
+        [SerializeField, Range(0.2f, 0.8f)] private float frontRollShare = 0.52f;
+
+        [Tooltip("How much a tyre carrying more load than its axle partner loses grip for it: grip grows with load to the power " +
+                 "1 - sensitivity, so the load a corner moves across an axle costs that axle grip. 0 = grip in proportion to load.")]
+        [SerializeField, Range(0f, 0.5f)] private float loadSensitivity = 0.2f;
+
+        [Tooltip("Most load a tyre's grip can use, as a multiple of its share of the car's weight. Caps the grip spikes of hard " +
+                 "landings and kerb strikes so they can't snap the car around.")]
+        [SerializeField, Range(1.5f, 10f)] private float gripLoadLimit = 2.5f;
 
         [Tooltip("Seconds for the load to shift, like the body settling onto its springs. Also smooths the accelerations the " +
                  "body lean and camera read.")]
@@ -76,9 +132,22 @@ namespace RallyX.Vehicle
         [Tooltip("Steering sensitivity: how fast the front wheels turn towards the input, degrees per second.")]
         [SerializeField, Min(1f)] private float steerSpeed = 200f;
 
+        [Tooltip("Steering speed multiplier while the wheels head back towards the centre or across to countersteer, so " +
+                 "slides are caught quickly. 1 = the same speed both ways.")]
+        [SerializeField, Range(1f, 3f)] private float steerReturnRate = 1.3f;
+
         [Tooltip("Steering angle multiplier over normalised speed. Keeps high-speed steering stable.")]
         [SerializeField] private AnimationCurve steerBySpeed =
             new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 0.3f));
+
+        [Header("High-Speed Stability")]
+        [Tooltip("Share of the yaw beyond what the steering asks for that is removed per 0.02 s step at top speed: keeps the " +
+                 "car straight over crests and bumps. Off while drifting or on the handbrake, so slides the driver starts are " +
+                 "left alone. 0 = off.")]
+        [SerializeField, Range(0f, 0.5f)] private float stabilityAssist = 0.1f;
+
+        [Tooltip("Share of top speed where the stability assist starts; it reaches full strength at top speed.")]
+        [SerializeField, Range(0f, 1f)] private float stabilitySpeed = 0.5f;
 
         [Header("Grip")]
         [Tooltip("Peak tyre friction coefficient. Max cornering force per wheel = friction x grip multipliers x wheel load.")]
@@ -105,6 +174,10 @@ namespace RallyX.Vehicle
 
         [Tooltip("Yaw assist while drifting, rad/s² at full steering. Higher = the car rotates into and holds drifts more eagerly. 0 disables it.")]
         [SerializeField, Min(0f)] private float driftMultiplier = 2.5f;
+
+        [Tooltip("Multiplier on the drift assist while steering against the slide, so a drift is caught more readily than it " +
+                 "is started. 1 = the same both ways.")]
+        [SerializeField, Range(0f, 3f)] private float counterSteerAssist = 1.3f;
 
         [Tooltip("Seconds for rear grip to fully recover after the handbrake is released.")]
         [SerializeField, Min(0.01f)] private float driftRecoveryTime = 0.6f;
@@ -141,6 +214,17 @@ namespace RallyX.Vehicle
                  "instead of bouncing, while bumps are still soaked up softly.")]
         [SerializeField, Range(0.5f, 3f)] private float reboundDamping = 1.5f;
 
+        [Tooltip("Extra multiplier on the rebound damping while settling after a landing or a hard knock (see settle time), " +
+                 "so the body comes back up once after compressing instead of bouncing. 1 = no extra.")]
+        [SerializeField, Range(1f, 3f)] private float landingReboundDamping = 1.5f;
+
+        [Tooltip("Compression speed, m/s, above which the damper softens (see fast bump damping): ruts, rocks and landings.")]
+        [SerializeField, Min(0.1f)] private float fastBumpSpeed = 1.5f;
+
+        [Tooltip("Damping multiplier for compression beyond the fast bump speed, so sharp hits are soaked up instead of " +
+                 "kicking the body. 1 = the same damping at every speed.")]
+        [SerializeField, Range(0.2f, 1f)] private float fastBumpDamping = 0.7f;
+
         [Tooltip("The last part of the travel, metres, where a stiff bump stop takes over so hard landings don't bottom out.")]
         [SerializeField, Range(0f, 0.15f)] private float bumpStopTravel = 0.06f;
 
@@ -150,6 +234,10 @@ namespace RallyX.Vehicle
         [Header("Aerodynamics")]
         [Tooltip("Extra downward force at top speed as a multiple of gravity. Scales with speed squared and adds grip.")]
         [SerializeField, Min(0f)] private float downforce = 0.5f;
+
+        [Tooltip("Where the downforce acts, as a share of the wheelbase ahead of (+) or behind (-) the centre of mass. Behind " +
+                 "plants the rear at speed, for a car that is stable in fast corners but turns in less eagerly.")]
+        [SerializeField, Range(-0.5f, 0.5f)] private float downforceBalance;
 
         [Header("Air Control")]
         [Tooltip("Yaw acceleration from steering while airborne, rad/s².")]
@@ -161,11 +249,19 @@ namespace RallyX.Vehicle
         [Tooltip("Strength of automatic pitch and roll levelling while airborne, for clean landings.")]
         [SerializeField, Min(0f)] private float airAutoLevel = 4f;
 
+        [Tooltip("Seconds after take-off over which the levelling builds to full strength, so the car keeps the pitch and roll " +
+                 "the ramp or crest gave it for a moment and short hops look natural. 0 = full strength at once.")]
+        [SerializeField, Min(0f)] private float airLevelDelay = 0.2f;
+
         [Tooltip("How far the levelling lines the car up with the ground it will land on rather than with the horizon (0..1).")]
         [SerializeField, Range(0f, 1f)] private float landingAlignment = 0.8f;
 
         [Tooltip("Nose-down pitch from the brake while airborne, rad/s², to save a landing that would come in tail first.")]
         [SerializeField, Min(0f)] private float airPitchControl = 1.5f;
+
+        [Tooltip("Nose-up pitch from the throttle while airborne, rad/s² (the spinning wheels' reaction), to save a landing " +
+                 "that would come in nose first.")]
+        [SerializeField, Min(0f)] private float airThrottlePitch = 0.3f;
 
         [Header("Landings and Impacts")]
         [Tooltip("Seconds after a landing or a hard knock during which extra damping calms pitch and roll.")]
@@ -176,6 +272,10 @@ namespace RallyX.Vehicle
 
         [Tooltip("Change of speed from a collision, m/s, that counts as a hard knock and starts the settling.")]
         [SerializeField, Min(0.1f)] private float knockSpeed = 2f;
+
+        [Tooltip("Damping of the spin a hard knock gives the car beyond what the steering asks for, 1/s, over the settle time, " +
+                 "so a hit from another car or a barrier nudges it instead of spinning it round. 0 = off.")]
+        [SerializeField, Min(0f)] private float impactYawDamping = 1.5f;
 
         /// <summary>Raised in the Editor when a value changes, so body settings can be re-applied live.</summary>
         public event Action Changed;
@@ -192,20 +292,46 @@ namespace RallyX.Vehicle
         public float MaxReverseSpeedKmh => maxReverseSpeedKmh;
         public float MaxReverseSpeed => maxReverseSpeedKmh / 3.6f;
         public float ReverseAcceleration => reverseAcceleration;
-        public float FrontDriveShare => frontDriveShare;
         public float CoastDeceleration => coastDeceleration;
+
+        public Drivetrain Drivetrain => drivetrain;
+
+        /// <summary>Share of the drive the front wheels get as the drivetrain splits it: 1 for front-, 0 for rear-wheel drive.</summary>
+        public float FrontDriveShare => drivetrain switch
+        {
+            Drivetrain.FrontWheelDrive => 1f,
+            Drivetrain.RearWheelDrive => 0f,
+            _ => frontDriveShare,
+        };
+
         public float DriveTraction => driveTraction;
+
+        /// <summary>Centre differential coupling; only all-wheel drive has one.</summary>
+        public float CenterCoupling => drivetrain == Drivetrain.AllWheelDrive ? centerCoupling : 0f;
+
+        public float LimitedSlip => limitedSlip;
+        public float DriveGripLoss => driveGripLoss;
 
         public float BrakeDeceleration => brakeDeceleration;
         public float BrakeBias => brakeBias;
+        public float BrakeGripLoss => brakeGripLoss;
         public float HandbrakeDeceleration => handbrakeDeceleration;
 
-        public float WeightTransfer => weightTransfer;
+        public float BrakingWeightTransfer => brakingWeightTransfer;
+        public float AccelerationWeightTransfer => accelerationWeightTransfer;
+        public float LateralWeightTransfer => lateralWeightTransfer;
+        public float FrontRollShare => frontRollShare;
+        public float LoadSensitivity => loadSensitivity;
+        public float GripLoadLimit => gripLoadLimit;
         public float WeightTransferTime => weightTransferTime;
 
         public float MaxSteerAngle => maxSteerAngle;
         public float SteerSpeed => steerSpeed;
+        public float SteerReturnRate => steerReturnRate;
         public AnimationCurve SteerBySpeed => steerBySpeed;
+
+        public float StabilityAssist => stabilityAssist;
+        public float StabilitySpeed => stabilitySpeed;
 
         public float TyreFriction => tyreFriction;
         public float FrontGrip => frontGrip;
@@ -216,6 +342,7 @@ namespace RallyX.Vehicle
         public bool DriftEnabled => driftEnabled;
         public float DriftGrip => driftGrip;
         public float DriftMultiplier => driftMultiplier;
+        public float CounterSteerAssist => counterSteerAssist;
         public float DriftRecoveryTime => driftRecoveryTime;
         public float DriftSustainGrip => driftSustainGrip;
         public float DriftAngleThreshold => driftAngleThreshold;
@@ -229,20 +356,27 @@ namespace RallyX.Vehicle
         public float SpringFrequency => springFrequency;
         public float DampingRatio => dampingRatio;
         public float ReboundDamping => reboundDamping;
+        public float LandingReboundDamping => landingReboundDamping;
+        public float FastBumpSpeed => fastBumpSpeed;
+        public float FastBumpDamping => fastBumpDamping;
         public float BumpStopTravel => bumpStopTravel;
         public float BumpStopStiffness => bumpStopStiffness;
 
         public float Downforce => downforce;
+        public float DownforceBalance => downforceBalance;
 
         public float AirControl => airControl;
         public float AirYawRate => airYawRate;
         public float AirAutoLevel => airAutoLevel;
+        public float AirLevelDelay => airLevelDelay;
         public float LandingAlignment => landingAlignment;
         public float AirPitchControl => airPitchControl;
+        public float AirThrottlePitch => airThrottlePitch;
 
         public float SettleTime => settleTime;
         public float SettleDamping => settleDamping;
         public float KnockSpeed => knockSpeed;
+        public float ImpactYawDamping => impactYawDamping;
 
         /// <summary>
         /// A copy of this config with tuning applied, for one car at runtime (installed upgrades). The asset itself is

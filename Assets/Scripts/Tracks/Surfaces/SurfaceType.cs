@@ -33,6 +33,10 @@ namespace RallyX.Tracks
         [Tooltip("Multiplier on tyre friction: sideways grip and braking.")]
         [SerializeField, Min(0f)] private float grip = 1f;
 
+        [Tooltip("Multiplier on the drive the tyres can put down before they spin, on top of grip. Loose and wet ground spins " +
+                 "the wheels sooner, and the spin costs sideways grip, so the throttle steers the car more there.")]
+        [SerializeField, Range(0.2f, 1.5f)] private float traction = 1f;
+
         [Tooltip("Multiplier on the vehicle's top speed.")]
         [SerializeField, Range(0.1f, 1.5f)] private float topSpeed = 1f;
 
@@ -64,7 +68,7 @@ namespace RallyX.Tracks
 
         public string DisplayName => displayName;
 
-        public SurfaceProperties Properties => new SurfaceProperties(grip, topSpeed, acceleration, rollingResistance, slideFalloff);
+        public SurfaceProperties Properties => new SurfaceProperties(grip, topSpeed, acceleration, rollingResistance, slideFalloff, traction);
 
         public SurfaceSpray Spray => spray;
         public Color SprayColor => sprayColor;

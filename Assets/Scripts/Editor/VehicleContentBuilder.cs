@@ -75,21 +75,22 @@ namespace RallyX.EditorTools
             RearAxle = -1.3f,
         };
 
-        // Loose surfaces keep more grip in a slide (slide falloff below 1), so slides on them are progressive.
+        // Loose surfaces keep more grip in a slide (slide falloff below 1), so slides on them are progressive, and spin the
+        // wheels sooner (traction below 1), so the throttle steers the car more on them.
         private static readonly SurfaceDefinition[] SurfaceDefinitions =
         {
-            new SurfaceDefinition("Asphalt", grip: 1f, topSpeed: 1f, acceleration: 1f, rollingResistance: 0f, slideFalloff: 1f,
+            new SurfaceDefinition("Asphalt", grip: 1f, topSpeed: 1f, acceleration: 1f, rollingResistance: 0f, slideFalloff: 1f, traction: 1f,
                 SurfaceSpray.TyreSmoke, new Color(0.85f, 0.85f, 0.85f), new Color(0.04f, 0.04f, 0.04f, 0.75f), rollingSpray: 0f, roughness: 0f),
-            new SurfaceDefinition("Dirt", grip: 0.85f, topSpeed: 0.95f, acceleration: 0.95f, rollingResistance: 0.4f, slideFalloff: 0.7f,
+            new SurfaceDefinition("Dirt", grip: 0.85f, topSpeed: 0.95f, acceleration: 0.95f, rollingResistance: 0.4f, slideFalloff: 0.7f, traction: 0.9f,
                 SurfaceSpray.Dust, new Color(0.55f, 0.45f, 0.33f), new Color(0.2f, 0.14f, 0.09f, 0.55f), rollingSpray: 0.25f, roughness: 0.35f),
-            new SurfaceDefinition("Gravel", grip: 0.72f, topSpeed: 0.92f, acceleration: 0.9f, rollingResistance: 0.6f, slideFalloff: 0.6f,
+            new SurfaceDefinition("Gravel", grip: 0.72f, topSpeed: 0.92f, acceleration: 0.9f, rollingResistance: 0.6f, slideFalloff: 0.6f, traction: 0.8f,
                 SurfaceSpray.Gravel, new Color(0.6f, 0.58f, 0.54f), new Color(0.24f, 0.22f, 0.19f, 0.5f), rollingSpray: 0.15f, roughness: 0.6f),
-            new SurfaceDefinition("Mud", grip: 0.55f, topSpeed: 0.78f, acceleration: 0.6f, rollingResistance: 2f, slideFalloff: 0.5f,
+            new SurfaceDefinition("Mud", grip: 0.55f, topSpeed: 0.78f, acceleration: 0.6f, rollingResistance: 2f, slideFalloff: 0.5f, traction: 0.6f,
                 SurfaceSpray.Mud, new Color(0.24f, 0.17f, 0.11f), new Color(0.12f, 0.08f, 0.05f, 0.65f), rollingSpray: 0.1f, roughness: 0.4f),
-            new SurfaceDefinition("Grass", grip: 0.45f, topSpeed: 0.7f, acceleration: 0.8f, rollingResistance: 1.5f, slideFalloff: 0.8f,
+            new SurfaceDefinition("Grass", grip: 0.45f, topSpeed: 0.7f, acceleration: 0.8f, rollingResistance: 1.5f, slideFalloff: 0.8f, traction: 0.7f,
                 SurfaceSpray.Grass, new Color(0.33f, 0.4f, 0.2f), new Color(0.18f, 0.15f, 0.08f, 0.55f), rollingSpray: 0.05f, roughness: 0.5f),
             // Loose desert ground off the road (Red Canyon): like grass, but it drags a little more.
-            new SurfaceDefinition("Sand", grip: 0.45f, topSpeed: 0.68f, acceleration: 0.75f, rollingResistance: 1.8f, slideFalloff: 0.6f,
+            new SurfaceDefinition("Sand", grip: 0.45f, topSpeed: 0.68f, acceleration: 0.75f, rollingResistance: 1.8f, slideFalloff: 0.6f, traction: 0.65f,
                 SurfaceSpray.Dust, new Color(0.83f, 0.66f, 0.46f), new Color(0.55f, 0.4f, 0.28f, 0.45f), rollingSpray: 0.35f, roughness: 0.45f),
         };
 
@@ -140,6 +141,7 @@ namespace RallyX.EditorTools
                 serialized.FindProperty("acceleration").floatValue = definition.Acceleration;
                 serialized.FindProperty("rollingResistance").floatValue = definition.RollingResistance;
                 serialized.FindProperty("slideFalloff").floatValue = definition.SlideFalloff;
+                serialized.FindProperty("traction").floatValue = definition.Traction;
                 serialized.FindProperty("spray").enumValueIndex = (int)definition.Spray;
                 serialized.FindProperty("sprayColor").colorValue = definition.SprayColor;
                 serialized.FindProperty("markColor").colorValue = definition.MarkColor;
@@ -163,6 +165,7 @@ namespace RallyX.EditorTools
             public readonly float Acceleration;
             public readonly float RollingResistance;
             public readonly float SlideFalloff;
+            public readonly float Traction;
             public readonly SurfaceSpray Spray;
             public readonly Color SprayColor;
             public readonly Color MarkColor;
@@ -170,7 +173,7 @@ namespace RallyX.EditorTools
             public readonly float Roughness;
 
             public SurfaceDefinition(string name, float grip, float topSpeed, float acceleration, float rollingResistance, float slideFalloff,
-                SurfaceSpray spray, Color sprayColor, Color markColor, float rollingSpray, float roughness)
+                float traction, SurfaceSpray spray, Color sprayColor, Color markColor, float rollingSpray, float roughness)
             {
                 Name = name;
                 Grip = grip;
@@ -178,6 +181,7 @@ namespace RallyX.EditorTools
                 Acceleration = acceleration;
                 RollingResistance = rollingResistance;
                 SlideFalloff = slideFalloff;
+                Traction = traction;
                 Spray = spray;
                 SprayColor = sprayColor;
                 MarkColor = markColor;

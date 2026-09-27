@@ -141,8 +141,9 @@ namespace RallyX.EditorTools
             new CarDefinition("falcon-rx", "Falcon RX", "Group R4  |  All-rounder",
                 "The car you learned on. Balanced, predictable and quick on every surface, with no nasty habits.",
                 winsToUnlock: 0, spec: null, configName: null),
-            // Front-biased drive, stiff springs and little weight transfer: it turns in sharply and is hard to unsettle,
-            // but its drifts want the handbrake more than the throttle.
+            // Front-wheel drive, stiff springs and little weight transfer: it turns in sharply and is hard to unsettle. Power
+            // pushes the nose wide and lifting off tucks it in (the rear takes more of the cornering load), and its drifts
+            // want the handbrake more than the throttle. Light, so knocks move it more.
             new CarDefinition("kestrel-s", "Kestrel S", "Group R2  |  Lightweight hatch",
                 "Light, eager and glued to the road. It darts into corners and stops on a coin, but runs out of breath on the long straights.",
                 winsToUnlock: 0, spec: KestrelSpec, configName: "Kestrel_Config",
@@ -150,11 +151,18 @@ namespace RallyX.EditorTools
                     (0.95f, 0.15f, -2.75f), (1f, 0f, 0f)),
                 ("mass", 1080f), ("maxSpeedKmh", 150f), ("acceleration", 12f), ("maxSteerAngle", 35f), ("steerSpeed", 240f),
                 ("tyreFriction", 1.4f), ("rearGrip", 0.97f), ("brakeDeceleration", 20f), ("frontDriveShare", 0.6f), ("brakeBias", 0.6f),
-                ("weightTransfer", 0.12f), ("springFrequency", 2f), ("dampingRatio", 0.6f), ("reboundDamping", 1.4f),
-                ("driftSustainGrip", 0.72f), ("driftMultiplier", 2.8f), ("airYawRate", 1.4f)),
+                ("brakingWeightTransfer", 0.12f), ("springFrequency", 2f), ("dampingRatio", 0.6f), ("reboundDamping", 1.4f),
+                ("driftSustainGrip", 0.72f), ("driftMultiplier", 2.8f), ("airYawRate", 1.4f),
+                ("drivetrain", (float)Drivetrain.FrontWheelDrive), ("driveTraction", 2.3f), ("limitedSlip", 0.2f), ("driveGripLoss", 0.25f),
+                ("brakeGripLoss", 0.1f), ("accelerationWeightTransfer", 0.12f), ("lateralWeightTransfer", 0.4f), ("frontRollShare", 0.46f),
+                ("loadSensitivity", 0.2f), ("steerReturnRate", 1.5f), ("stabilityAssist", 0.08f), ("landingReboundDamping", 1.4f),
+                ("downforce", 0.45f), ("downforceBalance", -0.05f), ("airAutoLevel", 4.5f), ("airLevelDelay", 0.15f),
+                ("airThrottlePitch", 0.4f), ("impactYawDamping", 1.2f)),
 
-            // Rear-biased drive, soft springs and a lot of weight transfer: a turbo surge mid-range, a tail that steps out
-            // when braking into corners, and drifts that hold on the throttle.
+            // Rear-biased all-wheel drive (25/75) with a loose centre differential and a strong limited-slip one, soft springs
+            // and a lot of weight transfer: a turbo surge mid-range, a tail that steps out when braking into corners and on
+            // the throttle, and drifts that hold on the throttle. Extra downforce and the stability assist keep it straight at
+            // its high top speed; heavy, so knocks barely turn it.
             new CarDefinition("titan-gt", "Titan GT", "Group B  |  Heavy coupe",
                 "A brute with the highest top speed in the garage. Heavy and slow to turn in: brake early and keep it pointed straight.",
                 winsToUnlock: 1, spec: TitanSpec, configName: "Titan_Config",
@@ -162,8 +170,14 @@ namespace RallyX.EditorTools
                     (0.92f, 0.18f, -1.9231f), (1f, 0f, 0f)),
                 ("mass", 1420f), ("maxSpeedKmh", 185f), ("acceleration", 10.5f), ("maxSteerAngle", 28f), ("steerSpeed", 170f),
                 ("tyreFriction", 1.2f), ("rearGrip", 0.93f), ("brakeDeceleration", 16f), ("frontDriveShare", 0.25f), ("brakeBias", 0.52f),
-                ("weightTransfer", 0.28f), ("springFrequency", 1.65f), ("reboundDamping", 1.6f), ("driftSustainGrip", 0.58f),
-                ("driftMultiplier", 2.2f), ("airYawRate", 1f), ("settleDamping", 4f)),
+                ("brakingWeightTransfer", 0.28f), ("springFrequency", 1.65f), ("reboundDamping", 1.6f), ("driftSustainGrip", 0.58f),
+                ("driftMultiplier", 2.2f), ("airYawRate", 1f), ("settleDamping", 4f),
+                ("centerCoupling", 0.3f), ("driveTraction", 2f), ("limitedSlip", 0.5f), ("driveGripLoss", 0.35f),
+                ("brakeGripLoss", 0.15f), ("accelerationWeightTransfer", 0.22f), ("lateralWeightTransfer", 0.35f), ("frontRollShare", 0.5f),
+                ("loadSensitivity", 0.2f), ("steerReturnRate", 1.2f), ("stabilityAssist", 0.12f), ("stabilitySpeed", 0.45f),
+                ("counterSteerAssist", 1.6f), ("landingReboundDamping", 1.7f), ("fastBumpDamping", 0.6f), ("downforce", 0.6f),
+                ("airAutoLevel", 3.5f), ("airLevelDelay", 0.25f), ("landingAlignment", 0.7f),
+                ("impactYawDamping", 2f)),
         };
 
         /// <summary>An acceleration curve from (time, value, slope) keys.</summary>
@@ -265,7 +279,7 @@ namespace RallyX.EditorTools
                 config = AssetDatabase.LoadAssetAtPath<VehicleConfig>(configPath);
                 var serialized = new SerializedObject(config);
                 foreach (var (property, value) in car.Handling)
-                    serialized.FindProperty(property).floatValue = value;
+                    SetValue(serialized.FindProperty(property), value);
                 if (car.AccelerationCurve != null)
                     serialized.FindProperty("accelerationCurve").animationCurveValue = car.AccelerationCurve;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
@@ -275,6 +289,26 @@ namespace RallyX.EditorTools
             if (!PlaceholderCarBuilder.Build(car.Spec, config, overwrite))
                 return null;
             return AssetDatabase.LoadAssetAtPath<VehicleController>(car.Spec.PrefabPath);
+        }
+
+        /// <summary>Sets a number, switch or choice (such as the drivetrain, by its index) in a handling config.</summary>
+        private static void SetValue(SerializedProperty property, float value)
+        {
+            switch (property.propertyType)
+            {
+                case SerializedPropertyType.Enum:
+                    property.enumValueIndex = Mathf.RoundToInt(value);
+                    break;
+                case SerializedPropertyType.Boolean:
+                    property.boolValue = value != 0f;
+                    break;
+                case SerializedPropertyType.Integer:
+                    property.intValue = Mathf.RoundToInt(value);
+                    break;
+                default:
+                    property.floatValue = value;
+                    break;
+            }
         }
 
         private readonly struct CarDefinition

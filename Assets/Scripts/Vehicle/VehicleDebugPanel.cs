@@ -16,6 +16,7 @@ namespace RallyX.Vehicle
         [SerializeField, Min(8)] private int fontSize = 15;
 
         private readonly StringBuilder builder = new StringBuilder(384);
+        private readonly GUIContent content = new GUIContent();
         private VehicleController vehicle;
         private GUIStyle labelStyle;
         private string text = string.Empty;
@@ -60,6 +61,8 @@ namespace RallyX.Vehicle
             else
                 builder.Append("no\n");
             builder.Append("Rear grip:  ").Append(drift.RearGripScale.ToString("0.00")).Append('\n');
+            AppendDrivetrain();
+            AppendTyreGrip();
             builder.Append("Airborne:  ");
             if (vehicle.IsGrounded)
                 builder.Append("no");
@@ -83,6 +86,51 @@ namespace RallyX.Vehicle
             builder.Append('\n');
         }
 
+        private void AppendDrivetrain()
+        {
+            var config = vehicle.Config;
+            builder.Append("Drive:  ");
+            switch (config.Drivetrain)
+            {
+                case Drivetrain.FrontWheelDrive:
+                    builder.Append("FWD");
+                    break;
+                case Drivetrain.RearWheelDrive:
+                    builder.Append("RWD");
+                    break;
+                default:
+                    int front = Mathf.RoundToInt(config.FrontDriveShare * 100f);
+                    builder.Append("AWD ").Append(front).Append('/').Append(100 - front);
+                    break;
+            }
+
+            builder.Append('\n');
+        }
+
+        /// <summary>Sideways grip each tyre has left after the drive and brakes it puts down, with a * while it spins.</summary>
+        private void AppendTyreGrip()
+        {
+            builder.Append("Side grip (FL FR RL RR):  ");
+            var wheels = vehicle.Wheels;
+            for (int i = 0; i < wheels.Count; i++)
+            {
+                if (i > 0)
+                    builder.Append(" | ");
+                var wheel = wheels[i];
+                if (!wheel.IsGrounded)
+                {
+                    builder.Append('-');
+                    continue;
+                }
+
+                builder.Append(wheel.SidewaysGrip.ToString("0.00"));
+                if (wheel.WheelSpin > 0f)
+                    builder.Append('*');
+            }
+
+            builder.Append('\n');
+        }
+
         private void OnGUI()
         {
             if (!visible)
@@ -90,7 +138,10 @@ namespace RallyX.Vehicle
 
             labelStyle ??= new GUIStyle(GUI.skin.label) { fontSize = fontSize, wordWrap = true };
 
-            var panel = new Rect(Screen.width - panelSize.x - 10f, 10f, panelSize.x, panelSize.y);
+            // Grows to fit the text, so added telemetry never gets cut off.
+            content.text = text;
+            float height = Mathf.Max(panelSize.y, labelStyle.CalcHeight(content, panelSize.x - 20f) + 12f);
+            var panel = new Rect(Screen.width - panelSize.x - 10f, 10f, panelSize.x, height);
             GUI.Box(panel, GUIContent.none);
             GUI.Label(new Rect(panel.x + 10f, panel.y + 6f, panel.width - 20f, panel.height - 12f), text, labelStyle);
         }

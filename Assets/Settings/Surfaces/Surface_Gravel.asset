@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: RallyX::RallyX.Tracks.SurfaceType
   displayName: Gravel
   grip: 0.72
+  traction: 0.8
   topSpeed: 0.92
   acceleration: 0.9
   rollingResistance: 0.6

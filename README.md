@@ -69,7 +69,7 @@ REM Track review screenshots (every track, or one with -track <scene name>)
 REM Edit Mode tests (every track's layout and terrain, track themes and look, race rules and laps, AI racing lines and speed plans, difficulty tuning, garage cars, their stats, look and collision boxes, effects config, player profile and save file, upgrades, credits, track unlocks)
 %U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform EditMode -testResults editmode.xml -logFile -
 
-REM Play Mode tests (vehicle physics and Phase 10 handling, tyre/landing/impact effects, lights and body lean, chase camera, drivability, races and AI races on every difficulty on every track, pause menu, menus and track selection, garage, every car, upgrades driven for real, race rewards)
+REM Play Mode tests (vehicle physics, Phase 10 handling and Phase 11 drivetrains, friction circle, load transfer, surfaces, differentials, air throttle and knocks, tyre/landing/impact effects, lights and body lean, chase camera, drivability, races and AI races on every difficulty on every track, pause menu, menus and track selection, garage, every car, upgrades driven for real, race rewards)
 %U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform PlayMode -testResults results.xml -logFile -
 ```
 
@@ -90,7 +90,8 @@ Esc / East (B / O) to go back, Q E / right stick (or drag with the mouse) to tur
 On the main menu Left / Right (or the arrows by the track name) choose the track. In the pause menu Esc / Start or
 East (B / O) resumes. The mouse works everywhere.
 
-Dev panels: **F1** foundation overlay, **F2** vehicle telemetry (hidden by default in track scenes).
+Dev panels: **F1** foundation overlay, **F2** vehicle telemetry (hidden by default in track scenes): speed, steering,
+surfaces, slip and drift, the drivetrain and each tyre's sideways grip left after the drive and brakes (`*` = spinning).
 All bindings are defined in `Assets/Scripts/Core/RallyInputActions.cs`.
 
 ## Tuning
@@ -98,17 +99,42 @@ All bindings are defined in `Assets/Scripts/Core/RallyInputActions.cs`.
 Everything below is data: edit the assets, not the code.
 
 - **Handling** (`VehicleConfig`, one per car in `Assets/Settings/Vehicles/`). Besides engine, brakes, steering, grip, drift,
-  suspension and air control: *drive traction* (wheelspin limit), *brake bias* (front share of braking; the stopping
-  distance doesn't change), *weight transfer* (extra load moved between the axles under braking and power, and how fast),
-  *drift sustain grip* (full throttle holds a handbrake drift; lifting off lets the rear grip), *rebound damping* and
-  *bump stops* (settle after bumps and hard landings without bottoming out), *air yaw rate*, *landing alignment* (level
-  towards the slope below) and *air pitch control* (the brake dips the nose in the air), and *settling* after landings and
-  hard knocks. The acceleration curve is a soft launch, a mid-range plateau and a fade to top speed; each car has its own.
-  Each car differs: the Falcon (all-wheel drive, the AI's car) is balanced; the Kestrel is front-biased, stiff and quick
-  to turn; the Titan is rear-biased and heavy with a lot of weight transfer, so its tail steps out under braking and it
-  holds throttle drifts. The garage stats are still worked out from the config and match the cars when driven.
-- **Surfaces** (`Assets/Settings/Surfaces/`): grip, top speed, pull and drag, plus *slide falloff* (loose surfaces keep
-  more grip in a slide, so slides are progressive), what the tyres throw up (*spray*: tyre smoke, dust, gravel, mud or
+  suspension and air control:
+  - *Drivetrain*: all-wheel drive (split by *front drive share*), front-wheel drive or rear-wheel drive. *Drive traction*
+    is the wheelspin limit; *limited slip* passes drive a spinning or airborne wheel can't use to the other wheel on its
+    axle, and on all-wheel drive *centre coupling* passes what one axle can't use to the other.
+  - *Friction circle*: *drive grip loss* and *brake grip loss* are the sideways grip an axle gives up while it puts down
+    its full traction under power or brakes. Power swings a rear-driven car's tail and pushes a front-driven car's nose wide,
+    most on loose ground; with the *brake bias* to the rear the tail steps out when braking into a corner.
+  - *Weight transfer*: extra load the tyres feel beyond what the springs carry, separately for braking (dive),
+    acceleration (squat) and cornering (*lateral*), and how fast it shifts. *Front roll share* splits the cornering load
+    between the axles like anti-roll bars; with *load sensitivity* the more loaded axle loses grip, so above the front's
+    share of the weight (about 0.5) the car understeers at the limit and below it oversteers. *Grip load limit* caps the
+    grip spikes of hard landings and kerb strikes.
+  - *Suspension*: *rebound damping*, *landing rebound damping* (extra rebound damping while settling after a landing or
+    knock, so the body comes back up once), *fast bump speed/damping* (sharp hits and landings are soaked up) and *bump
+    stops*.
+  - *Steering return rate* (the wheels centre and countersteer faster than they turn in), *stability assist* (at speed,
+    removes yaw beyond what the steering asks for; off while drifting or on the handbrake), *downforce balance* (behind the
+    centre of mass plants the rear at speed), *counter-steer assist* (catching a drift is easier than starting one) and
+    *drift sustain grip* (full throttle holds a handbrake drift).
+  - *Air*: *air yaw rate*, *air level delay* (the car keeps its take-off pitch and roll for a moment before levelling),
+    *landing alignment* (level towards the slope below), *air pitch control* (the brake dips the nose) and *air throttle
+    pitch* (the throttle lifts it).
+  - *Landings and impacts*: *settling* after landings and hard knocks, and *impact yaw damping* (the spin a knock gives
+    the car beyond what the steering asks for is damped over the settle time, so a hit nudges it rather than spinning it).
+
+  The acceleration curve is a soft launch, a mid-range plateau and a fade to top speed; each car has its own. Each car
+  differs: the Falcon (all-wheel drive 40/60, the AI's car) is balanced and mild, so the AI's cornering speeds still fit
+  it; the Kestrel is front-wheel drive, light, stiff and quick to turn, pushes wide on power and tucks in when lifting; the
+  Titan is rear-biased all-wheel drive (25/75) with a loose centre differential and a strong limited-slip one, heavy with a
+  lot of weight transfer, steps its tail out under braking and power and holds throttle drifts, with extra downforce and
+  the stability assist for its high top speed. Rear-wheel drive works the same way (set *drivetrain*); the Play Mode tests
+  drive it on a copy of a car's config. The garage stats are still worked out from the config and match the cars when
+  driven.
+- **Surfaces** (`Assets/Settings/Surfaces/`): grip, top speed, pull and drag, plus *traction* (loose and wet ground spins
+  the wheels sooner, so the throttle steers the car more: asphalt 1, dirt 0.9, gravel 0.8, grass 0.7, sand 0.65, mud 0.6),
+  *slide falloff* (loose surfaces keep more grip in a slide, so slides are progressive), what the tyres throw up (*spray*: tyre smoke, dust, gravel, mud or
   grass), its colour, the tyre-mark colour, dust trailed at speed (*rolling spray*) and *roughness* (body chatter and
   camera rumble). A track can recolour its surfaces' dust and marks with its `SurfacePalette` (set from its theme).
 - **Effects** (`Assets/Settings/VFX/VehicleEffects_Default.asset`): when a tyre counts as sliding, rates, sizes and
@@ -231,8 +257,9 @@ change the builder, the layouts (`Assets/UI/Menus/`) or the assets rather than t
   and track scenes keep pointing at it. AI cars share the Falcon's prefab with their own paint and door numbers.
 - **Effects.** `VehicleEffects` gives each car one particle system per kind of effect, fed only from what the car is
   doing, plus a skid-mark mesh that reuses its oldest marks: nothing is created while driving.
-- Placeholder cars: Falcon RX (the original RallyCar, balanced), Kestrel S (light and nimble, lower top speed) and
-  Titan GT (fastest, heavy; locked until the player wins a race).
+- Placeholder cars: Falcon RX (the original RallyCar, all-wheel drive, balanced), Kestrel S (front-wheel drive, light
+  and nimble, lower top speed) and Titan GT (rear-biased all-wheel drive, fastest, heavy; locked until the player wins a
+  race).
 
 ## Career: credits, upgrades and tracks
 

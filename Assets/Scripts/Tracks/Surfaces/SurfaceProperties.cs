@@ -23,13 +23,18 @@ namespace RallyX.Tracks
         /// </summary>
         public readonly float SlideFalloff;
 
-        public SurfaceProperties(float grip, float topSpeed, float acceleration, float rollingResistance, float slideFalloff = 1f)
+        /// <summary>Multiplier on the drive the tyres can put down before they spin, on top of <see cref="Grip"/>.</summary>
+        public readonly float Traction;
+
+        public SurfaceProperties(float grip, float topSpeed, float acceleration, float rollingResistance, float slideFalloff = 1f,
+            float traction = 1f)
         {
             Grip = grip;
             TopSpeed = topSpeed;
             Acceleration = acceleration;
             RollingResistance = rollingResistance;
             SlideFalloff = slideFalloff;
+            Traction = traction;
         }
     }
 }

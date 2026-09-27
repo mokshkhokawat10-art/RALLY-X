@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: RallyX::RallyX.Tracks.SurfaceType
   displayName: Asphalt
   grip: 1
+  traction: 1
   topSpeed: 1
   acceleration: 1
   rollingResistance: 0

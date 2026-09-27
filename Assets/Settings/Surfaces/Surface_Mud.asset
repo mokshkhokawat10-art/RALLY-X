@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: RallyX::RallyX.Tracks.SurfaceType
   displayName: Mud
   grip: 0.55
+  traction: 0.6
   topSpeed: 0.78
   acceleration: 0.6
   rollingResistance: 2
