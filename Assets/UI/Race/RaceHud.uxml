@@ -1,5 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
     <Style src="RaceHud.uss" />
+    <Style src="../Settings.uss" />
     <ui:VisualElement name="race-hud" class="race-hud" picking-mode="Ignore">
         <ui:VisualElement class="hud-panel hud-panel--top-left" picking-mode="Ignore">
             <ui:VisualElement class="stat" picking-mode="Ignore">
@@ -53,8 +54,17 @@
                 <ui:Label name="pause-track" class="pause-track" />
                 <ui:Button name="pause-resume" text="RESUME" class="pause-button" />
                 <ui:Button name="pause-restart" text="RESTART RACE" class="pause-button" />
+                <ui:Button name="pause-settings" text="SETTINGS" class="pause-button" />
                 <ui:Button name="pause-menu" text="MAIN MENU" class="pause-button" />
                 <ui:Label text="Up / Down  choose      Enter  confirm      Esc / Start  resume" class="hint" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="settings" class="settings">
+            <ui:VisualElement class="settings-card">
+                <ui:Label text="SETTINGS" class="settings-title" />
+                <ui:VisualElement name="settings-rows" class="settings-rows" />
+                <ui:Button name="settings-back" text="BACK" class="settings-back" />
+                <ui:Label text="Up / Down  choose      Left / Right  change      Esc / B  back" class="settings-hint" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

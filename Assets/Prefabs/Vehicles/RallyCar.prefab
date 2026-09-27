@@ -378,6 +378,7 @@ GameObject:
   - component: {fileID: 8452363000947139825}
   - component: {fileID: 5734002060895504161}
   - component: {fileID: 2596357644408010492}
+  - component: {fileID: 5478052945033155005}
   m_Layer: 8
   m_Name: RallyCar
   m_TagString: Untagged
@@ -521,6 +522,19 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: 1e297e3806f2fca40ae35231425dfbca, type: 2}
   exhausts:
   - {fileID: 2413593355512916456}
+--- !u!114 &5478052945033155005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1413130034401471420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89814cb4255ad0148b268f0df678cabf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: RallyX::RallyX.Audio.VehicleAudio
+  config: {fileID: 11400000, guid: a1f449b6d3229af418a630807217ce07, type: 2}
 --- !u!1 &1541516363792628658
 GameObject:
   m_ObjectHideFlags: 0

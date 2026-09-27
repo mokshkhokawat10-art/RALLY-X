@@ -6,12 +6,13 @@ using UnityEngine.Rendering;
 namespace RallyX.VFX
 {
     /// <summary>
-    /// A car's tyre, impact, landing and exhaust effects, driven by what the car is actually doing: tyre smoke, dust,
-    /// gravel, mud or clods from sliding, locked, spinning or hard-braking wheels (by the surface under each wheel),
-    /// dust trailed on dry ground at speed, skid marks, sparks from hard knocks and scraping, dust on landing, and
-    /// exhaust smoke with the odd backfire on lift-off. Each kind of effect is one world-space particle system per car,
-    /// fed with <see cref="ParticleSystem.Emit(ParticleSystem.EmitParams, int)"/>, so nothing is created or destroyed
-    /// while driving. Visual only: nothing here changes how the car drives.
+    /// A car's tyre, impact, landing, exhaust and brake effects, driven by what the car is actually doing: tyre smoke,
+    /// dust, gravel, mud or clods from sliding, locked, spinning or hard-braking wheels (by the surface under each wheel),
+    /// dust trailed on dry ground at speed, skid marks, sparks from hard knocks and scraping, dust on landing, exhaust
+    /// smoke with the odd backfire on lift-off, and brake discs that glow after long, hard stops. Each kind of effect is
+    /// one world-space particle system per car, fed with <see cref="ParticleSystem.Emit(ParticleSystem.EmitParams, int)"/>,
+    /// so nothing is created or destroyed while driving; a car far from the camera makes fewer effects and, beyond the
+    /// config's cull distance, none. Visual only: nothing here changes how the car drives.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(VehicleController))]
@@ -21,6 +22,15 @@ namespace RallyX.VFX
         private static readonly Color DefaultSpray = new Color(0.85f, 0.85f, 0.85f);
         private static readonly Color DefaultMark = new Color(0.04f, 0.04f, 0.04f, 0.75f);
         private static readonly Color ExhaustColor = new Color(0.42f, 0.42f, 0.44f);
+        private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
+
+        // One copy of each brake disc material with emission switched on, shared by every car: the glow itself is set per
+        // disc with a property block. The asset is left alone (a material with black emission may have the keyword stripped).
+        private static readonly System.Collections.Generic.Dictionary<Material, Material> GlowingDiscs =
+            new System.Collections.Generic.Dictionary<Material, Material>();
+
+        // Speed at which braking heats the discs at the configured rate, m/s (100 km/h).
+        private const float BrakeHeatSpeed = 100f / 3.6f;
 
         [SerializeField] private VehicleEffectsConfig config;
 
@@ -42,6 +52,14 @@ namespace RallyX.VFX
         private Collider lastCollider;
         private bool lastColliderSparks;
         private SurfaceType lastColliderSurface;
+        private Renderer[] brakeDiscs = System.Array.Empty<Renderer>();
+        private float[] brakeHeat = System.Array.Empty<float>();
+        private float[] brakeGlowShown = System.Array.Empty<float>();
+        private MaterialPropertyBlock brakeBlock;
+        private Transform viewer;
+
+        /// <summary>A backfire popped from the exhaust, at the first pipe's position. Sound listens for it.</summary>
+        public event System.Action<Vector3> Backfired;
 
         public VehicleEffectsConfig Config => config;
 
@@ -58,6 +76,12 @@ namespace RallyX.VFX
 
         /// <summary>Skid mark pieces on the ground now (older ones are reused past the capacity).</summary>
         public int SkidMarkCount => marks?.Count ?? 0;
+
+        /// <summary>How much of the full effect rate the car makes at its distance from the camera, 0..1.</summary>
+        public float Detail { get; private set; } = 1f;
+
+        /// <summary>A wheel's brake heat, 0 (cold) upwards; its disc glows above the config's glow start.</summary>
+        public float BrakeHeat(int wheel) => wheel >= 0 && wheel < brakeHeat.Length ? brakeHeat[wheel] : 0f;
 
         public void Configure(VehicleEffectsConfig newConfig, Transform[] newExhausts)
         {
@@ -98,6 +122,7 @@ namespace RallyX.VFX
             if (config.SkidMaterial != null)
                 marks = new SkidMarks($"SkidMarks_{name}", config.MarkCapacity, wheelCount, config.SkidMaterial, gameObject.scene);
 
+            FindBrakeDiscs();
             IsReady = true;
         }
 
@@ -116,11 +141,109 @@ namespace RallyX.VFX
             float speed = velocity.magnitude;
             var input = controller.AppliedInput;
             var wheels = controller.Wheels;
-            for (int i = 0; i < wheels.Count; i++)
-                UpdateWheel(i, wheels[i], velocity, speed, input, deltaTime);
+            UpdateBrakes(speed, input, deltaTime);
 
-            UpdateExhaust(velocity, input.Throttle, deltaTime);
+            // Fewer effects the further the car is from the camera, and none beyond the cull distance.
+            Detail = ViewDetail();
+            if (Detail <= 0f)
+            {
+                for (int i = 0; i < wheels.Count; i++)
+                    marks?.Break(i);
+                previousThrottle = input.Throttle;
+                marks?.Upload();
+                return;
+            }
+
+            float effectTime = deltaTime * Detail;
+            for (int i = 0; i < wheels.Count; i++)
+                UpdateWheel(i, wheels[i], velocity, speed, input, effectTime);
+
+            UpdateExhaust(velocity, input.Throttle, effectTime);
             marks?.Upload();
+        }
+
+        private float ViewDetail()
+        {
+            if (viewer == null)
+            {
+                var view = Camera.main;
+                if (view == null)
+                    return 1f;
+                viewer = view.transform;
+            }
+
+            float distance = Vector3.Distance(viewer.position, transform.position);
+            return 1f - Mathf.InverseLerp(config.FullDetailDistance, config.CullDistance, distance);
+        }
+
+        // ---------------------------------------------------------------- brakes
+
+        /// <summary>The disc part of each wheel's brake (its first material), which glows when hot.</summary>
+        private void FindBrakeDiscs()
+        {
+            var wheels = controller.Wheels;
+            brakeDiscs = new Renderer[wheels.Count];
+            brakeHeat = new float[wheels.Count];
+            brakeGlowShown = new float[wheels.Count];
+            brakeBlock = new MaterialPropertyBlock();
+            for (int i = 0; i < wheels.Count; i++)
+            {
+                var brake = wheels[i].transform.Find("Visual/Brake");
+                var disc = brake != null ? brake.GetComponent<Renderer>() : null;
+                if (disc == null || config.BrakeGlowColor.maxColorComponent <= 0f)
+                    continue;
+
+                var materials = disc.sharedMaterials;
+                if (materials.Length == 0 || materials[0] == null)
+                    continue;
+
+                materials[0] = GlowingDisc(materials[0]);
+                disc.sharedMaterials = materials;
+                brakeDiscs[i] = disc;
+            }
+        }
+
+        private static Material GlowingDisc(Material source)
+        {
+            if (GlowingDiscs.TryGetValue(source, out var glowing) && glowing != null)
+                return glowing;
+
+            glowing = new Material(source) { name = source.name + " (Glow)" };
+            glowing.EnableKeyword("_EMISSION");
+            glowing.SetColor(EmissionColor, Color.black);
+            glowing.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            GlowingDiscs[source] = glowing;
+            return glowing;
+        }
+
+        /// <summary>Hard braking at speed heats the discs (more on the axle doing more of the braking); they cool all the time.</summary>
+        private void UpdateBrakes(float speed, VehicleInputState input, float deltaTime)
+        {
+            bool braking = input.Brake > 0f && !controller.IsReversing && controller.ForwardSpeed > 1f;
+            float bias = controller.Config.BrakeBias;
+            Color glowColor = config.BrakeGlowColor;
+            var wheels = controller.Wheels;
+            for (int i = 0; i < brakeDiscs.Length; i++)
+            {
+                float heating = braking
+                    ? input.Brake * (speed / BrakeHeatSpeed) * (wheels[i].IsFront ? bias : 1f - bias) * 2f * config.BrakeHeating
+                    : 0f;
+                brakeHeat[i] = Mathf.Clamp(brakeHeat[i] + (heating - config.BrakeCooling) * deltaTime, 0f, 1.2f);
+
+                var disc = brakeDiscs[i];
+                if (disc == null)
+                    continue;
+
+                float glow = Mathf.InverseLerp(config.BrakeGlowStart, 1f, brakeHeat[i]);
+                glow *= glow;
+                if (Mathf.Abs(glow - brakeGlowShown[i]) < 0.01f && (glow > 0f || brakeGlowShown[i] == 0f))
+                    continue;
+
+                brakeGlowShown[i] = glow;
+                disc.GetPropertyBlock(brakeBlock, 0);
+                brakeBlock.SetColor(EmissionColor, glowColor * glow);
+                disc.SetPropertyBlock(brakeBlock, 0);
+            }
         }
 
         // ---------------------------------------------------------------- tyres
@@ -436,6 +559,7 @@ namespace RallyX.VFX
 
             backfireCooldown = 0.5f;
             Backfires++;
+            Backfired?.Invoke(exhausts[0] != null ? exhausts[0].position : transform.position);
             foreach (var pipe in exhausts)
             {
                 if (pipe == null)

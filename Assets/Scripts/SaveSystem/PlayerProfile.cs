@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using RallyX.Audio;
 using UnityEngine;
 
 namespace RallyX.SaveSystem
@@ -30,7 +31,7 @@ namespace RallyX.SaveSystem
 
     /// <summary>
     /// What the game remembers about the player between sessions: credits, the chosen car, installed upgrades, unlocked
-    /// cars and tracks, race results and best laps. Each change is saved straight away through <see cref="SaveFile"/>
+    /// cars and tracks, race results and best laps, and the settings. Each change is saved straight away through <see cref="SaveFile"/>
     /// (atomic, with a backup). Game code uses <see cref="Current"/>; tests swap in a profile kept in memory only.
     /// The profile only stores progress; the rules (prices, rewards, unlock requirements) live in the game's data.
     /// </summary>
@@ -58,6 +59,12 @@ namespace RallyX.SaveSystem
             get => current ??= Load(DefaultPath);
             set => current = value;
         }
+
+        /// <summary>
+        /// The current profile if one has been loaded or set, without loading it (null otherwise). For always-on systems
+        /// such as audio, which follow the player's settings but must not be the first to read the save.
+        /// </summary>
+        public static PlayerProfile Loaded => current;
 
         public static string DefaultPath => Path.Combine(Application.persistentDataPath, FileName);
 
@@ -91,6 +98,11 @@ namespace RallyX.SaveSystem
         public string SelectedTrackId => data.tracks.selectedTrack;
 
         public IReadOnlyList<string> UnlockedTracks => data.tracks.unlockedTracks;
+
+        // Settings
+
+        /// <summary>Gamepad rumble on or off.</summary>
+        public bool Vibration => data.settings.vibration;
 
         /// <summary>A fresh profile that is never written to disk.</summary>
         public static PlayerProfile InMemory() => new PlayerProfile(null, new ProfileData());
@@ -207,6 +219,63 @@ namespace RallyX.SaveSystem
                 return;
 
             data.tracks.unlockedTracks.Add(trackId);
+            SaveAndNotify();
+        }
+
+        /// <summary>A volume from the settings, 0..1.</summary>
+        public float GetVolume(AudioChannel channel) => channel switch
+        {
+            AudioChannel.Music => data.settings.musicVolume,
+            AudioChannel.Effects => data.settings.effectsVolume,
+            AudioChannel.Vehicle => data.settings.vehicleVolume,
+            _ => data.settings.masterVolume,
+        };
+
+        /// <summary>A volume a profile starts with, 0..1.</summary>
+        public static float DefaultVolume(AudioChannel channel)
+        {
+            var defaults = new SettingsData();
+            return channel switch
+            {
+                AudioChannel.Music => defaults.musicVolume,
+                AudioChannel.Effects => defaults.effectsVolume,
+                AudioChannel.Vehicle => defaults.vehicleVolume,
+                _ => defaults.masterVolume,
+            };
+        }
+
+        /// <summary>Sets a volume (clamped to 0..1) and saves it.</summary>
+        public void SetVolume(AudioChannel channel, float volume)
+        {
+            volume = Mathf.Clamp01(volume);
+            if (Mathf.Approximately(GetVolume(channel), volume))
+                return;
+
+            switch (channel)
+            {
+                case AudioChannel.Music:
+                    data.settings.musicVolume = volume;
+                    break;
+                case AudioChannel.Effects:
+                    data.settings.effectsVolume = volume;
+                    break;
+                case AudioChannel.Vehicle:
+                    data.settings.vehicleVolume = volume;
+                    break;
+                default:
+                    data.settings.masterVolume = volume;
+                    break;
+            }
+
+            SaveAndNotify();
+        }
+
+        public void SetVibration(bool on)
+        {
+            if (Vibration == on)
+                return;
+
+            data.settings.vibration = on;
             SaveAndNotify();
         }
 

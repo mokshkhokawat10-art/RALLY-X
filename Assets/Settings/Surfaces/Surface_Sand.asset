@@ -24,3 +24,11 @@ MonoBehaviour:
   markColor: {r: 0.55, g: 0.4, b: 0.28, a: 0.45}
   rollingSpray: 0.35
   roughness: 0.45
+  rollingSound:
+    clip: {fileID: 8300000, guid: 4d0b765a1a1cff144b8acda9be5bb12c, type: 3}
+    volume: 0.8
+    pitch: 0.88
+  slideSound:
+    clip: {fileID: 8300000, guid: 42e2fe732505dc54aaf160f0240e3ff8, type: 3}
+    volume: 0.9
+    pitch: 0.88

@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db6889f5fa44f02419f629f8974afec1, type: 3}
+  m_Name: GameAudio
+  m_EditorClassIdentifier: RallyX::RallyX.Audio.GameAudioConfig
+  menuMusic: {fileID: 8300000, guid: abd8b03ccf4540f4497729057600081f, type: 3}
+  raceMusic: {fileID: 8300000, guid: 5d927250a587feb48b5842358be4499a, type: 3}
+  menuScenes:
+  - MainMenu
+  - Garage
+  musicLevel: 0.55
+  musicFadeTime: 1.5
+  pausedMusicLevel: 0.35
+  finishedMusicLevel: 0.45
+  navigate:
+    clip: {fileID: 8300000, guid: 6381e928eb647e043ab875145ecaaf8f, type: 3}
+    volume: 0.35
+    pitch: {x: 0.97, y: 1.03}
+  confirm:
+    clip: {fileID: 8300000, guid: 400bc3c49433c7d448ac5ce624eda240, type: 3}
+    volume: 0.5
+    pitch: {x: 1, y: 1}
+  back:
+    clip: {fileID: 8300000, guid: cd7f331fc8d40264e83cb2a9a79de652, type: 3}
+    volume: 0.45
+    pitch: {x: 1, y: 1}
+  error:
+    clip: {fileID: 8300000, guid: 6b5b7720c0c81b04ba687d38280e71e2, type: 3}
+    volume: 0.5
+    pitch: {x: 1, y: 1}
+  purchase:
+    clip: {fileID: 8300000, guid: 49a9a016e94dadc4d83326c9c01a2aa5, type: 3}
+    volume: 0.6
+    pitch: {x: 1, y: 1}
+  switchItem:
+    clip: {fileID: 8300000, guid: cdda0c8b57031de47b317317d8bcbe9e, type: 3}
+    volume: 0.4
+    pitch: {x: 0.95, y: 1.05}
+  countdownTick:
+    clip: {fileID: 8300000, guid: 11cae3645b84cef40bd4f847c4b5ed6b, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+  go:
+    clip: {fileID: 8300000, guid: afead59df9cac2a47b07cd4f75d1fc05, type: 3}
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+  lap:
+    clip: {fileID: 8300000, guid: d1d124bf1b8ff944885b2fe972b6c661, type: 3}
+    volume: 0.55
+    pitch: {x: 1, y: 1}
+  finalLap:
+    clip: {fileID: 8300000, guid: 28e3753385dffff44b9cbc29723a60a9, type: 3}
+    volume: 0.6
+    pitch: {x: 1, y: 1}
+  finish:
+    clip: {fileID: 8300000, guid: b3e0aa534dd1ee744a2046adedd2edaa, type: 3}
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+  results:
+    clip: {fileID: 8300000, guid: 4d0186541ac62804da0e9427bb6091c0, type: 3}
+    volume: 0.5
+    pitch: {x: 1, y: 1}

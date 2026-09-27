@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using RallyX.Audio;
 using RallyX.Core;
 using RallyX.VFX;
 using RallyX.Vehicle;
@@ -211,6 +212,11 @@ namespace RallyX.EditorTools
                 visuals.SetLean(spec.PitchPerG, spec.RollPerG, spec.LeanFrequency);
 
                 GetOrAdd<VehicleEffects>(root).Configure(effects, exhausts);
+
+                // Sound: the car's own audio config once the audio content exists (RALLY X > Build > Create Missing Audio Content).
+                var carAudio = GetOrAdd<VehicleAudio>(root);
+                if (carAudio.Config == null)
+                    carAudio.Configure(AudioContentBuilder.LoadVehicleConfig(spec.Name));
 
                 EditorAssetUtility.SetLayerRecursively(root, vehicleLayer);
                 EditorAssetUtility.EnsureFolder(System.IO.Path.GetDirectoryName(spec.PrefabPath)?.Replace('\\', '/'));

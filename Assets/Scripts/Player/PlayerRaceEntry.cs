@@ -1,4 +1,5 @@
 using System;
+using RallyX.Audio;
 using RallyX.Cameras;
 using RallyX.Garage;
 using RallyX.Progression;
@@ -6,6 +7,7 @@ using RallyX.Racing;
 using RallyX.SaveSystem;
 using RallyX.Tracks;
 using RallyX.Vehicle;
+using RallyX.VFX;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -16,6 +18,8 @@ namespace RallyX.Player
     /// chosen or it is locked), with its installed upgrades applied to its handling, on pole with the chase camera
     /// behind it. Records laps in the player's profile, and pays and records the result when they finish
     /// (<see cref="RaceReward"/>). Sets the race to the track's laps. Runs before the race and AI set up, so they find the car.
+    /// The player's car gets gamepad rumble (<see cref="VehicleHaptics"/>) and the sounds meant for the car the camera
+    /// follows; the camera gets the ambient dust (<see cref="AmbientDust"/>).
     /// </summary>
     [DefaultExecutionOrder(-100)]
     [DisallowMultipleComponent]
@@ -107,11 +111,16 @@ namespace RallyX.Player
             carObject.AddComponent<PlayerVehicleInput>();
             carObject.AddComponent<VehicleDebugPanel>().Visible = showTelemetry;
             carObject.AddComponent<RaceParticipant>().Configure(displayName, player: true);
+            carObject.AddComponent<VehicleHaptics>();
+            if (carObject.TryGetComponent(out VehicleAudio carAudio))
+                carAudio.IsListenerCar = true;
 
             if (chaseCamera != null)
             {
                 chaseCamera.Target = Car;
                 chaseCamera.SnapToTarget();
+                if (carObject.TryGetComponent(out VehicleEffects effects) && effects.Config != null)
+                    chaseCamera.gameObject.AddComponent<AmbientDust>().Configure(effects.Config, Car);
             }
         }
 

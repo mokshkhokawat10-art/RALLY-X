@@ -1,5 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
     <Style src="Menus.uss" />
+    <Style src="../Settings.uss" />
     <ui:VisualElement name="main-menu" class="screen" picking-mode="Ignore">
         <ui:VisualElement class="menu-side">
             <ui:VisualElement class="logo" picking-mode="Ignore">
@@ -11,6 +12,7 @@
             <ui:VisualElement class="menu-items">
                 <ui:Button name="race-button" text="RACE" class="menu-item" />
                 <ui:Button name="garage-button" text="GARAGE" class="menu-item" />
+                <ui:Button name="settings-button" text="SETTINGS" class="menu-item" />
                 <ui:Button name="quit-button" text="QUIT" class="menu-item" />
             </ui:VisualElement>
             <ui:VisualElement class="menu-footer" picking-mode="Ignore">
@@ -37,6 +39,14 @@
         </ui:VisualElement>
         <ui:VisualElement class="hint-bar" picking-mode="Ignore">
             <ui:Label name="hints" text="UP / DOWN   CHOOSE        ENTER   CONFIRM" class="hint" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="settings" class="settings">
+            <ui:VisualElement class="settings-card">
+                <ui:Label text="SETTINGS" class="settings-title" />
+                <ui:VisualElement name="settings-rows" class="settings-rows" />
+                <ui:Button name="settings-back" text="BACK" class="settings-back" />
+                <ui:Label text="Up / Down  choose      Left / Right  change      Esc / B  back" class="settings-hint" />
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

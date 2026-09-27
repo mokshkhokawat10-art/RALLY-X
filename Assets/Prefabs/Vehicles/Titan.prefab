@@ -415,6 +415,7 @@ GameObject:
   - component: {fileID: 2945397575599874700}
   - component: {fileID: 5314322548370276377}
   - component: {fileID: 7557023541315868009}
+  - component: {fileID: 1205593104450803645}
   m_Layer: 8
   m_Name: Titan
   m_TagString: Untagged
@@ -560,6 +561,19 @@ MonoBehaviour:
   exhausts:
   - {fileID: 8289083055744112675}
   - {fileID: 2098817485308345253}
+--- !u!114 &1205593104450803645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2293016668781024905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89814cb4255ad0148b268f0df678cabf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: RallyX::RallyX.Audio.VehicleAudio
+  config: {fileID: 11400000, guid: 9c3caefc05e422749bc7d45785113fe9, type: 2}
 --- !u!1 &2801632205945770717
 GameObject:
   m_ObjectHideFlags: 0

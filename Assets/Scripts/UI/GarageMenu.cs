@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RallyX.Audio;
 using RallyX.Core;
 using RallyX.Garage;
 using RallyX.Progression;
@@ -14,8 +15,9 @@ namespace RallyX.UI
     /// The garage. Browse the cars on the turntable, compare their stats and choose the one to race; or open a car's
     /// upgrades, see what the next stage of each part does to the stats, and buy it after a confirmation, as long as
     /// the credits are there. Locked cars are shown as silhouettes with what unlocks them. Every change is saved to
-    /// the player's profile straight away. Keyboard, gamepad and mouse (drag to turn the car). Layout and styling are
-    /// in Assets/UI/Menus/Garage.uxml and Menus.uss.
+    /// the player's profile straight away. Keyboard, gamepad and mouse (drag to turn the car). Every action has its menu
+    /// sound, and the panels slide in as cars change and the upgrades open. Layout and styling are in
+    /// Assets/UI/Menus/Garage.uxml and Menus.uss.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
@@ -45,6 +47,7 @@ namespace RallyX.UI
         private VisualElement viewport;
         private VisualElement infoPanel;
         private VisualElement upgradePanel;
+        private VisualElement statsPanel;
         private VisualElement confirm;
         private Label counter;
         private Label credits;
@@ -108,17 +111,43 @@ namespace RallyX.UI
             Refresh();
         }
 
-        public void Next() => ShowVehicle(Index + 1);
+        public void Next() => SwitchVehicle(Index + 1);
 
-        public void Previous() => ShowVehicle(Index - 1);
+        public void Previous() => SwitchVehicle(Index - 1);
+
+        /// <summary>Browses to another car with its sound, the panels sliding in with the new car's details.</summary>
+        private void SwitchVehicle(int index)
+        {
+            GameAudio.Play(UiCue.Switch);
+            ShowVehicle(index);
+            AnimateIn(ShowingUpgrades ? upgradePanel : infoPanel);
+            AnimateIn(statsPanel);
+        }
+
+        /// <summary>
+        /// Plays a panel's entry transition: the entry state (panel--enter in Menus.uss) is applied now and removed on the
+        /// next frame, so the panel eases into place.
+        /// </summary>
+        private static void AnimateIn(VisualElement panel)
+        {
+            if (panel == null)
+                return;
+
+            panel.AddToClassList("panel--enter");
+            panel.schedule.Execute(() => panel.RemoveFromClassList("panel--enter"));
+        }
 
         /// <summary>Chooses the car on show to race. Returns false if it is locked.</summary>
         public bool SelectCurrent()
         {
             var vehicle = Current;
             if (vehicle == null || !vehicle.IsUnlocked(profile))
+            {
+                GameAudio.Play(UiCue.Error);
                 return false;
+            }
 
+            GameAudio.Play(UiCue.Confirm);
             profile.SelectVehicle(vehicle.Id);
             Refresh();
             return true;
@@ -132,27 +161,37 @@ namespace RallyX.UI
             else if (ShowingUpgrades)
                 CloseUpgrades();
             else
+            {
+                GameAudio.Play(UiCue.Back);
                 GameScenes.Load(GameScenes.MainMenu);
+            }
         }
 
         /// <summary>Shows the car's upgrades. Returns false if the garage sells none.</summary>
         public bool OpenUpgrades()
         {
             if (Catalog == null || Catalog.Upgrades.Count == 0)
+            {
+                GameAudio.Play(UiCue.Error);
                 return false;
+            }
 
+            GameAudio.Play(UiCue.Confirm);
             ShowingUpgrades = true;
             purchaseMessage = null;
             Refresh();
+            AnimateIn(upgradePanel);
             return true;
         }
 
         public void CloseUpgrades()
         {
+            GameAudio.Play(UiCue.Back);
             ShowingUpgrades = false;
             ConfirmingPurchase = false;
             purchaseMessage = null;
             Refresh();
+            AnimateIn(infoPanel);
         }
 
         public void SelectUpgrade(int index)
@@ -160,7 +199,10 @@ namespace RallyX.UI
             if (Catalog == null || Catalog.Upgrades.Count == 0 || ConfirmingPurchase)
                 return;
 
-            UpgradeIndex = Mathf.Clamp(index, 0, Catalog.Upgrades.Count - 1);
+            int clamped = Mathf.Clamp(index, 0, Catalog.Upgrades.Count - 1);
+            if (clamped != UpgradeIndex)
+                GameAudio.Play(UiCue.Navigate);
+            UpgradeIndex = clamped;
             purchaseMessage = null;
             Refresh();
         }
@@ -183,7 +225,14 @@ namespace RallyX.UI
             ConfirmingPurchase = check == PurchaseCheck.Available;
             purchaseMessage = ConfirmingPurchase ? null : Explain(check);
             purchaseMessageGood = false;
+            GameAudio.Play(ConfirmingPurchase ? UiCue.Confirm : UiCue.Error);
             Refresh();
+            if (ConfirmingPurchase && confirm != null)
+            {
+                confirm.AddToClassList("confirm--enter");
+                confirm.schedule.Execute(() => confirm.RemoveFromClassList("confirm--enter"));
+            }
+
             return ConfirmingPurchase;
         }
 
@@ -198,6 +247,7 @@ namespace RallyX.UI
             int level = UpgradeShop.NextLevel(profile, Current, upgrade);
             var result = UpgradeShop.Buy(profile, Current, upgrade);
             bool bought = result == PurchaseCheck.Available;
+            GameAudio.Play(bought ? UiCue.Purchase : UiCue.Error);
             purchaseMessage = bought ? $"{upgrade.DisplayName.ToUpperInvariant()} STAGE {level} INSTALLED" : Explain(result);
             purchaseMessageGood = bought;
             Refresh();
@@ -206,6 +256,7 @@ namespace RallyX.UI
 
         public void CancelPurchase()
         {
+            GameAudio.Play(UiCue.Back);
             ConfirmingPurchase = false;
             Refresh();
         }
@@ -482,6 +533,7 @@ namespace RallyX.UI
             viewport = root.Q("viewport");
             infoPanel = root.Q("info-panel");
             upgradePanel = root.Q("upgrade-panel");
+            statsPanel = root.Q(className: "garage-stats");
             confirm = root.Q("confirm");
             counter = root.Q<Label>("car-counter");
             credits = root.Q<Label>("credits");

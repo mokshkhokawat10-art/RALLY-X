@@ -1822,6 +1822,7 @@ GameObject:
   - component: {fileID: 2470904107502177148}
   - component: {fileID: 6610575044606272986}
   - component: {fileID: 2505732344214644395}
+  - component: {fileID: 9138885615975503261}
   m_Layer: 8
   m_Name: Kestrel
   m_TagString: Untagged
@@ -1965,6 +1966,19 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: 1e297e3806f2fca40ae35231425dfbca, type: 2}
   exhausts:
   - {fileID: 8259570639980421308}
+--- !u!114 &9138885615975503261
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8916894528904013772}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89814cb4255ad0148b268f0df678cabf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: RallyX::RallyX.Audio.VehicleAudio
+  config: {fileID: 11400000, guid: a40cb1c7bd0d36b458c8d0f875fe353d, type: 2}
 --- !u!1 &8956544726802661083
 GameObject:
   m_ObjectHideFlags: 0

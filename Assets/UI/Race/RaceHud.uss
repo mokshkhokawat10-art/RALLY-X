@@ -90,6 +90,23 @@
     color: rgb(255, 255, 255);
     -unity-font-style: bold;
     text-shadow: 0 6px 12px rgba(0, 0, 0, 0.7);
+    scale: 1 1;
+    opacity: 1;
+    transition-property: scale, opacity, color;
+    transition-duration: 0.35s;
+    transition-timing-function: ease-out-back;
+}
+
+/* Entry state of each countdown number: applied for a frame, so the number punches in from large and clear. */
+.countdown--pop {
+    scale: 1.8 1.8;
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+.countdown--go {
+    font-size: 240px;
+    color: rgb(255, 196, 36);
 }
 
 .wrong-way {
@@ -115,6 +132,36 @@
     color: rgb(255, 196, 36);
     -unity-font-style: bold;
     text-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+    scale: 1 1;
+    opacity: 1;
+    transition-property: scale, opacity;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-out-back;
+}
+
+.centre-message--pop {
+    scale: 1.4 1.4;
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+/* The finish: a black-on-yellow banner across the screen. */
+.centre-message--banner {
+    top: 30%;
+    padding: 14px 0 18px 0;
+    font-size: 104px;
+    letter-spacing: 18px;
+    color: rgb(14, 14, 14);
+    text-shadow: 0 0 0 rgba(0, 0, 0, 0);
+    background-color: rgba(255, 196, 36, 0.94);
+    border-top-width: 6px;
+    border-bottom-width: 6px;
+    border-color: rgb(14, 14, 14);
+}
+
+.centre-message--banner.centre-message--pop {
+    scale: 1 0.1;
+    opacity: 0;
 }
 
 /* Results screen */
@@ -129,6 +176,15 @@
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.55);
     display: none;
+    opacity: 1;
+    transition-property: opacity;
+    transition-duration: 0.45s;
+}
+
+/* Entry state of the results, applied for a frame when they open: the screen fades up and the card rises into place. */
+.results--enter {
+    opacity: 0;
+    transition-duration: 0s;
 }
 
 .results-card {
@@ -139,6 +195,17 @@
     border-radius: 12px;
     border-width: 2px;
     border-color: rgb(255, 196, 36);
+    translate: 0 0;
+    scale: 1 1;
+    transition-property: translate, scale;
+    transition-duration: 0.45s;
+    transition-timing-function: ease-out-cubic;
+}
+
+.results--enter .results-card {
+    translate: 0 40px;
+    scale: 0.94 0.94;
+    transition-duration: 0s;
 }
 
 .results-title {
@@ -151,6 +218,19 @@
     font-size: 96px;
     color: rgb(255, 255, 255);
     -unity-font-style: bold;
+    scale: 1 1;
+    opacity: 1;
+    transition-property: scale, opacity;
+    transition-duration: 0.5s;
+    transition-delay: 0.15s;
+    transition-timing-function: ease-out-back;
+}
+
+.results-place--enter {
+    scale: 0.4 0.4;
+    opacity: 0;
+    transition-duration: 0s;
+    transition-delay: 0s;
 }
 
 .results-summary {
@@ -211,6 +291,18 @@
     padding: 4px 8px;
     border-bottom-width: 1px;
     border-color: rgba(255, 255, 255, 0.12);
+    translate: 0 0;
+    opacity: 1;
+    transition-property: translate, opacity;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-out-cubic;
+}
+
+/* Each row starts here and slides in, one after another. */
+.results-row--enter {
+    translate: 40px 0;
+    opacity: 0;
+    transition-duration: 0s;
 }
 
 .results-cell {

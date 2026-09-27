@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RallyX.Audio;
 using UnityEngine.UIElements;
 
 namespace RallyX.UI
@@ -8,7 +9,8 @@ namespace RallyX.UI
     /// Keyboard and gamepad selection over a row or column of buttons, alongside the mouse: moving highlights the next
     /// enabled button, submitting runs its action, hovering highlights it and clicking runs it. The highlighted
     /// button carries the <see cref="SelectedClass"/> USS class. Buttons don't take UI Toolkit focus, so only the
-    /// menu's own input moves the highlight.
+    /// menu's own input moves the highlight. Moving the highlight, running an action and trying a disabled button each
+    /// make their menu sound.
     /// </summary>
     public sealed class MenuSelection
     {
@@ -30,8 +32,11 @@ namespace RallyX.UI
             button.clicked += () => Run(index);
             button.RegisterCallback<PointerEnterEvent>(_ =>
             {
-                if (button.enabledSelf)
+                if (button.enabledSelf && Index != index)
+                {
                     Select(index);
+                    GameAudio.Play(UiCue.Navigate);
+                }
             });
 
             if (Index < 0 && button.enabledSelf)
@@ -59,6 +64,7 @@ namespace RallyX.UI
                 if (!buttons[index].enabledSelf)
                     continue;
                 Select(index);
+                GameAudio.Play(UiCue.Navigate);
                 return;
             }
         }
@@ -68,8 +74,16 @@ namespace RallyX.UI
 
         private void Run(int index)
         {
-            if (index < 0 || index >= buttons.Count || !buttons[index].enabledSelf)
+            if (index < 0 || index >= buttons.Count)
                 return;
+
+            if (!buttons[index].enabledSelf)
+            {
+                GameAudio.Play(UiCue.Error);
+                return;
+            }
+
+            GameAudio.Play(UiCue.Confirm);
             actions[index]?.Invoke();
         }
     }

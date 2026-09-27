@@ -80,6 +80,14 @@ namespace RallyX.Cameras
 
         [SerializeField, Min(0.1f)] private float speedRumbleFrequency = 11f;
 
+        [Header("Speed Vignette")]
+        [Tooltip("Extra vignette darkening the screen edges at the speed for the full speed effect, added to the scene's own " +
+                 "vignette. Keep it small. 0 = off.")]
+        [SerializeField, Range(0f, 0.5f)] private float speedVignette = 0.12f;
+
+        [Tooltip("Share of the speed for the full speed effect where the vignette starts to build.")]
+        [SerializeField, Range(0f, 1f)] private float speedVignetteStart = 0.55f;
+
         [Header("Shake")]
         [Tooltip("Rotation shake at full trauma, degrees.")]
         [SerializeField, Min(0f)] private float maxShakeAngle = 1.5f;
@@ -151,6 +159,8 @@ namespace RallyX.Cameras
         public float BumpDamping => bumpDamping;
         public float SpeedRumble => speedRumble;
         public float SpeedRumbleFrequency => speedRumbleFrequency;
+        public float SpeedVignette => speedVignette;
+        public float SpeedVignetteStart => speedVignetteStart;
 
         public float MaxShakeAngle => maxShakeAngle;
         public float MaxShakeOffset => maxShakeOffset;

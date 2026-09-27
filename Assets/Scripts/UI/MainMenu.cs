@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using RallyX.Audio;
 using RallyX.Core;
 using RallyX.Garage;
 using RallyX.Progression;
@@ -9,8 +10,9 @@ using UnityEngine.UIElements;
 namespace RallyX.UI
 {
     /// <summary>
-    /// The title screen: RACE (the chosen track in the player's car), GARAGE and QUIT, with the player's car turning
-    /// on the showroom turntable behind and their credits. Left and right (or the arrows) browse the tracks: each shows
+    /// The title screen: RACE (the chosen track in the player's car), GARAGE, SETTINGS (volumes and vibration,
+    /// <see cref="SettingsPanel"/>) and QUIT, with the player's car turning on the showroom turntable behind and their
+    /// credits. The menu slides in when the screen opens. Left and right (or the arrows) browse the tracks: each shows
     /// its laps and best lap, a locked one what unlocks it (RACE is off while it is shown); showing an unlocked track
     /// chooses it, saved in the profile. Keyboard, gamepad and mouse. Layout and styling are in
     /// Assets/UI/Menus/MainMenu.uxml and Menus.uss.
@@ -21,6 +23,7 @@ namespace RallyX.UI
     {
         private const string SingleTrackHints = "UP / DOWN   CHOOSE        ENTER   CONFIRM";
         private const string TrackHints = "UP / DOWN   CHOOSE        LEFT / RIGHT   TRACK        ENTER   CONFIRM";
+        private const string SettingsHints = "UP / DOWN   CHOOSE        LEFT / RIGHT   CHANGE        ESC   BACK";
 
         [SerializeField] private VehicleRoster roster;
         [SerializeField] private VehicleShowroom showroom;
@@ -32,6 +35,7 @@ namespace RallyX.UI
         [SerializeField] private string raceScene = "PineValley";
 
         private MenuSelection selection = new MenuSelection();
+        private readonly SettingsPanel settings = new SettingsPanel();
         private UIDocument document;
         private RallyInputActions input;
         private PlayerProfile profile;
@@ -49,6 +53,9 @@ namespace RallyX.UI
         private int trackIndex = -1;
 
         public MenuSelection Selection => selection;
+
+        /// <summary>The settings screen opened from SETTINGS.</summary>
+        public SettingsPanel Settings => settings;
 
         /// <summary>The track shown, which RACE loads when it is unlocked; null without progression settings.</summary>
         public TrackInfo Track { get; private set; }
@@ -86,6 +93,14 @@ namespace RallyX.UI
 
         public void OpenGarage() => GameScenes.Load(GameScenes.Garage);
 
+        /// <summary>Opens the settings screen (volumes and vibration) over the menu.</summary>
+        public void OpenSettings()
+        {
+            settings.Open();
+            if (hints != null)
+                hints.text = SettingsHints;
+        }
+
         public void Quit()
         {
 #if UNITY_EDITOR
@@ -112,9 +127,17 @@ namespace RallyX.UI
             Refresh();
         }
 
-        public void NextTrack() => ShowTrack(trackIndex + 1);
+        public void NextTrack()
+        {
+            GameAudio.Play(UiCue.Switch);
+            ShowTrack(trackIndex + 1);
+        }
 
-        public void PreviousTrack() => ShowTrack(trackIndex - 1);
+        public void PreviousTrack()
+        {
+            GameAudio.Play(UiCue.Switch);
+            ShowTrack(trackIndex - 1);
+        }
 
         private IReadOnlyList<TrackInfo> Tracks =>
             progression != null && progression.Tracks != null ? progression.Tracks.Tracks : System.Array.Empty<TrackInfo>();
@@ -123,6 +146,7 @@ namespace RallyX.UI
         {
             document = GetComponent<UIDocument>();
             input = new RallyInputActions();
+            settings.Closed += Refresh;
         }
 
         private void OnEnable()
@@ -159,6 +183,12 @@ namespace RallyX.UI
         {
             if (!Bind())
                 return;
+
+            if (settings.IsOpen)
+            {
+                settings.HandleInput(input);
+                return;
+            }
 
             if (input.MenuUp.WasPressedThisFrame())
                 selection.Move(-1);
@@ -210,7 +240,7 @@ namespace RallyX.UI
                 bool browsable = tracks.Count > 1;
                 SetVisible(previousTrackButton, browsable);
                 SetVisible(nextTrackButton, browsable);
-                hints.text = browsable ? TrackHints : SingleTrackHints;
+                hints.text = settings.IsOpen ? SettingsHints : browsable ? TrackHints : SingleTrackHints;
             }
 
             if (showroom != null)
@@ -272,6 +302,7 @@ namespace RallyX.UI
 
             raceButton = root.Q<Button>("race-button");
             var garageButton = root.Q<Button>("garage-button");
+            var settingsButton = root.Q<Button>("settings-button");
             var quitButton = root.Q<Button>("quit-button");
             previousTrackButton = root.Q<Button>("track-previous");
             nextTrackButton = root.Q<Button>("track-next");
@@ -300,7 +331,22 @@ namespace RallyX.UI
             selection = new MenuSelection();
             selection.Add(raceButton, Race);
             selection.Add(garageButton, OpenGarage);
+
+            // Optional: only offered when the layout has the settings screen.
+            if (settingsButton != null && settings.Bind(root))
+                selection.Add(settingsButton, OpenSettings);
+            else if (settingsButton != null)
+                SetVisible(settingsButton, false);
             selection.Add(quitButton, Quit);
+
+            // The menu slides in: the entry state is applied now and removed next frame, so the transition runs.
+            var side = root.Q(className: "menu-side");
+            if (side != null)
+            {
+                side.AddToClassList("menu-side--enter");
+                side.schedule.Execute(() => side.RemoveFromClassList("menu-side--enter"));
+            }
+
             return true;
         }
     }

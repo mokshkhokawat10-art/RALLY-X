@@ -6,7 +6,8 @@ namespace RallyX.SaveSystem
 {
     /// <summary>
     /// The player profile as saved: one section per area of the game, so each can grow without touching the others.
-    /// Ids (cars, upgrades, tracks) are stored as strings, so reordering game data never scrambles a save.
+    /// Ids (cars, upgrades, tracks) are stored as strings, so reordering game data never scrambles a save. A section
+    /// added later (settings) is filled with its defaults when an older save is read, so the version stays the same.
     /// </summary>
     [Serializable]
     internal sealed class ProfileData
@@ -18,6 +19,7 @@ namespace RallyX.SaveSystem
         public CareerData career = new CareerData();
         public GarageData garage = new GarageData();
         public TrackData tracks = new TrackData();
+        public SettingsData settings = new SettingsData();
 
         /// <summary>Reads a saved profile of any version. Throws if the text isn't a profile.</summary>
         public static ProfileData Parse(string json)
@@ -50,6 +52,14 @@ namespace RallyX.SaveSystem
             tracks.unlockedTracks ??= new List<string>();
             tracks.records ??= new List<TrackRecordData>();
             tracks.records.RemoveAll(record => record == null || string.IsNullOrEmpty(record.track));
+
+            // A save from before the settings existed has none; one read without running field initialisers has them all 0.
+            if (settings == null || !settings.initialized)
+                settings = new SettingsData();
+            settings.masterVolume = Mathf.Clamp01(settings.masterVolume);
+            settings.musicVolume = Mathf.Clamp01(settings.musicVolume);
+            settings.effectsVolume = Mathf.Clamp01(settings.effectsVolume);
+            settings.vehicleVolume = Mathf.Clamp01(settings.vehicleVolume);
         }
 
         private static ProfileData FromVersion1(Version1 old)
@@ -122,5 +132,20 @@ namespace RallyX.SaveSystem
         public string bestLapVehicle;
         public int bestPosition;
         public int finishes;
+    }
+
+    /// <summary>The player's options. Volumes are 0..1.</summary>
+    [Serializable]
+    internal sealed class SettingsData
+    {
+        /// <summary>Always true once made; false only for a section read from a save that never had one.</summary>
+        public bool initialized = true;
+        public float masterVolume = 1f;
+        public float musicVolume = 0.7f;
+        public float effectsVolume = 1f;
+        public float vehicleVolume = 1f;
+
+        /// <summary>Gamepad rumble.</summary>
+        public bool vibration = true;
     }
 }

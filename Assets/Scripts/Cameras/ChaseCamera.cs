@@ -7,7 +7,8 @@ namespace RallyX.Cameras
     /// Third-person rally chase camera. It smooths angles and height rather than position, so the follow
     /// distance stays exact at any speed and a reversing car can never drive into the camera.
     /// Adds speed-based FOV and look-ahead, a subtle swing and pull-out while drifting, shake plus a spring dip on
-    /// landings, shake plus a small push away from hits, and a faint rumble at speed on rough ground.
+    /// landings, shake plus a small push away from hits, a faint rumble at speed on rough ground, and a touch more
+    /// vignette at high speed (<see cref="SpeedVignette"/>).
     /// </summary>
     [RequireComponent(typeof(Camera))]
     [DisallowMultipleComponent]
@@ -20,6 +21,7 @@ namespace RallyX.Cameras
         [SerializeField] private LayerMask obstacleLayers = ~0;
 
         private readonly CameraShake shake = new CameraShake();
+        private readonly SpeedVignette speedVignette = new SpeedVignette();
         private Camera cameraComponent;
         private float yaw;
         private float pivotHeight;
@@ -75,6 +77,8 @@ namespace RallyX.Cameras
 
         private void OnDisable() => Unsubscribe();
 
+        private void OnDestroy() => speedVignette.Destroy();
+
         private void LateUpdate()
         {
             float deltaTime = Time.deltaTime;
@@ -95,6 +99,7 @@ namespace RallyX.Cameras
             float speedFactor = Mathf.Clamp01(target.SpeedKmh / config.SpeedForMaxEffectKmh);
             fieldOfView = Mathf.Lerp(fieldOfView, TargetFieldOfView(speedFactor), Blend(config.FieldOfViewSharpness, deltaTime));
             cameraComponent.fieldOfView = fieldOfView;
+            speedVignette.Update(config, transform, speedFactor, deltaTime);
 
             Quaternion yawRotation = Quaternion.Euler(0f, yaw, 0f);
             var pivot = new Vector3(carPosition.x, pivotHeight, carPosition.z);

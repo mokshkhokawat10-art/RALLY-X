@@ -1,3 +1,4 @@
+using RallyX.Audio;
 using UnityEngine;
 
 namespace RallyX.Tracks
@@ -22,8 +23,8 @@ namespace RallyX.Tracks
     }
 
     /// <summary>
-    /// A kind of ground (asphalt, dirt, mud...) and how it changes vehicle handling and the effects the wheels make on it.
-    /// Add new surfaces by creating more assets; no code changes are needed.
+    /// A kind of ground (asphalt, dirt, mud...) and how it changes vehicle handling and the effects and sounds the wheels
+    /// make on it. Add new surfaces by creating more assets; no code changes are needed.
     /// </summary>
     [CreateAssetMenu(menuName = "RALLY X/Surface Type", fileName = "Surface_New")]
     public sealed class SurfaceType : ScriptableObject
@@ -66,6 +67,14 @@ namespace RallyX.Tracks
         [Tooltip("How bumpy the surface looks from the car: body and camera vibration at speed. 0 = smooth.")]
         [SerializeField, Range(0f, 1f)] private float roughness;
 
+        [Header("Audio")]
+        [Tooltip("Tyre noise rolling over this surface, looped: louder and higher with speed. Empty = the car's default.")]
+        [SerializeField] private LoopSound rollingSound = new LoopSound(null);
+
+        [Tooltip("Tyre noise sliding, spinning or locked on this surface, looped: a squeal on asphalt, a crunch on gravel. " +
+                 "Empty = the car's default.")]
+        [SerializeField] private LoopSound slideSound = new LoopSound(null);
+
         public string DisplayName => displayName;
 
         public SurfaceProperties Properties => new SurfaceProperties(grip, topSpeed, acceleration, rollingResistance, slideFalloff, traction);
@@ -75,5 +84,16 @@ namespace RallyX.Tracks
         public Color MarkColor => markColor;
         public float RollingSpray => rollingSpray;
         public float Roughness => roughness;
+        public LoopSound RollingSound => rollingSound;
+        public LoopSound SlideSound => slideSound;
+
+#if UNITY_EDITOR
+        /// <summary>Sets the tyre sounds, for the content builder.</summary>
+        public void SetSounds(LoopSound rolling, LoopSound slide)
+        {
+            rollingSound = rolling;
+            slideSound = slide;
+        }
+#endif
     }
 }

@@ -1,0 +1,85 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53367c0c35014b24c94a9d46bd849ca0, type: 3}
+  m_Name: Kestrel_Audio
+  m_EditorClassIdentifier: RallyX::RallyX.Audio.VehicleAudioConfig
+  engineLow: {fileID: 8300000, guid: 0dee163af561b794b879c805aa226f4e, type: 3}
+  engineLowRpm: 1750
+  engineHigh: {fileID: 8300000, guid: 9ee423a6a6f063a49920740593afc81e, type: 3}
+  engineHighRpm: 4500
+  layerBlend: {x: 0.3, y: 0.7}
+  engineVolume: 0.7
+  offThrottleVolume: 0.45
+  idleRpm: 1000
+  redlineRpm: 8200
+  launchRpm: 4300
+  gearTopSpeeds:
+  - 0.22
+  - 0.36
+  - 0.5
+  - 0.65
+  - 0.82
+  - 1
+  upshiftAt: 0.96
+  downshiftAt: 0.68
+  shiftTime: 0.16
+  rpmRiseRate: 9000
+  rpmFallRate: 5500
+  limiterDrop: 300
+  gearShift:
+    clip: {fileID: 8300000, guid: e53fb59c58a358a4d854994794366a56, type: 3}
+    volume: 0.35
+    pitch: {x: 0.95, y: 1.05}
+  backfire:
+    clip: {fileID: 8300000, guid: e841bc0b92f17a943a0471fe2e630d0b, type: 3}
+    volume: 0.7
+    pitch: {x: 0.9, y: 1.1}
+  defaultRolling:
+    clip: {fileID: 8300000, guid: 037708422ce29f5408550663859c646d, type: 3}
+    volume: 0.7
+    pitch: 1
+  defaultSlide:
+    clip: {fileID: 8300000, guid: 96229b30735ebce428f7c06e49b32bab, type: 3}
+    volume: 0.8
+    pitch: 1
+  tyreVolume: 1
+  rollingFullSpeedKmh: 110
+  slideSpeeds: {x: 1.2, y: 6}
+  wind:
+    clip: {fileID: 8300000, guid: 76e0ce44f785862468ebd8c304303588, type: 3}
+    volume: 0.6
+    pitch: 1
+  windStart: 0.25
+  airborneWind: 1.5
+  lightImpact:
+    clip: {fileID: 8300000, guid: 1bcdfc079d5dd1c4eacc870ae4212582, type: 3}
+    volume: 0.7
+    pitch: {x: 0.9, y: 1.1}
+  heavyImpact:
+    clip: {fileID: 8300000, guid: be09f827724603442942fabc84ab7721, type: 3}
+    volume: 0.9
+    pitch: {x: 0.9, y: 1.05}
+  impactSpeeds: {x: 1.2, y: 6, z: 12}
+  scrape:
+    clip: {fileID: 8300000, guid: 26e4a21118655b143a5b4a9c152c6c74, type: 3}
+    volume: 0.7
+    pitch: 1
+  scrapeFullSpeed: 12
+  landing:
+    clip: {fileID: 8300000, guid: 31b7ceff58621c641ac799dea0b059e9, type: 3}
+    volume: 0.8
+    pitch: {x: 0.9, y: 1.1}
+  landingMinAirTime: 0.2
+  landingFullSpeed: 8
+  minDistance: 7
+  maxDistance: 140
+  doppler: 0.5

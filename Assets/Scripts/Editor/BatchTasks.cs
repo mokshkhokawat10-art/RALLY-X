@@ -21,7 +21,8 @@ namespace RallyX.EditorTools
                            && ProgressionContentBuilder.BuildMissing()
                            && TrackCatalog.BuildMissing()
                            && SandboxCourseBuilder.Rebuild()
-                           && MenuSceneBuilder.Build();
+                           && MenuSceneBuilder.Build()
+                           && AudioContentBuilder.Build();
             if (!success)
                 EditorApplication.Exit(1);
         }
@@ -54,6 +55,16 @@ namespace RallyX.EditorTools
                            && GarageContentBuilder.BuildMissing()
                            && GarageContentBuilder.RebuildCars();
             if (!success)
+                EditorApplication.Exit(1);
+        }
+
+        /// <summary>
+        /// The audio content only: placeholder sounds (regenerated when their recipes changed), configs, surface sounds and
+        /// the cars' VehicleAudio. Touches no scene.
+        /// </summary>
+        public static void BuildAudio()
+        {
+            if (!AudioContentBuilder.Build())
                 EditorApplication.Exit(1);
         }
 

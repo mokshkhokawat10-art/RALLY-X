@@ -1,3 +1,4 @@
+using RallyX.Audio;
 using RallyX.Core;
 using RallyX.Player;
 using RallyX.Progression;
@@ -11,14 +12,19 @@ namespace RallyX.UI
     /// Race HUD and results screen for the player's racer: position, lap, race and lap times, speed, the start
     /// countdown, the wrong-way warning and lap messages, then results with the credits earned (from the player's
     /// <see cref="PlayerRaceEntry"/>) and restart and main menu buttons. The restart input works at any time. The pause
-    /// input pauses the race (time stops) with a menu to resume, restart or leave for the main menu; once the results
-    /// are up it leaves for the main menu. Layout and styling are in Assets/UI/Race/RaceHud.uxml and RaceHud.uss.
+    /// input pauses the race (time stops) with a menu to resume, restart, change the settings (<see cref="SettingsPanel"/>)
+    /// or leave for the main menu; once the results are up it leaves for the main menu. The countdown numbers and GO pop in,
+    /// lap and finish messages punch in (the finish as a banner), and the results fade up with their rows following one
+    /// after another. Layout and styling are in Assets/UI/Race/RaceHud.uxml and RaceHud.uss.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
     public sealed class RaceHud : MonoBehaviour
     {
         private const string NoTime = "-:--.---";
+
+        // Delay between results rows appearing, milliseconds.
+        private const long ResultsRowStagger = 70;
 
         [SerializeField] private RaceManager race;
 
@@ -54,6 +60,8 @@ namespace RallyX.UI
         private VisualElement pauseOverlay;
         private Label pauseTrack;
         private MenuSelection pauseSelection = new MenuSelection();
+        private readonly SettingsPanel settings = new SettingsPanel();
+        private string shownCountdown = string.Empty;
         private float timeScaleBeforePause = 1f;
 
         private float messageTimeLeft;
@@ -74,6 +82,9 @@ namespace RallyX.UI
 
         /// <summary>The pause menu's buttons (resume, restart, main menu) and which one is highlighted.</summary>
         public MenuSelection PauseSelection => pauseSelection;
+
+        /// <summary>The settings screen opened from the pause menu.</summary>
+        public SettingsPanel Settings => settings;
 
         public void Configure(RaceManager newRace, PlayerRaceEntry newPlayerEntry = null)
         {
@@ -106,6 +117,7 @@ namespace RallyX.UI
                 return false;
 
             Paused = true;
+            GameAudio.Play(UiCue.Confirm);
             timeScaleBeforePause = Time.timeScale;
             Time.timeScale = 0f;
             AudioListener.pause = true;
@@ -126,6 +138,8 @@ namespace RallyX.UI
                 return;
 
             Paused = false;
+            if (settings.IsOpen)
+                settings.Close();
             Time.timeScale = timeScaleBeforePause;
             AudioListener.pause = false;
             input.DisableMenu();
@@ -201,9 +215,16 @@ namespace RallyX.UI
 
         private void UpdatePauseMenu()
         {
+            if (settings.IsOpen)
+            {
+                settings.HandleInput(input);
+                return;
+            }
+
             // Esc is both the pause and the back input, so one press resumes once.
             if (input.Pause.WasPressedThisFrame() || input.Back.WasPressedThisFrame())
             {
+                GameAudio.Play(UiCue.Back);
                 Resume();
                 return;
             }
@@ -247,30 +268,61 @@ namespace RallyX.UI
         private void UpdateCentreMessages(RaceTracker tracker)
         {
             int number = race.CountdownNumber;
-            countdownLabel.text = number > 0 ? number.ToString() : race.ShowingGo ? "GO!" : string.Empty;
+            string countdown = number > 0 ? number.ToString() : race.ShowingGo ? "GO!" : string.Empty;
+            if (countdown != shownCountdown)
+            {
+                shownCountdown = countdown;
+                countdownLabel.text = countdown;
+                countdownLabel.EnableInClassList("countdown--go", number == 0 && countdown.Length > 0);
+                if (countdown.Length > 0)
+                    Pop(countdownLabel, "countdown--pop");
+            }
+
             SetVisible(wrongWayLabel, tracker.IsWrongWay);
 
             if (messageTimeLeft > 0f)
             {
                 messageTimeLeft -= Time.deltaTime;
                 if (messageTimeLeft <= 0f)
-                    messageLabel.text = string.Empty;
+                    ClearMessage();
             }
         }
 
-        private void ShowMessage(string text)
+        private void ClearMessage()
+        {
+            if (messageLabel == null)
+                return;
+
+            messageLabel.text = string.Empty;
+            messageLabel.RemoveFromClassList("centre-message--banner");
+        }
+
+        private void ShowMessage(string text, bool banner = false)
         {
             messageTimeLeft = messageDuration;
-            if (messageLabel != null)
-                messageLabel.text = text;
+            if (messageLabel == null)
+                return;
+
+            messageLabel.text = text;
+            messageLabel.EnableInClassList("centre-message--banner", banner);
+            Pop(messageLabel, "centre-message--pop");
+        }
+
+        /// <summary>
+        /// Punches an element in: a style class holding its entry state (bigger, clear) is applied now and removed on the
+        /// next frame, so the element eases from it into its normal look (the transitions are in RaceHud.uss).
+        /// </summary>
+        private static void Pop(VisualElement element, string entryClass)
+        {
+            element.AddToClassList(entryClass);
+            element.schedule.Execute(() => element.RemoveFromClassList(entryClass));
         }
 
         private void OnRaceRestarted()
         {
             playerFinishedAt = -1f;
             messageTimeLeft = 0f;
-            if (messageLabel != null)
-                messageLabel.text = string.Empty;
+            ClearMessage();
             SetResultsVisible(false);
         }
 
@@ -288,7 +340,7 @@ namespace RallyX.UI
             if (participant == race.Player)
             {
                 playerFinishedAt = Time.time;
-                ShowMessage("FINISH!");
+                ShowMessage("FINISH!", banner: true);
             }
             else if (resultsVisible)
             {
@@ -310,9 +362,25 @@ namespace RallyX.UI
 
             FillResultsTable();
             FillRewards(playerEntry != null ? playerEntry.LastReward : null);
-            messageLabel.text = string.Empty;
+            ClearMessage();
             SetResultsVisible(true);
             restartButton.Focus();
+            RevealResults();
+        }
+
+        /// <summary>The results fade up, the card settles into place and its rows follow one after another.</summary>
+        private void RevealResults()
+        {
+            GameAudio.Play(RaceCue.Results);
+            Pop(results, "results--enter");
+            Pop(resultsPlace, "results-place--enter");
+            int index = 0;
+            foreach (var row in resultsTable.Children())
+            {
+                row.AddToClassList("results-row--enter");
+                var shown = row;
+                row.schedule.Execute(() => shown.RemoveFromClassList("results-row--enter")).StartingIn(200 + ResultsRowStagger * index++);
+            }
         }
 
         private void OnResultRecorded(RaceReward reward)
@@ -450,12 +518,19 @@ namespace RallyX.UI
             pauseTrack = root.Q<Label>("pause-track");
             var resume = root.Q<Button>("pause-resume");
             var restart = root.Q<Button>("pause-restart");
+            var openSettings = root.Q<Button>("pause-settings");
             var leave = root.Q<Button>("pause-menu");
             pauseSelection = new MenuSelection();
             if (pauseOverlay != null && resume != null && restart != null && leave != null)
             {
                 pauseSelection.Add(resume, Resume);
                 pauseSelection.Add(restart, RestartRace);
+
+                // Optional: only offered when the layout has the settings screen.
+                if (openSettings != null && settings.Bind(root))
+                    pauseSelection.Add(openSettings, settings.Open);
+                else if (openSettings != null)
+                    SetVisible(openSettings, false);
                 pauseSelection.Add(leave, GoToMainMenu);
                 leave.SetEnabled(GameScenes.CanLoad(GameScenes.MainMenu));
                 if (pauseTrack != null)
@@ -468,7 +543,8 @@ namespace RallyX.UI
             }
 
             shownPosition = shownRacers = shownLap = shownSpeed = -1;
-            messageLabel.text = string.Empty;
+            shownCountdown = string.Empty;
+            ClearMessage();
             SetVisible(results, resultsVisible);
             return true;
         }

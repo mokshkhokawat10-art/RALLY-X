@@ -3,8 +3,9 @@ using UnityEngine;
 namespace RallyX.VFX
 {
     /// <summary>
-    /// Designer-tunable tyre, impact, landing and exhaust effects shared by every car. Read live, so edits in Play
-    /// Mode apply at once (particle budgets and materials apply to cars spawned afterwards).
+    /// Designer-tunable tyre, impact, landing, exhaust and brake effects shared by every car, how far from the camera
+    /// they are made, and the ambient dust around the camera. Read live, so edits in Play Mode apply at once (particle
+    /// budgets and materials apply to cars spawned afterwards).
     /// </summary>
     [CreateAssetMenu(menuName = "RALLY X/Vehicle Effects Config", fileName = "VehicleEffects")]
     public sealed class VehicleEffectsConfig : ScriptableObject
@@ -101,6 +102,36 @@ namespace RallyX.VFX
         [SerializeField, Range(0f, 1f)] private float backfireChance = 0.6f;
         [SerializeField, ColorUsage(false, true)] private Color backfireColor = new Color(1f, 0.45f, 0.12f) * 4f;
 
+        [Header("Brake Glow")]
+        [Tooltip("Colour the brake discs glow when hot. Black turns the glow off.")]
+        [SerializeField, ColorUsage(false, true)] private Color brakeGlowColor = new Color(1f, 0.26f, 0.04f) * 2.5f;
+        [Tooltip("Heat a disc gains per second of full braking from 100 km/h (1 = glowing fully). Heat grows with speed.")]
+        [SerializeField, Min(0f)] private float brakeHeating = 0.5f;
+        [Tooltip("Heat a disc loses per second.")]
+        [SerializeField, Min(0f)] private float brakeCooling = 0.2f;
+        [Tooltip("Heat (0..1) at which a disc starts to glow, so only long, hard stops make it glow.")]
+        [SerializeField, Range(0f, 1f)] private float brakeGlowStart = 0.35f;
+
+        [Header("Distance From the Camera")]
+        [Tooltip("Within this distance a car makes its tyre and exhaust effects at the full rate, metres.")]
+        [SerializeField, Min(1f)] private float fullDetailDistance = 60f;
+        [Tooltip("Beyond this distance a car makes no tyre or exhaust effects or skid marks, metres; in between the rate " +
+                 "thins out. Sparks from hits are always made.")]
+        [SerializeField, Min(1f)] private float cullDistance = 170f;
+
+        [Header("Ambient Dust")]
+        [Tooltip("Faint dust drifting through the air around the camera on dusty ground (the car it follows on dirt, gravel " +
+                 "or sand), puffs per second on the dustiest ground. 0 = off.")]
+        [SerializeField, Min(0f)] private float ambientDustRate = 4f;
+        [SerializeField, Range(0f, 1f)] private float ambientDustOpacity = 0.1f;
+        [SerializeField] private Vector2 ambientDustSize = new Vector2(3f, 7f);
+        [SerializeField] private Vector2 ambientDustLifetime = new Vector2(4f, 7f);
+        [Tooltip("How far from the camera the dust appears, metres.")]
+        [SerializeField, Min(2f)] private float ambientDustRange = 24f;
+        [Tooltip("Speed the dust drifts on the breeze, m/s.")]
+        [SerializeField, Min(0f)] private float ambientDustDrift = 0.8f;
+        [SerializeField, Range(1, 256)] private int maxAmbientDust = 40;
+
         [Header("Budgets")]
         [Tooltip("Most particles alive per car, per kind: puffs, debris, sparks, exhaust.")]
         [SerializeField] private int maxPuffs = 260;
@@ -162,6 +193,22 @@ namespace RallyX.VFX
         public float BackfireSpeed => backfireSpeed;
         public float BackfireChance => backfireChance;
         public Color BackfireColor => backfireColor;
+
+        public Color BrakeGlowColor => brakeGlowColor;
+        public float BrakeHeating => brakeHeating;
+        public float BrakeCooling => brakeCooling;
+        public float BrakeGlowStart => brakeGlowStart;
+
+        public float FullDetailDistance => fullDetailDistance;
+        public float CullDistance => Mathf.Max(cullDistance, fullDetailDistance + 1f);
+
+        public float AmbientDustRate => ambientDustRate;
+        public float AmbientDustOpacity => ambientDustOpacity;
+        public Vector2 AmbientDustSize => ambientDustSize;
+        public Vector2 AmbientDustLifetime => ambientDustLifetime;
+        public float AmbientDustRange => ambientDustRange;
+        public float AmbientDustDrift => ambientDustDrift;
+        public int MaxAmbientDust => maxAmbientDust;
 
         public int MaxPuffs => Mathf.Max(1, maxPuffs);
         public int MaxDebris => Mathf.Max(1, maxDebris);

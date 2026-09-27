@@ -67,9 +67,11 @@ namespace RallyX.Tests
             menu.Selection.Move(1);
             Assert.AreEqual("garage-button", menu.Selection.Selected.name);
             menu.Selection.Move(1);
+            Assert.AreEqual("settings-button", menu.Selection.Selected.name);
+            menu.Selection.Move(1);
             menu.Selection.Move(1);
             Assert.AreEqual("quit-button", menu.Selection.Selected.name, "The highlight stops at the last item.");
-            menu.Selection.Move(-2);
+            menu.Selection.Move(-3);
             Assert.AreEqual("race-button", menu.Selection.Selected.name);
             Assert.IsTrue(menu.Selection.Selected.ClassListContains(MenuSelection.SelectedClass));
 
@@ -344,7 +346,7 @@ namespace RallyX.Tests
             float timeScale = Time.timeScale;
             Assert.IsTrue(hud.Pause());
             Assert.AreEqual(0f, Time.timeScale);
-            hud.PauseSelection.Move(2);
+            hud.PauseSelection.Move(3);
             Assert.AreEqual("pause-menu", hud.PauseSelection.Selected.name);
             Assert.IsTrue(hud.PauseSelection.Selected.enabledSelf, "The game has a main menu to go back to.");
             hud.PauseSelection.Submit();

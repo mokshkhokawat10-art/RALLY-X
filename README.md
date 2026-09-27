@@ -24,6 +24,8 @@ Arcade rally racer for Windows PC, built with Unity 6 (URP) and the Unity Input 
 | RALLY X > Build > Rebuild All Car Prefabs | Regenerates every garage car's prefab from its spec (handling configs, definitions and roster are kept) |
 | RALLY X > Build > Create Missing Effects Content | The tyre/impact/exhaust effect textures and materials, and the effects config (the config is never overwritten) |
 | RALLY X > Build > Create Missing Camera Content | Default chase camera settings (never overwrites) |
+| RALLY X > Build > Create Missing Audio Content | The placeholder sounds (rewritten only when their recipe changes), the game audio config, each car's audio config, each surface's tyre sounds and the cars' VehicleAudio (configs and sounds already set are never overwritten) |
+| RALLY X > Build > Regenerate Placeholder Sounds | Rewrites every generated sound in `Assets/Audio/Generated/` (configs keep pointing at them) |
 | RALLY X > Build > Create Missing Race Content | Default race settings and the UI panel settings (never overwrites) |
 | RALLY X > Build > Create Missing AI Content | AI settings (incl. difficulty levels) and the three AI driver profiles (never overwrites) |
 | RALLY X > Build > Create Missing Garage Content | The garage cars' configs, placeholder prefabs and definitions, and the vehicle roster (never overwrites) |
@@ -50,6 +52,9 @@ REM Setup + build all generated content (including the scene of any track that h
 
 REM Setup + garage content + regenerate the main menu and garage scenes
 %U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.SetupAndBuildMenus -logFile -
+
+REM Audio content only (placeholder sounds, audio configs, surface sounds, the cars' VehicleAudio); touches no scene
+%U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.BuildAudio -logFile -
 
 REM Setup + regenerate every car prefab (handling configs, definitions and the roster are kept)
 %U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.SetupAndRebuildCars -logFile -
@@ -83,12 +88,14 @@ REM Play Mode tests (vehicle physics, Phase 10 handling and Phase 11 drivetrains
 | Handbrake     | Space             | South (A / ✕)  |
 | Reset car     | R                 | North (Y / △)  |
 | Restart race  | Backspace         | View / Select  |
-| Pause         | Esc: pause menu (Resume, Restart Race, Main Menu); on the results screen: back to the main menu | Start |
+| Pause         | Esc: pause menu (Resume, Restart Race, Settings, Main Menu); on the results screen: back to the main menu | Start |
 
 Menus and garage: arrows or WASD / D-pad or left stick to move, Enter or Space / South (A / X) to confirm,
 Esc / East (B / O) to go back, Q E / right stick (or drag with the mouse) to turn the car in the garage.
 On the main menu Left / Right (or the arrows by the track name) choose the track. In the pause menu Esc / Start or
-East (B / O) resumes. The mouse works everywhere.
+East (B / O) resumes. SETTINGS (main menu and pause menu): Up / Down choose a row, Left / Right change it (Enter toggles
+vibration), Esc / East goes back; the mouse can click a row's - and +. The mouse works everywhere.
+A gamepad rumbles with the ground, sliding tyres, hits and landings (Settings > Vibration).
 
 Dev panels: **F1** foundation overlay, **F2** vehicle telemetry (hidden by default in track scenes): speed, steering,
 surfaces, slip and drift, the drivetrain and each tyre's sideways grip left after the drive and brakes (`*` = spinning).
@@ -139,11 +146,20 @@ Everything below is data: edit the assets, not the code.
   camera rumble). A track can recolour its surfaces' dust and marks with its `SurfacePalette` (set from its theme).
 - **Effects** (`Assets/Settings/VFX/VehicleEffects_Default.asset`): when a tyre counts as sliding, rates, sizes and
   lifetimes of smoke, dust, stones, mud, sparks and exhaust, landing dust, skid mark width and capacity, backfires and
-  the particle budget per car.
+  the particle budget per car; *brake glow* (discs glow orange after long, hard stops: colour, heating, cooling, glow
+  start); *distance from the camera* (full effects within the full-detail distance, thinning out to none at the cull
+  distance, so far-away AI cars cost nothing; hit sparks are always made); and *ambient dust* (faint haze drifting
+  around the camera while the car it follows is on dirt, gravel or sand, in that ground's colour; none on asphalt, mud or
+  grass).
 - **Body lean and lights** (`VehicleVisuals` on each car prefab): pitch and roll per g, lean spring, chatter, light colours.
 - **Chase camera** (`ChaseCamera_Default.asset`): besides framing, smoothing, FOV and shake, the extra look-ahead at speed,
   a small pull-out while drifting, the spring dip on landings and push away from hits, and a faint rumble at speed that
-  grows on rough ground (set *speed rumble* to 0 to turn it off). Shake still fades out completely.
+  grows on rough ground (set *speed rumble* to 0 to turn it off), and a touch more *speed vignette* at high speed on top
+  of the track's own look (0 turns it off). Shake still fades out completely.
+- **Game audio** (`Assets/Resources/RallyX/GameAudio.asset`), **car audio** (`Assets/Settings/Audio/`) and **surface
+  sounds**: see Audio.
+- **Rumble** (`VehicleHaptics`, added to the player's car in a race): strength, surface rumble, tyre buzz and how hits and
+  landings thump.
 
 Each car's handling lives in its config in `Assets/Settings/Vehicles/` (`RallyCar_Config.asset` for the Falcon RX), surface behaviour in
 `Assets/Settings/Surfaces/` and the chase camera in `Assets/Settings/Cameras/ChaseCamera_Default.asset`.
@@ -154,6 +170,33 @@ a copy of its config made when the race loads, so config edits reach it from the
 Race rules (default laps, countdown, wrong-way warning, results delay) are in
 `Assets/Settings/Racing/RaceSettings_Default.asset`; a track can set its own laps (its `TrackInfo`, see Career).
 The HUD's and pause menu's layout and styles are in `Assets/UI/Race/` (`RaceHud.uxml`, `RaceHud.uss`).
+
+## Audio
+
+`GameAudio` (Scripts/Audio) starts with the game and lives across scenes, so nothing is placed in a scene for it. It plays
+the music (menu music in the menu scenes, carrying on from one to the next; race music from GO), the menu sounds (every
+menu's move, confirm, back, error, purchase and car/track switch) and the race announcements (3-2-1, GO, lap, final lap,
+finish, results). It finds the race in whatever scene loads. The music ducks while paused and after the player finishes.
+
+- **Volumes** (Settings: Master, Music, Sound Effects, Vehicles, plus Vibration) are saved in the player profile's
+  `settings` section. Older saves have none and load with the defaults; nothing else in the save changes. Master is
+  applied to the AudioListener; each sound multiplies its own level by its channel's volume.
+- **Cars** (`VehicleAudio` on each car prefab, tuned by `VehicleAudioConfig` in `Assets/Settings/Audio/`): the engine is two
+  loops (low and high revs) pitched to the revs of a sound-only gearbox (`EngineRevs`: idle, redline, launch revs, gear
+  top speeds, shift points and time, limiter), louder on the throttle; it revs freely in the air and when held on the grid
+  (rev it during the countdown). Gear changes clunk, backfires pop. Tyre noise rolling and sliding comes from the surface
+  under the wheels; wind grows with speed and in the air for the car the camera follows; hits, scraping and landings
+  scale with their force. Other cars are 3D with a little Doppler; a car beyond the config's range is silent and its
+  sources are stopped. Each car has its own config (the Kestrel revs higher and lighter with six gears, the Titan deeper
+  and louder).
+- **Surfaces** carry their own tyre sounds (`Rolling Sound`, `Slide Sound` on each surface asset), so a new surface (snow,
+  wet asphalt) brings its sound with it; a surface without them uses the car config's defaults.
+- **The sounds are placeholders**, synthesised by the editor (`PlaceholderSounds`: engines from firing pulses, gravel from
+  grains, squeal, wind, impacts, menu tones, a fanfare and two short music loops) into `Assets/Audio/Generated/`. No
+  sampled or third-party audio is used. To use real audio, drop licensed clips anywhere under Assets and assign them to
+  the slots: `Assets/Resources/RallyX/GameAudio.asset` (music, menu and race sounds), the car audio configs (engine
+  layers and the revs they were recorded at, gear change, backfire, default tyres, wind, impacts, scrape, landing) and
+  the surface assets. The builder never overwrites a slot that is set.
 
 ## Tracks
 
@@ -206,8 +249,12 @@ car is spawned when the scene loads by `PlayerRaceEntry` (the car chosen in the 
   plain C#, shared by the player and AI racers.
 - `VehicleController.InputLocked` holds cars on the grid during the countdown and brings finished cars to a stop.
 - The race runs over the track's laps (`RaceManager.SetLaps`, set from the track's `TrackInfo` when the scene loads).
-- **Pause** (Esc / Start) stops time and opens the pause menu: RESUME, RESTART RACE or MAIN MENU. Time comes back at
-  the speed it ran before (tests run faster than real time), including when leaving for the main menu.
+- **Pause** (Esc / Start) stops time and opens the pause menu: RESUME, RESTART RACE, SETTINGS or MAIN MENU. Time comes
+  back at the speed it ran before (tests run faster than real time), including when leaving for the main menu.
+- **Presentation** (RaceHud + RaceHud.uss transitions): each countdown number punches in with a beep, GO in yellow with a
+  higher tone and the race music; lap and final-lap messages pop in with a chime; the finish is a black-on-yellow banner
+  with a fanfare (the music dips); the results fade up with the card rising, the place popping and the rows sliding in one
+  after another. Only style classes animate, so every label's text is final the moment it appears.
 - Disabling the `RaceManager` releases the cars for free driving.
 
 ## AI opponents

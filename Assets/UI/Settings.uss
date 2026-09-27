@@ -1,0 +1,144 @@
+/* Settings screen, shared by the main menu and the pause menu (SettingsPanel). Sizes are for a 1920x1080 reference screen. */
+
+.settings {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.62);
+    display: none;
+    opacity: 1;
+    transition-property: opacity;
+    transition-duration: 0.2s;
+}
+
+.settings--enter {
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+.settings-card {
+    min-width: 760px;
+    padding: 30px 48px 26px 48px;
+    background-color: rgba(10, 14, 24, 0.96);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgb(255, 196, 36);
+    translate: 0 0;
+    transition-property: translate;
+    transition-duration: 0.25s;
+    transition-timing-function: ease-out-cubic;
+}
+
+.settings--enter .settings-card {
+    translate: 0 30px;
+    transition-duration: 0s;
+}
+
+.settings-title {
+    margin-bottom: 18px;
+    font-size: 30px;
+    color: rgb(255, 196, 36);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.settings-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.06);
+    transition-property: background-color;
+    transition-duration: 0.12s;
+}
+
+.settings-row.is-selected {
+    background-color: rgba(255, 196, 36, 0.18);
+}
+
+.settings-name {
+    width: 250px;
+    margin: 0;
+    padding: 0;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: rgb(205, 212, 224);
+    -unity-font-style: bold;
+}
+
+.settings-row.is-selected .settings-name {
+    color: rgb(255, 255, 255);
+}
+
+.settings-step {
+    width: 40px;
+    height: 40px;
+    margin: 0 10px;
+    padding: 0;
+    font-size: 24px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-width: 0;
+    border-radius: 6px;
+}
+
+.settings-step:hover {
+    color: rgb(20, 20, 20);
+    background-color: rgb(255, 196, 36);
+}
+
+.settings-track {
+    flex-grow: 1;
+    height: 12px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.14);
+    overflow: hidden;
+}
+
+.settings-fill {
+    height: 100%;
+    width: 0;
+    background-color: rgb(255, 196, 36);
+    transition-property: width;
+    transition-duration: 0.15s;
+}
+
+.settings-value {
+    width: 80px;
+    margin: 0;
+    padding: 0;
+    font-size: 22px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    -unity-text-align: middle-right;
+}
+
+.settings-back {
+    align-self: center;
+    min-width: 260px;
+    margin-top: 16px;
+    padding: 10px 26px;
+    font-size: 24px;
+    color: rgb(20, 20, 20);
+    -unity-font-style: bold;
+    background-color: rgb(255, 196, 36);
+    border-width: 0;
+    border-radius: 8px;
+}
+
+.settings-back:hover {
+    background-color: rgb(255, 216, 100);
+}
+
+.settings-hint {
+    margin-top: 12px;
+    font-size: 18px;
+    color: rgb(160, 168, 182);
+    -unity-text-align: middle-center;
+}
