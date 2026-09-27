@@ -59,7 +59,10 @@ namespace RallyX.UI
         private Label upgradeDescription;
         private Label upgradeStatus;
         private Label statsLegend;
-        private Label hints;
+        private HintBar hints;
+        private Label specs;
+        private Label carsTab;
+        private Label upgradesTab;
         private Label confirmTitle;
         private Label confirmDetails;
         private Button selectButton;
@@ -128,13 +131,15 @@ namespace RallyX.UI
         /// Plays a panel's entry transition: the entry state (panel--enter in Menus.uss) is applied now and removed on the
         /// next frame, so the panel eases into place.
         /// </summary>
-        private static void AnimateIn(VisualElement panel)
+        private static void AnimateIn(VisualElement panel) => AnimateIn(panel, "panel--enter", 0);
+
+        private static void AnimateIn(VisualElement element, string entryClass, long delay)
         {
-            if (panel == null)
+            if (element == null)
                 return;
 
-            panel.AddToClassList("panel--enter");
-            panel.schedule.Execute(() => panel.RemoveFromClassList("panel--enter"));
+            element.AddToClassList(entryClass);
+            element.schedule.Execute(() => element.RemoveFromClassList(entryClass)).StartingIn(delay);
         }
 
         /// <summary>Chooses the car on show to race. Returns false if it is locked.</summary>
@@ -455,9 +460,11 @@ namespace RallyX.UI
                 confirmDetails.text = $"For the {vehicle.DisplayName}.   Cost {Credits.Format(cost)}   |   Credits after {Credits.Format(profile.Credits - cost)}";
             }
 
-            hints.text = ConfirmingPurchase ? "ENTER   CONFIRM        ESC   CANCEL"
-                : ShowingUpgrades ? "UP / DOWN   CHOOSE PART        LEFT / RIGHT   CHANGE CAR        ENTER   BUY        ESC   BACK"
-                : "LEFT / RIGHT   CHANGE CAR        Q / E  OR  DRAG   TURN        ENTER   SELECT        U   UPGRADES        ESC   BACK";
+            if (specs != null)
+                specs.text = DescribeSpecs(vehicle);
+            carsTab?.EnableInClassList("tab--active", !ShowingUpgrades);
+            upgradesTab?.EnableInClassList("tab--active", ShowingUpgrades);
+            ShowHints();
 
             if (showroom != null)
                 showroom.Show(vehicle, locked);
@@ -521,6 +528,35 @@ namespace RallyX.UI
         private static void SetVisible(VisualElement element, bool visible) =>
             element.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
 
+        /// <summary>The hints for what is on screen: the purchase confirmation, the upgrades or the cars.</summary>
+        private void ShowHints()
+        {
+            if (ConfirmingPurchase)
+                hints.Show((HintAction.Confirm, "CONFIRM"), (HintAction.Back, "CANCEL"));
+            else if (ShowingUpgrades)
+                hints.Show((HintAction.Choose, "PART"), (HintAction.Browse, "CAR"), (HintAction.Confirm, "BUY"), (HintAction.Back, "BACK"));
+            else
+                hints.Show((HintAction.Browse, "CAR"), (HintAction.Rotate, "TURN"), (HintAction.Confirm, "SELECT"),
+                    (HintAction.Secondary, "UPGRADES"), (HintAction.Back, "BACK"));
+        }
+
+        /// <summary>The car's drivetrain and weight, e.g. "ALL-WHEEL DRIVE 40:60  |  1250 KG".</summary>
+        private static string DescribeSpecs(VehicleDefinition vehicle)
+        {
+            var config = vehicle.Prefab != null ? vehicle.Prefab.Config : null;
+            if (config == null)
+                return string.Empty;
+
+            int front = Mathf.RoundToInt(config.FrontDriveShare * 100f);
+            string drive = config.Drivetrain switch
+            {
+                Drivetrain.FrontWheelDrive => "FRONT-WHEEL DRIVE",
+                Drivetrain.RearWheelDrive => "REAR-WHEEL DRIVE",
+                _ => $"ALL-WHEEL DRIVE {front}:{100 - front}",
+            };
+            return $"{drive}   |   {config.Mass:0} KG";
+        }
+
         /// <summary>Finds the garage's elements and builds the stat and upgrade rows; again whenever the document rebuilds its tree.</summary>
         private bool Bind()
         {
@@ -545,7 +581,10 @@ namespace RallyX.UI
             upgradeDescription = root.Q<Label>("upgrade-description");
             upgradeStatus = root.Q<Label>("upgrade-status");
             statsLegend = root.Q<Label>("stats-legend");
-            hints = root.Q<Label>("hints");
+            var hintKeys = root.Q("hint-keys");
+            specs = root.Q<Label>("car-specs");
+            carsTab = root.Q<Label>("tab-cars");
+            upgradesTab = root.Q<Label>("tab-upgrades");
             confirmTitle = root.Q<Label>("confirm-title");
             confirmDetails = root.Q<Label>("confirm-details");
             selectButton = root.Q<Button>("select-button");
@@ -562,7 +601,7 @@ namespace RallyX.UI
             var required = new object[]
             {
                 viewport, infoPanel, upgradePanel, confirm, counter, credits, carCategory, carName, carDescription, status, upgradeCar,
-                upgradeDescription, upgradeStatus, statsLegend, hints, confirmTitle, confirmDetails, selectButton, upgradesButton, buyButton,
+                upgradeDescription, upgradeStatus, statsLegend, hintKeys, confirmTitle, confirmDetails, selectButton, upgradesButton, buyButton,
                 backButton, previousButton, nextButton, confirmBuy, confirmCancel, statList, dotList, upgradeList,
             };
             if (Array.Exists(required, element => element == null))
@@ -573,8 +612,15 @@ namespace RallyX.UI
             }
 
             boundRoot = root;
+            hints = new HintBar(hintKeys);
             foreach (var button in new[] { selectButton, upgradesButton, buyButton, backButton, previousButton, nextButton, confirmBuy, confirmCancel })
                 button.focusable = false;
+
+            // The screen's entrance: the top bar drops in, then the panels and the bottom row rise into place.
+            AnimateIn(root.Q(className: "top-bar"), "top-bar--enter", 0);
+            AnimateIn(infoPanel, "panel--enter", 120);
+            AnimateIn(statsPanel, "panel--enter", 200);
+            AnimateIn(root.Q(className: "garage-bottom"), "garage-bottom--enter", 260);
             selectButton.clicked += () => SelectCurrent();
             upgradesButton.clicked += () => OpenUpgrades();
             buyButton.clicked += () => RequestPurchase();

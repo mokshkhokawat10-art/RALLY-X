@@ -1,4 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Common.uss" />
     <Style src="RaceHud.uss" />
     <Style src="../Settings.uss" />
     <ui:VisualElement name="race-hud" class="race-hud" picking-mode="Ignore">
@@ -17,10 +18,28 @@
             <ui:Label name="timer" text="0:00.000" class="timer" picking-mode="Ignore" />
             <ui:Label name="lap-time" text="LAP  0:00.000" class="minor" picking-mode="Ignore" />
             <ui:Label name="best-lap" text="BEST  -:--.---" class="minor" picking-mode="Ignore" />
+            <ui:Label name="lap-delta" class="lap-delta" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement class="hud-panel hud-panel--bottom-left" picking-mode="Ignore">
+            <ui:VisualElement name="minimap" class="minimap" picking-mode="Ignore" />
         </ui:VisualElement>
         <ui:VisualElement class="hud-panel hud-panel--bottom-right" picking-mode="Ignore">
-            <ui:Label name="speed" text="0" class="speed" picking-mode="Ignore" />
-            <ui:Label text="KM/H" class="caption" picking-mode="Ignore" />
+            <ui:VisualElement name="rev-bar" class="rev-bar" picking-mode="Ignore" />
+            <ui:VisualElement class="speed-row" picking-mode="Ignore">
+                <ui:VisualElement class="gear-box" picking-mode="Ignore">
+                    <ui:Label text="GEAR" class="caption" picking-mode="Ignore" />
+                    <ui:Label name="gear" text="N" class="gear" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="speed-box" picking-mode="Ignore">
+                    <ui:Label name="speed" text="0" class="speed" picking-mode="Ignore" />
+                    <ui:Label text="KM/H" class="caption" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="start-lights" class="start-lights start-lights--hidden" picking-mode="Ignore">
+            <ui:VisualElement class="start-light" picking-mode="Ignore" />
+            <ui:VisualElement class="start-light" picking-mode="Ignore" />
+            <ui:VisualElement class="start-light" picking-mode="Ignore" />
         </ui:VisualElement>
         <ui:Label name="message" class="centre-message" picking-mode="Ignore" />
         <ui:Label name="wrong-way" text="WRONG WAY" class="wrong-way" picking-mode="Ignore" />
@@ -45,18 +64,19 @@
                 <ui:Label name="results-laps" class="results-laps" />
                 <ui:Button name="restart-button" text="RESTART RACE" class="restart-button" />
                 <ui:Button name="menu-button" text="MAIN MENU" class="restart-button menu-button" />
-                <ui:Label text="Restart: Backspace / gamepad View      Main menu: Esc / gamepad Start" class="hint" />
+                <ui:VisualElement name="results-hints" class="hint-keys card-hints" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="pause" class="pause">
             <ui:VisualElement class="pause-card">
                 <ui:Label text="PAUSED" class="results-title" />
                 <ui:Label name="pause-track" class="pause-track" />
+                <ui:Label name="pause-summary" class="pause-summary" />
                 <ui:Button name="pause-resume" text="RESUME" class="pause-button" />
                 <ui:Button name="pause-restart" text="RESTART RACE" class="pause-button" />
                 <ui:Button name="pause-settings" text="SETTINGS" class="pause-button" />
                 <ui:Button name="pause-menu" text="MAIN MENU" class="pause-button" />
-                <ui:Label text="Up / Down  choose      Enter  confirm      Esc / Start  resume" class="hint" />
+                <ui:VisualElement name="pause-hints" class="hint-keys card-hints" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="settings" class="settings">
@@ -64,7 +84,7 @@
                 <ui:Label text="SETTINGS" class="settings-title" />
                 <ui:VisualElement name="settings-rows" class="settings-rows" />
                 <ui:Button name="settings-back" text="BACK" class="settings-back" />
-                <ui:Label text="Up / Down  choose      Left / Right  change      Esc / B  back" class="settings-hint" />
+                <ui:VisualElement name="settings-hints" class="hint-keys card-hints settings-hints" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

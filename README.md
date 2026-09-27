@@ -26,6 +26,8 @@ Arcade rally racer for Windows PC, built with Unity 6 (URP) and the Unity Input 
 | RALLY X > Build > Create Missing Camera Content | Default chase camera settings (never overwrites) |
 | RALLY X > Build > Create Missing Audio Content | The placeholder sounds (rewritten only when their recipe changes), the game audio config, each car's audio config, each surface's tyre sounds and the cars' VehicleAudio (configs and sounds already set are never overwritten) |
 | RALLY X > Build > Regenerate Placeholder Sounds | Rewrites every generated sound in `Assets/Audio/Generated/` (configs keep pointing at them) |
+| RALLY X > Build > Create Missing UI Content | Panel scaling (shrink to fit), the loading screen config in `Assets/Resources/RallyX/` (never overwritten) and the track maps |
+| RALLY X > Build > Bake Track Maps | Stores each track's lap outline and length on its TrackInfo, for the track selection and loading screens |
 | RALLY X > Build > Create Missing Race Content | Default race settings and the UI panel settings (never overwrites) |
 | RALLY X > Build > Create Missing AI Content | AI settings (incl. difficulty levels) and the three AI driver profiles (never overwrites) |
 | RALLY X > Build > Create Missing Garage Content | The garage cars' configs, placeholder prefabs and definitions, and the vehicle roster (never overwrites) |
@@ -55,6 +57,9 @@ REM Setup + garage content + regenerate the main menu and garage scenes
 
 REM Audio content only (placeholder sounds, audio configs, surface sounds, the cars' VehicleAudio); touches no scene
 %U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.BuildAudio -logFile -
+
+REM Front-end content only (panel scaling, loading screen config, track maps); touches no scene
+%U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.BuildUi -logFile -
 
 REM Setup + regenerate every car prefab (handling configs, definitions and the roster are kept)
 %U% -batchmode -quit -projectPath "C:\Users\Admin\RALLY X" -executeMethod RallyX.EditorTools.BatchTasks.SetupAndRebuildCars -logFile -
@@ -170,6 +175,26 @@ a copy of its config made when the race loads, so config edits reach it from the
 Race rules (default laps, countdown, wrong-way warning, results delay) are in
 `Assets/Settings/Racing/RaceSettings_Default.asset`; a track can set its own laps (its `TrackInfo`, see Career).
 The HUD's and pause menu's layout and styles are in `Assets/UI/Race/` (`RaceHud.uxml`, `RaceHud.uss`).
+
+## Front end
+
+Every screen shares the RALLY X look (`Assets/UI/Common.uss`: colour tokens, key caps, tags, captions): near-black
+panels, one yellow accent, white bold italic capitals. The panel shrinks the 1920x1080 layout to fit the screen, so it
+always fits at 16:9 and wider screens get more room at the sides (cards stay anchored to the edges).
+
+- **Main menu**: the side panel and each item slide in, the highlighted item says what it does, the career strip shows
+  credits, wins and races, and the next-race card browses tracks. RACE opens the **track selection** screen: the track's
+  map (baked from its layout), laps, lap length, credit multiplier and best lap, or what unlocks it; Left / Right browse
+  (the card slides in from that side), Enter races, Esc goes back.
+- **Loading screen** (`LoadingScreen`, config `Assets/Resources/RallyX/LoadingScreen.asset`): every scene change made by the
+  game fades it in, swaps the scene while the screen is covered, holds for a moment and fades out. It shows the next
+  track's name, details and map (or the screen's name), a tip and a progress bar; tips and timing are in the config.
+- **Garage**: CARS / UPGRADES tabs, the car's drivetrain and weight under its name, and panels that ease in when the
+  screen opens and as cars change.
+- **Race HUD**: start lights (red for 3-2-1, green at GO), a rev bar and gear from the car's sound-only engine, a
+  minimap with every racer, and each lap's time against the best before it; the panels slide in for each start. The
+  pause menu sums up place, lap and time; the results show podium colours, each driver's best lap and gap to the winner.
+- **Control hints** are key caps that name keyboard keys or gamepad buttons, switching to whichever the player used last.
 
 ## Audio
 

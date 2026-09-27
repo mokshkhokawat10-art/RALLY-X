@@ -1,4 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Common.uss" />
     <Style src="Menus.uss" />
     <Style src="../Settings.uss" />
     <ui:VisualElement name="main-menu" class="screen" picking-mode="Ignore">
@@ -15,37 +16,93 @@
                 <ui:Button name="settings-button" text="SETTINGS" class="menu-item" />
                 <ui:Button name="quit-button" text="QUIT" class="menu-item" />
             </ui:VisualElement>
+            <ui:Label name="menu-description" class="menu-description" picking-mode="Ignore" />
             <ui:VisualElement class="menu-footer" picking-mode="Ignore">
-                <ui:Label text="YOUR CAR" class="caption" picking-mode="Ignore" />
+                <ui:Label text="YOUR CAR" class="eyebrow" picking-mode="Ignore" />
                 <ui:Label name="car-name" class="current-car-name" picking-mode="Ignore" />
                 <ui:Label name="car-category" class="current-car-category" picking-mode="Ignore" />
-                <ui:VisualElement class="career" picking-mode="Ignore">
-                    <ui:VisualElement class="career-item" picking-mode="Ignore">
-                        <ui:Label text="CREDITS" class="caption" picking-mode="Ignore" />
-                        <ui:Label name="credits" class="career-value" picking-mode="Ignore" />
-                    </ui:VisualElement>
-                    <ui:VisualElement class="career-item" picking-mode="Ignore">
-                        <ui:Label text="TRACK" class="caption" picking-mode="Ignore" />
-                        <ui:VisualElement class="track-picker" picking-mode="Ignore">
-                            <ui:Button name="track-previous" text="&lt;" class="track-arrow" />
-                            <ui:Label name="track-name" class="career-value" picking-mode="Ignore" />
-                            <ui:Button name="track-next" text="&gt;" class="track-arrow" />
-                        </ui:VisualElement>
-                        <ui:Label name="track-details" class="current-car-category" picking-mode="Ignore" />
-                        <ui:Label name="track-record" class="current-car-category track-record" picking-mode="Ignore" />
-                    </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="career-strip side-card" picking-mode="Ignore">
+            <ui:VisualElement class="career-item" picking-mode="Ignore">
+                <ui:Label text="CREDITS" class="eyebrow" picking-mode="Ignore" />
+                <ui:Label name="credits" class="career-value" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="career-item" picking-mode="Ignore">
+                <ui:Label text="WINS" class="eyebrow" picking-mode="Ignore" />
+                <ui:Label name="career-wins" class="career-value" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="career-item career-item--last" picking-mode="Ignore">
+                <ui:Label text="RACES" class="eyebrow" picking-mode="Ignore" />
+                <ui:Label name="career-races" class="career-value" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="next-race side-card" picking-mode="Ignore">
+            <ui:VisualElement class="edge-line" picking-mode="Ignore" />
+            <ui:VisualElement class="next-race-body" picking-mode="Ignore">
+                <ui:Label text="NEXT RACE" class="eyebrow" picking-mode="Ignore" />
+                <ui:VisualElement class="track-picker" picking-mode="Ignore">
+                    <ui:Button name="track-previous" text="&lt;" class="track-arrow" />
+                    <ui:Label name="track-name" class="career-value track-title" picking-mode="Ignore" />
+                    <ui:Button name="track-next" text="&gt;" class="track-arrow" />
                 </ui:VisualElement>
+                <ui:Label name="track-details" class="current-car-category" picking-mode="Ignore" />
+                <ui:Label name="track-record" class="current-car-category track-record" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement class="hint-bar" picking-mode="Ignore">
-            <ui:Label name="hints" text="UP / DOWN   CHOOSE        ENTER   CONFIRM" class="hint" picking-mode="Ignore" />
+            <ui:VisualElement name="hint-keys" class="hint-keys" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="track-select" class="track-select">
+            <ui:VisualElement class="select-header" picking-mode="Ignore">
+                <ui:VisualElement class="title-accent" picking-mode="Ignore" />
+                <ui:Label text="SELECT TRACK" class="screen-title" picking-mode="Ignore" />
+                <ui:VisualElement class="top-bar-spacer" picking-mode="Ignore" />
+                <ui:Label name="select-count" class="screen-counter" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="select-body" picking-mode="Ignore">
+                <ui:Button name="select-previous" text="&lt;" class="arrow-button" />
+                <ui:VisualElement name="select-card" class="select-card" picking-mode="Ignore">
+                    <ui:VisualElement name="select-map" class="select-map" picking-mode="Ignore" />
+                    <ui:VisualElement class="select-info" picking-mode="Ignore">
+                        <ui:Label name="select-lock" class="tag" picking-mode="Ignore" />
+                        <ui:Label name="select-name" class="select-name" picking-mode="Ignore" />
+                        <ui:VisualElement class="accent-bar" picking-mode="Ignore" />
+                        <ui:Label name="select-description" class="select-description" picking-mode="Ignore" />
+                        <ui:VisualElement class="select-stats" picking-mode="Ignore">
+                            <ui:VisualElement class="select-stat" picking-mode="Ignore">
+                                <ui:Label text="LAPS" class="eyebrow" picking-mode="Ignore" />
+                                <ui:Label name="select-laps" class="select-stat-value" picking-mode="Ignore" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="select-stat" picking-mode="Ignore">
+                                <ui:Label text="LAP LENGTH" class="eyebrow" picking-mode="Ignore" />
+                                <ui:Label name="select-length" class="select-stat-value" picking-mode="Ignore" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="select-stat" picking-mode="Ignore">
+                                <ui:Label text="CREDITS" class="eyebrow" picking-mode="Ignore" />
+                                <ui:Label name="select-credits" class="select-stat-value" picking-mode="Ignore" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="select-stat" picking-mode="Ignore">
+                                <ui:Label text="BEST LAP" class="eyebrow" picking-mode="Ignore" />
+                                <ui:Label name="select-record" class="select-stat-value" picking-mode="Ignore" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="select-actions" picking-mode="Ignore">
+                            <ui:Button name="select-back" text="BACK" class="action action--secondary" />
+                            <ui:Button name="select-race" text="RACE" class="action action--primary" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Button name="select-next" text="&gt;" class="arrow-button" />
+            </ui:VisualElement>
+            <ui:VisualElement name="select-dots" class="car-dots select-dots" picking-mode="Ignore" />
         </ui:VisualElement>
         <ui:VisualElement name="settings" class="settings">
             <ui:VisualElement class="settings-card">
                 <ui:Label text="SETTINGS" class="settings-title" />
                 <ui:VisualElement name="settings-rows" class="settings-rows" />
                 <ui:Button name="settings-back" text="BACK" class="settings-back" />
-                <ui:Label text="Up / Down  choose      Left / Right  change      Esc / B  back" class="settings-hint" />
+                <ui:VisualElement name="settings-hints" class="hint-keys card-hints settings-hints" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

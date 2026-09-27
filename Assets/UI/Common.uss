@@ -1,0 +1,101 @@
+/* RALLY X identity, shared by every screen: near-black panels, one yellow accent, white type, bold italic capitals.
+   Sizes are for a 1920x1080 reference screen; the panel shrinks it to fit, so wider screens get more room at the sides. */
+
+:root {
+    --rally-yellow: rgb(255, 196, 36);
+    --rally-yellow-soft: rgba(255, 196, 36, 0.16);
+    --rally-yellow-line: rgba(255, 196, 36, 0.55);
+    --rally-ink: rgb(14, 14, 14);
+    --rally-panel: rgba(3, 5, 9, 0.82);
+    --rally-panel-solid: rgba(8, 11, 18, 0.96);
+    --rally-white: rgb(255, 255, 255);
+    --rally-text: rgb(205, 212, 224);
+    --rally-muted: rgb(150, 158, 172);
+    --rally-good: rgb(96, 222, 136);
+    --rally-bad: rgb(255, 104, 84);
+}
+
+/* A small caption above a value, in yellow capitals. */
+.eyebrow {
+    margin: 0;
+    padding: 0;
+    font-size: 16px;
+    letter-spacing: 4px;
+    color: var(--rally-yellow);
+    -unity-font-style: bold;
+}
+
+/* A short yellow bar that marks the start of a heading. */
+.accent-bar {
+    width: 64px;
+    height: 6px;
+    margin: 8px 0 14px 0;
+    background-color: var(--rally-yellow);
+}
+
+/* A small label on a coloured pill: LOCKED, NEW RECORD, YOUR CAR. */
+.tag {
+    align-self: flex-start;
+    margin: 0;
+    padding: 4px 12px;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: var(--rally-ink);
+    background-color: var(--rally-yellow);
+    border-radius: 2px;
+    -unity-font-style: bold;
+}
+
+.tag--dark {
+    color: var(--rally-white);
+    background-color: rgba(255, 255, 255, 0.14);
+}
+
+.tag--bad {
+    color: var(--rally-white);
+    background-color: rgb(196, 48, 38);
+}
+
+/* Control hints (HintBar): a key cap and what it does. */
+.hint-keys {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.hint-item {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 30px;
+}
+
+.key-cap {
+    min-width: 36px;
+    height: 30px;
+    margin: 0 10px 0 0;
+    padding: 0 10px;
+    -unity-text-align: middle-center;
+    font-size: 15px;
+    letter-spacing: 1px;
+    color: var(--rally-ink);
+    background-color: rgb(235, 238, 244);
+    border-radius: 4px;
+    border-bottom-width: 3px;
+    border-color: rgb(150, 156, 168);
+    -unity-font-style: bold;
+}
+
+.hint-label {
+    margin: 0;
+    padding: 0;
+    font-size: 17px;
+    letter-spacing: 2px;
+    color: var(--rally-text);
+    -unity-font-style: bold;
+}
+
+/* A thin yellow line across the bottom or top of a bar. */
+.edge-line {
+    height: 3px;
+    background-color: var(--rally-yellow);
+}

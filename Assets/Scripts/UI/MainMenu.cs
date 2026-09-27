@@ -10,20 +10,28 @@ using UnityEngine.UIElements;
 namespace RallyX.UI
 {
     /// <summary>
-    /// The title screen: RACE (the chosen track in the player's car), GARAGE, SETTINGS (volumes and vibration,
-    /// <see cref="SettingsPanel"/>) and QUIT, with the player's car turning on the showroom turntable behind and their
-    /// credits. The menu slides in when the screen opens. Left and right (or the arrows) browse the tracks: each shows
-    /// its laps and best lap, a locked one what unlocks it (RACE is off while it is shown); showing an unlocked track
-    /// chooses it, saved in the profile. Keyboard, gamepad and mouse. Layout and styling are in
-    /// Assets/UI/Menus/MainMenu.uxml and Menus.uss.
+    /// The title screen: RACE, GARAGE, SETTINGS (volumes and vibration, <see cref="SettingsPanel"/>) and QUIT, each with a
+    /// line saying what it does, the player's car turning on the showroom turntable behind, their career (credits, wins,
+    /// races) and the next race's track, which Left and Right (or its arrows) browse. RACE opens the track selection screen:
+    /// the track's map, laps, lap length, pay and best lap, or what unlocks it; Left and Right browse, Enter races, Esc goes
+    /// back. Showing an unlocked track chooses it, saved in the profile; a locked one can't be raced. Everything slides in
+    /// when the screen opens, and the control hints follow the device in use. Keyboard, gamepad and mouse. Layout and
+    /// styling are in Assets/UI/Menus/MainMenu.uxml and Menus.uss.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
     public sealed class MainMenu : MonoBehaviour
     {
-        private const string SingleTrackHints = "UP / DOWN   CHOOSE        ENTER   CONFIRM";
-        private const string TrackHints = "UP / DOWN   CHOOSE        LEFT / RIGHT   TRACK        ENTER   CONFIRM";
-        private const string SettingsHints = "UP / DOWN   CHOOSE        LEFT / RIGHT   CHANGE        ESC   BACK";
+        // Delay between menu items sliding in, milliseconds.
+        private const long ItemStagger = 70;
+
+        private static readonly Dictionary<string, string> Descriptions = new Dictionary<string, string>
+        {
+            ["race-button"] = "Choose a track and take on the field",
+            ["garage-button"] = "Choose your car and buy upgrades",
+            ["settings-button"] = "Sound volumes and vibration",
+            ["quit-button"] = "Leave RALLY X",
+        };
 
         [SerializeField] private VehicleRoster roster;
         [SerializeField] private VehicleShowroom showroom;
@@ -43,19 +51,26 @@ namespace RallyX.UI
         private Label carName;
         private Label carCategory;
         private Label credits;
+        private Label wins;
+        private Label races;
         private Label trackName;
         private Label trackDetails;
         private Label trackRecord;
-        private Label hints;
+        private Label description;
+        private HintBar hints;
         private Button raceButton;
         private Button previousTrackButton;
         private Button nextTrackButton;
+        private TrackSelect trackSelect;
         private int trackIndex = -1;
 
         public MenuSelection Selection => selection;
 
         /// <summary>The settings screen opened from SETTINGS.</summary>
         public SettingsPanel Settings => settings;
+
+        /// <summary>True while the track selection screen is open.</summary>
+        public bool TrackSelectOpen => trackSelect != null && trackSelect.IsOpen;
 
         /// <summary>The track shown, which RACE loads when it is unlocked; null without progression settings.</summary>
         public TrackInfo Track { get; private set; }
@@ -75,6 +90,9 @@ namespace RallyX.UI
         public string TrackRecordText => trackRecord != null ? trackRecord.text : null;
         public string TrackDetailsText => trackDetails != null ? trackDetails.text : null;
 
+        /// <summary>The control hints shown now, e.g. "ENTER SELECT". For tests and tooling.</summary>
+        public string HintText => hints != null ? hints.Text : null;
+
         public void Configure(VehicleRoster newRoster, VehicleShowroom newShowroom, ProgressionSettings newProgression, string fallbackRaceScene)
         {
             roster = newRoster;
@@ -91,14 +109,30 @@ namespace RallyX.UI
                 GameScenes.Load(RaceScene);
         }
 
+        /// <summary>
+        /// What RACE on the menu does: opens the track selection screen, or races straight away when there is no track list
+        /// (or no screen for it in the layout).
+        /// </summary>
+        public void ChooseTrack()
+        {
+            if (trackSelect != null && Tracks.Count > 0)
+            {
+                trackSelect.Open();
+                ShowHints();
+            }
+            else
+            {
+                Race();
+            }
+        }
+
         public void OpenGarage() => GameScenes.Load(GameScenes.Garage);
 
         /// <summary>Opens the settings screen (volumes and vibration) over the menu.</summary>
         public void OpenSettings()
         {
             settings.Open();
-            if (hints != null)
-                hints.text = SettingsHints;
+            ShowHints();
         }
 
         public void Quit()
@@ -131,12 +165,14 @@ namespace RallyX.UI
         {
             GameAudio.Play(UiCue.Switch);
             ShowTrack(trackIndex + 1);
+            trackSelect?.AnimateSwap(1);
         }
 
         public void PreviousTrack()
         {
             GameAudio.Play(UiCue.Switch);
             ShowTrack(trackIndex - 1);
+            trackSelect?.AnimateSwap(-1);
         }
 
         private IReadOnlyList<TrackInfo> Tracks =>
@@ -190,6 +226,12 @@ namespace RallyX.UI
                 return;
             }
 
+            if (TrackSelectOpen)
+            {
+                UpdateTrackSelect();
+                return;
+            }
+
             if (input.MenuUp.WasPressedThisFrame())
                 selection.Move(-1);
             if (input.MenuDown.WasPressedThisFrame())
@@ -204,6 +246,48 @@ namespace RallyX.UI
 
             if (input.Submit.WasPressedThisFrame())
                 selection.Submit();
+        }
+
+        private void UpdateTrackSelect()
+        {
+            if (input.Back.WasPressedThisFrame())
+            {
+                CloseTrackSelect();
+                return;
+            }
+
+            if (Tracks.Count > 1)
+            {
+                if (input.MenuLeft.WasPressedThisFrame())
+                    PreviousTrack();
+                if (input.MenuRight.WasPressedThisFrame())
+                    NextTrack();
+            }
+
+            if (input.Submit.WasPressedThisFrame())
+                RaceFromTrackSelect();
+        }
+
+        private void RaceFromTrackSelect()
+        {
+            if (!CanRace)
+            {
+                GameAudio.Play(UiCue.Error);
+                return;
+            }
+
+            GameAudio.Play(UiCue.Confirm);
+            Race();
+        }
+
+        private void CloseTrackSelect()
+        {
+            if (trackSelect == null || !trackSelect.IsOpen)
+                return;
+
+            GameAudio.Play(UiCue.Back);
+            trackSelect.Close();
+            ShowHints();
         }
 
         private void Refresh()
@@ -228,6 +312,10 @@ namespace RallyX.UI
                 carName.text = Vehicle.DisplayName.ToUpperInvariant();
                 carCategory.text = Vehicle.Category.ToUpperInvariant();
                 credits.text = Credits.Format(profile.Credits);
+                if (wins != null)
+                    wins.text = profile.Wins.ToString();
+                if (races != null)
+                    races.text = profile.RacesFinished.ToString();
 
                 bool locked = TrackLocked;
                 trackName.text = Track != null ? Track.DisplayName.ToUpperInvariant() : RaceScene.ToUpperInvariant();
@@ -240,11 +328,29 @@ namespace RallyX.UI
                 bool browsable = tracks.Count > 1;
                 SetVisible(previousTrackButton, browsable);
                 SetVisible(nextTrackButton, browsable);
-                hints.text = settings.IsOpen ? SettingsHints : browsable ? TrackHints : SingleTrackHints;
+                trackSelect?.Show(Track, trackIndex, tracks.Count, locked, locked ? Track.UnlockHint(profile) : null,
+                    Track != null ? profile.GetTrackRecord(Track.Id).BestLap : 0f, CanRace);
+                ShowHints();
             }
 
             if (showroom != null)
                 showroom.Show(Vehicle, locked: false);
+        }
+
+        /// <summary>The hints for what is on screen: the settings, the track selection or the menu.</summary>
+        private void ShowHints()
+        {
+            if (hints == null)
+                return;
+
+            if (settings.IsOpen)
+                hints.Show((HintAction.Choose, "CHOOSE"), (HintAction.Change, "CHANGE"), (HintAction.Back, "BACK"));
+            else if (TrackSelectOpen)
+                hints.Show((HintAction.Browse, "TRACK"), (HintAction.Confirm, "RACE"), (HintAction.Back, "BACK"));
+            else if (Tracks.Count > 1)
+                hints.Show((HintAction.Choose, "CHOOSE"), (HintAction.Browse, "TRACK"), (HintAction.Confirm, "SELECT"));
+            else
+                hints.Show((HintAction.Choose, "CHOOSE"), (HintAction.Confirm, "SELECT"));
         }
 
         /// <summary>The track's setting, laps and pay, e.g. "DRY CANYON  |  3 LAPS  |  CREDITS x1.25".</summary>
@@ -275,6 +381,17 @@ namespace RallyX.UI
             var vehicle = roster.Find(record.BestLapVehicle);
             string car = vehicle != null ? $"  ({vehicle.DisplayName.ToUpperInvariant()})" : string.Empty;
             return $"BEST LAP {Racing.RaceTime.Format(record.BestLap)}{car}";
+        }
+
+        private void ShowDescription(int index)
+        {
+            if (description == null || index < 0)
+                return;
+
+            var button = selection.Selected;
+            description.text = button != null && Descriptions.TryGetValue(button.name, out string text) ? text : string.Empty;
+            description.AddToClassList("menu-description--enter");
+            description.schedule.Execute(() => description.RemoveFromClassList("menu-description--enter"));
         }
 
         private static int IndexOf(IReadOnlyList<TrackInfo> tracks, TrackInfo track)
@@ -312,10 +429,8 @@ namespace RallyX.UI
             trackName = root.Q<Label>("track-name");
             trackDetails = root.Q<Label>("track-details");
             trackRecord = root.Q<Label>("track-record");
-            hints = root.Q<Label>("hints");
             if (raceButton == null || garageButton == null || quitButton == null || previousTrackButton == null || nextTrackButton == null
-                || carName == null || carCategory == null || credits == null || trackName == null || trackDetails == null || trackRecord == null
-                || hints == null)
+                || carName == null || carCategory == null || credits == null || trackName == null || trackDetails == null || trackRecord == null)
             {
                 Debug.LogError($"{name}: the menu layout is missing elements MainMenu needs. Check MainMenu.uxml.", this);
                 enabled = false;
@@ -323,13 +438,23 @@ namespace RallyX.UI
             }
 
             boundRoot = root;
+
+            // Optional parts of the layout.
+            wins = root.Q<Label>("career-wins");
+            races = root.Q<Label>("career-races");
+            description = root.Q<Label>("menu-description");
+            var hintKeys = root.Q("hint-keys");
+            hints = hintKeys != null ? new HintBar(hintKeys) : null;
+            trackSelect = TrackSelect.Bind(root, PreviousTrack, NextTrack, RaceFromTrackSelect, CloseTrackSelect);
+
             previousTrackButton.focusable = false;
             nextTrackButton.focusable = false;
             previousTrackButton.clicked += PreviousTrack;
             nextTrackButton.clicked += NextTrack;
             raceButton.SetEnabled(CanRace);
             selection = new MenuSelection();
-            selection.Add(raceButton, Race);
+            selection.Changed += ShowDescription;
+            selection.Add(raceButton, ChooseTrack);
             selection.Add(garageButton, OpenGarage);
 
             // Optional: only offered when the layout has the settings screen.
@@ -338,16 +463,32 @@ namespace RallyX.UI
             else if (settingsButton != null)
                 SetVisible(settingsButton, false);
             selection.Add(quitButton, Quit);
-
-            // The menu slides in: the entry state is applied now and removed next frame, so the transition runs.
-            var side = root.Q(className: "menu-side");
-            if (side != null)
-            {
-                side.AddToClassList("menu-side--enter");
-                side.schedule.Execute(() => side.RemoveFromClassList("menu-side--enter"));
-            }
-
+            ShowDescription(selection.Index);
+            PlayEntrance(root);
             return true;
+        }
+
+        /// <summary>
+        /// The screen's entrance: the side panel slides in, then each menu item one after another, then the side cards. Each
+        /// element's entry state (a style class) is applied now and removed after its delay, so its transition runs.
+        /// </summary>
+        private static void PlayEntrance(VisualElement root)
+        {
+            Enter(root.Q(className: "menu-side"), "menu-side--enter", 0);
+            int index = 0;
+            foreach (var item in root.Query<Button>(className: "menu-item").ToList())
+                Enter(item, "menu-item--enter", 180 + ItemStagger * index++);
+            foreach (var card in root.Query(className: "side-card").ToList())
+                Enter(card, "side-card--enter", 300 + ItemStagger * index++);
+        }
+
+        private static void Enter(VisualElement element, string entryClass, long delay)
+        {
+            if (element == null)
+                return;
+
+            element.AddToClassList(entryClass);
+            element.schedule.Execute(() => element.RemoveFromClassList(entryClass)).StartingIn(delay);
         }
     }
 }

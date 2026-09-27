@@ -13,9 +13,12 @@ namespace RallyX.UI
     /// countdown, the wrong-way warning and lap messages, then results with the credits earned (from the player's
     /// <see cref="PlayerRaceEntry"/>) and restart and main menu buttons. The restart input works at any time. The pause
     /// input pauses the race (time stops) with a menu to resume, restart, change the settings (<see cref="SettingsPanel"/>)
-    /// or leave for the main menu; once the results are up it leaves for the main menu. The countdown numbers and GO pop in,
-    /// lap and finish messages punch in (the finish as a banner), and the results fade up with their rows following one
-    /// after another. Layout and styling are in Assets/UI/Race/RaceHud.uxml and RaceHud.uss.
+    /// or leave for the main menu; once the results are up it leaves for the main menu. Motorsport touches: start lights
+    /// that fill red on 3-2-1 and turn green at GO, a rev bar and gear (from the car's sound-only engine), a minimap with
+    /// every racer, and each lap's time against the best so far. The HUD slides in for each start, the countdown numbers and
+    /// GO pop in, lap and finish messages punch in (the finish as a banner), the pause menu sums up the race, and the
+    /// results fade up with podium colours and their rows (best lap and gap to the winner) following one after another.
+    /// Control hints follow the device in use. Layout and styling are in Assets/UI/Race/RaceHud.uxml and RaceHud.uss.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
@@ -25,6 +28,13 @@ namespace RallyX.UI
 
         // Delay between results rows appearing, milliseconds.
         private const long ResultsRowStagger = 70;
+
+        // Segments in the rev bar; the last few are the red zone.
+        private const int RevSegments = 16;
+        private const int RedSegments = 3;
+
+        // Seconds the lap time and its delta stay up.
+        private const float DeltaDuration = 4f;
 
         [SerializeField] private RaceManager race;
 
@@ -61,7 +71,21 @@ namespace RallyX.UI
         private Label pauseTrack;
         private MenuSelection pauseSelection = new MenuSelection();
         private readonly SettingsPanel settings = new SettingsPanel();
+        private readonly System.Collections.Generic.List<VisualElement> revSegments = new System.Collections.Generic.List<VisualElement>();
+        private readonly System.Collections.Generic.List<VisualElement> startLights = new System.Collections.Generic.List<VisualElement>();
         private string shownCountdown = string.Empty;
+        private RaceMinimap minimap;
+        private Label gearLabel;
+        private Label deltaLabel;
+        private VisualElement startLightRow;
+        private Label pauseSummary;
+        private HintBar pauseHints;
+        private HintBar resultsHints;
+        private VehicleAudio playerAudio;
+        private Racing.RaceParticipant playerAudioOwner;
+        private float deltaTimeLeft;
+        private int shownRevs = -1;
+        private int shownGear = int.MinValue;
         private float timeScaleBeforePause = 1f;
 
         private float messageTimeLeft;
@@ -126,6 +150,10 @@ namespace RallyX.UI
             {
                 SetVisible(pauseOverlay, true);
                 pauseSelection.Select(0);
+                if (pauseSummary != null)
+                    pauseSummary.text = DescribeStanding();
+                if (pauseOverlay != null)
+                    Pop(pauseOverlay, "pause--enter");
             }
 
             return true;
@@ -207,6 +235,8 @@ namespace RallyX.UI
                 return;
 
             UpdateStats(player, tracker);
+            UpdateTelemetry(player);
+            minimap?.Update(race, Time.unscaledDeltaTime);
             UpdateCentreMessages(tracker);
 
             if (!resultsVisible && playerFinishedAt >= 0f && Time.time - playerFinishedAt >= race.Settings.ResultsDelay)
@@ -276,6 +306,14 @@ namespace RallyX.UI
                 countdownLabel.EnableInClassList("countdown--go", number == 0 && countdown.Length > 0);
                 if (countdown.Length > 0)
                     Pop(countdownLabel, "countdown--pop");
+                ShowStartLights(number, number == 0 && countdown.Length > 0);
+            }
+
+            if (deltaTimeLeft > 0f)
+            {
+                deltaTimeLeft -= Time.deltaTime;
+                if (deltaTimeLeft <= 0f && deltaLabel != null)
+                    deltaLabel.AddToClassList("lap-delta--hidden");
             }
 
             SetVisible(wrongWayLabel, tracker.IsWrongWay);
@@ -324,6 +362,9 @@ namespace RallyX.UI
             messageTimeLeft = 0f;
             ClearMessage();
             SetResultsVisible(false);
+            deltaTimeLeft = 0f;
+            deltaLabel?.AddToClassList("lap-delta--hidden");
+            PlayEntrance();
         }
 
         private void OnLapCompleted(RaceParticipant participant, int lap, float lapTime)
@@ -333,6 +374,111 @@ namespace RallyX.UI
 
             int next = lap + 1;
             ShowMessage(next == race.Laps ? "FINAL LAP" : $"LAP {next}/{race.Laps}");
+            ShowLapDelta(participant.Tracker, lapTime);
+        }
+
+        /// <summary>The lap just done and how it compares with the best before it: green if faster, red if slower.</summary>
+        private void ShowLapDelta(RaceTracker tracker, float lapTime)
+        {
+            if (deltaLabel == null)
+                return;
+
+            float bestBefore = float.MaxValue;
+            var laps = tracker.LapTimes;
+            for (int i = 0; i < laps.Count - 1; i++)
+                bestBefore = Mathf.Min(bestBefore, laps[i]);
+
+            string delta = string.Empty;
+            bool faster = true;
+            if (bestBefore < float.MaxValue)
+            {
+                float difference = lapTime - bestBefore;
+                faster = difference < 0f;
+                delta = $"   {(faster ? "-" : "+")}{Mathf.Abs(difference):0.000}";
+            }
+
+            deltaLabel.text = $"LAP  {RaceTime.Format(lapTime)}{delta}";
+            deltaLabel.EnableInClassList("lap-delta--faster", faster && delta.Length > 0);
+            deltaLabel.EnableInClassList("lap-delta--slower", !faster);
+            deltaLabel.RemoveFromClassList("lap-delta--hidden");
+            Pop(deltaLabel, "lap-delta--enter");
+            deltaTimeLeft = DeltaDuration;
+        }
+
+        /// <summary>The rev bar and gear, from the player's car's sound-only engine.</summary>
+        private void UpdateTelemetry(RaceParticipant player)
+        {
+            if (gearLabel == null && revSegments.Count == 0)
+                return;
+
+            if (player != playerAudioOwner)
+            {
+                playerAudioOwner = player;
+                playerAudio = player.Vehicle.GetComponent<VehicleAudio>();
+            }
+
+            var engine = playerAudio != null && playerAudio.IsReady ? playerAudio.Engine : null;
+            var config = playerAudio != null ? playerAudio.Config : null;
+            float share = engine != null && config != null ? Mathf.InverseLerp(config.IdleRpm, config.RedlineRpm, engine.Rpm) : 0f;
+            int lit = Mathf.RoundToInt(share * revSegments.Count);
+            if (lit != shownRevs)
+            {
+                shownRevs = lit;
+                for (int i = 0; i < revSegments.Count; i++)
+                    revSegments[i].EnableInClassList("rev-seg--on", i < lit);
+            }
+
+            int gear = engine != null ? engine.Gear : 0;
+            if (gearLabel != null && gear != shownGear)
+            {
+                shownGear = gear;
+                gearLabel.text = gear < 0 ? "R" : gear == 0 || player.Vehicle.SpeedKmh < 1f && gear == 1 ? "N" : gear.ToString();
+                Pop(gearLabel, "gear--change");
+            }
+        }
+
+        /// <summary>Start lights: one more red lamp for each of 3, 2, 1, all green at GO, off otherwise.</summary>
+        private void ShowStartLights(int number, bool go)
+        {
+            if (startLightRow == null)
+                return;
+
+            bool counting = race.State == RaceState.Countdown || go;
+            startLightRow.EnableInClassList("start-lights--hidden", !counting);
+            int lit = number > 0 ? race.Settings.CountdownFrom - number + 1 : 0;
+            for (int i = 0; i < startLights.Count; i++)
+            {
+                startLights[i].EnableInClassList("start-light--red", !go && i < lit);
+                startLights[i].EnableInClassList("start-light--go", go);
+            }
+        }
+
+        /// <summary>The HUD's panels slide in, one after another, for each start.</summary>
+        private void PlayEntrance()
+        {
+            if (boundRoot == null)
+                return;
+
+            long delay = 0;
+            foreach (var panel in boundRoot.Query(className: "hud-panel").ToList())
+            {
+                panel.AddToClassList("hud-panel--enter");
+                var shown = panel;
+                panel.schedule.Execute(() => shown.RemoveFromClassList("hud-panel--enter")).StartingIn(150 + delay);
+                delay += 90;
+            }
+        }
+
+        /// <summary>The player's place, lap and time, e.g. "P2 / 4     LAP 2 / 3     1:23.456".</summary>
+        private string DescribeStanding()
+        {
+            var player = race != null ? race.Player : null;
+            var tracker = player != null ? player.Tracker : null;
+            if (tracker == null)
+                return string.Empty;
+
+            return $"P{player.Position} / {race.Participants.Count}     LAP {Mathf.Min(tracker.CurrentLap, race.Laps)} / {race.Laps}     " +
+                   RaceTime.Format(tracker.Finished ? tracker.FinishTime : race.RaceTime);
         }
 
         private void OnParticipantFinished(RaceParticipant participant)
@@ -353,6 +499,8 @@ namespace RallyX.UI
             var player = race.Player;
             var tracker = player.Tracker;
             resultsPlace.text = RaceTime.Ordinal(player.Position);
+            for (int place = 1; place <= 3; place++)
+                resultsPlace.EnableInClassList($"results-place--p{place}", player.Position == place);
             resultsSummary.text = $"TIME  {RaceTime.Format(tracker.FinishTime)}        BEST LAP  {RaceTime.Format(tracker.BestLapTime)}";
 
             var laps = new System.Text.StringBuilder();
@@ -418,17 +566,31 @@ namespace RallyX.UI
         private void FillResultsTable()
         {
             resultsTable.Clear();
-            resultsTable.Add(ResultsRow("POS", "DRIVER", "TIME", "results-row--header"));
+            resultsTable.Add(ResultsRow("POS", "DRIVER", "BEST LAP", "TIME", "GAP", "results-row--header"));
+
+            // Gaps are to the winner's time.
+            float winnerTime = -1f;
+            foreach (var participant in race.Standings)
+            {
+                if (participant.Tracker.Finished && (winnerTime < 0f || participant.Tracker.FinishTime < winnerTime))
+                    winnerTime = participant.Tracker.FinishTime;
+            }
+
             foreach (var participant in race.Standings)
             {
                 var tracker = participant.Tracker;
                 string time = tracker.Finished ? RaceTime.Format(tracker.FinishTime) : "--";
-                resultsTable.Add(ResultsRow(participant.Position.ToString(), participant.DisplayName, time,
-                    participant.IsPlayer ? "results-row--player" : null));
+                string best = tracker.BestLapTime > 0f ? RaceTime.Format(tracker.BestLapTime) : "--";
+                string gap = !tracker.Finished ? "--" : Mathf.Approximately(tracker.FinishTime, winnerTime) ? "WINNER" : $"+{tracker.FinishTime - winnerTime:0.000}";
+                string rowClass = participant.IsPlayer ? "results-row--player" : null;
+                var row = ResultsRow(participant.Position.ToString(), participant.DisplayName, best, time, gap, rowClass);
+                if (participant.Position <= 3)
+                    row.AddToClassList($"results-row--p{participant.Position}");
+                resultsTable.Add(row);
             }
         }
 
-        private static VisualElement ResultsRow(string position, string driver, string time, string extraClass)
+        private static VisualElement ResultsRow(string position, string driver, string best, string time, string gap, string extraClass)
         {
             var row = new VisualElement();
             row.AddToClassList("results-row");
@@ -436,7 +598,9 @@ namespace RallyX.UI
                 row.AddToClassList(extraClass);
             row.Add(Cell(position, "results-cell--position"));
             row.Add(Cell(driver, "results-cell--driver"));
+            row.Add(Cell(best, "results-cell--best"));
             row.Add(Cell(time, "results-cell--time"));
+            row.Add(Cell(gap, "results-cell--gap"));
             return row;
         }
 
@@ -542,11 +706,53 @@ namespace RallyX.UI
                 pauseOverlay = null;
             }
 
+            BindExtras(root);
             shownPosition = shownRacers = shownLap = shownSpeed = -1;
+            shownRevs = -1;
+            shownGear = int.MinValue;
             shownCountdown = string.Empty;
             ClearMessage();
             SetVisible(results, resultsVisible);
             return true;
+        }
+
+        /// <summary>The HUD's optional parts: minimap, rev bar and gear, lap delta, start lights, pause summary and hints.</summary>
+        private void BindExtras(VisualElement root)
+        {
+            var mapHolder = root.Q("minimap");
+            minimap = mapHolder != null ? new RaceMinimap(mapHolder) : null;
+            gearLabel = root.Q<Label>("gear");
+            deltaLabel = root.Q<Label>("lap-delta");
+            deltaLabel?.AddToClassList("lap-delta--hidden");
+            pauseSummary = root.Q<Label>("pause-summary");
+
+            revSegments.Clear();
+            var revBar = root.Q("rev-bar");
+            if (revBar != null)
+            {
+                revBar.Clear();
+                for (int i = 0; i < RevSegments; i++)
+                {
+                    var segment = new VisualElement { pickingMode = PickingMode.Ignore };
+                    segment.AddToClassList("rev-seg");
+                    if (i >= RevSegments - RedSegments)
+                        segment.AddToClassList("rev-seg--red");
+                    revBar.Add(segment);
+                    revSegments.Add(segment);
+                }
+            }
+
+            startLights.Clear();
+            startLightRow = root.Q("start-lights");
+            if (startLightRow != null)
+                startLights.AddRange(startLightRow.Query(className: "start-light").ToList());
+
+            var pauseKeys = root.Q("pause-hints");
+            pauseHints = pauseKeys != null ? new HintBar(pauseKeys) : null;
+            pauseHints?.Show((HintAction.Choose, "CHOOSE"), (HintAction.Confirm, "SELECT"), (HintAction.Back, "RESUME"));
+            var resultKeys = root.Q("results-hints");
+            resultsHints = resultKeys != null ? new HintBar(resultKeys) : null;
+            resultsHints?.Show((HintAction.Restart, "RESTART"), (HintAction.Pause, "MAIN MENU"));
         }
 
         /// <summary>The track and race length, e.g. "PINE VALLEY  |  3 LAPS".</summary>

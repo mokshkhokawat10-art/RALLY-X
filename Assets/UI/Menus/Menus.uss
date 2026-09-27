@@ -123,8 +123,37 @@
     border-left-width: 6px;
     border-color: rgba(255, 255, 255, 0.18);
     border-radius: 0;
-    transition-property: translate, background-color, color;
-    transition-duration: 0.12s;
+    opacity: 1;
+    transition-property: translate, background-color, color, opacity;
+    transition-duration: 0.18s, 0.12s, 0.12s, 0.3s;
+    transition-timing-function: ease-out-cubic;
+}
+
+/* Entry state of each item, removed one after another as the menu opens. */
+.menu-item--enter {
+    translate: -70px 0;
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+/* What the highlighted item does. */
+.menu-description {
+    margin: 4px 0 0 4px;
+    padding: 0;
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: var(--rally-muted);
+    -unity-font-style: italic;
+    translate: 0 0;
+    opacity: 1;
+    transition-property: translate, opacity;
+    transition-duration: 0.25s;
+}
+
+.menu-description--enter {
+    translate: 0 6px;
+    opacity: 0;
+    transition-duration: 0s;
 }
 
 .menu-item:hover {
@@ -151,16 +180,52 @@
     bottom: 56px;
 }
 
-.career {
+/* Cards on the right of the main menu: the career and the next race. They slide in after the menu. */
+.side-card {
+    position: absolute;
+    right: 64px;
+    background-color: var(--rally-panel);
+    translate: 0 0;
+    opacity: 1;
+    transition-property: translate, opacity;
+    transition-duration: 0.45s;
+    transition-timing-function: ease-out-cubic;
+}
+
+.side-card--enter {
+    translate: 70px 0;
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+.career-strip {
+    top: 48px;
     flex-direction: row;
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top-width: 1px;
-    border-color: rgba(255, 255, 255, 0.14);
+    padding: 18px 30px;
+    border-left-width: 4px;
+    border-color: var(--rally-yellow);
 }
 
 .career-item {
-    margin-right: 52px;
+    margin-right: 48px;
+}
+
+.career-item--last {
+    margin-right: 0;
+}
+
+.next-race {
+    bottom: 96px;
+    width: 600px;
+}
+
+.next-race-body {
+    padding: 20px 28px 22px 28px;
+}
+
+.track-title {
+    font-size: 36px;
+    -unity-font-style: bold-and-italic;
 }
 
 .career-value {
@@ -225,6 +290,140 @@
     color: rgb(170, 178, 192);
 }
 
+/* Track selection (TrackSelect), over the main menu. The hint bar stays visible below it. */
+
+.track-select {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 56px;
+    background-color: rgba(3, 5, 9, 0.9);
+    display: none;
+    opacity: 1;
+    transition-property: opacity;
+    transition-duration: 0.25s;
+}
+
+.track-select--enter {
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+.select-header {
+    flex-direction: row;
+    align-items: center;
+    height: 112px;
+    padding: 0 64px;
+    background-color: rgba(3, 5, 9, 0.82);
+    border-bottom-width: 2px;
+    border-color: var(--rally-yellow-line);
+}
+
+.select-body {
+    flex-grow: 1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.select-card {
+    flex-direction: row;
+    width: 1400px;
+    height: 640px;
+    background-color: var(--rally-panel-solid);
+    border-left-width: 6px;
+    border-color: var(--rally-yellow);
+    translate: 0 0;
+    opacity: 1;
+    transition-property: translate, opacity;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-out-cubic;
+}
+
+.select-card--from-right {
+    translate: 90px 0;
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+.select-card--from-left {
+    translate: -90px 0;
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+.select-map {
+    width: 600px;
+    padding: 34px;
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.select-map-drawing {
+    flex-grow: 1;
+}
+
+.select-info {
+    flex-grow: 1;
+    padding: 44px 48px 40px 48px;
+}
+
+.select-name {
+    margin: 16px 0 0 0;
+    padding: 0;
+    font-size: 92px;
+    letter-spacing: 3px;
+    color: var(--rally-white);
+    -unity-font-style: bold-and-italic;
+}
+
+.select-card--locked .select-name {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.select-description {
+    margin: 0;
+    padding: 0;
+    font-size: 24px;
+    letter-spacing: 4px;
+    color: var(--rally-text);
+    -unity-font-style: bold;
+}
+
+.select-stats {
+    flex-grow: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    margin-top: 38px;
+}
+
+.select-stat {
+    min-width: 150px;
+    margin: 0 44px 20px 0;
+}
+
+.select-stat-value {
+    margin: 4px 0 0 0;
+    padding: 0;
+    font-size: 40px;
+    color: var(--rally-white);
+    -unity-font-style: bold;
+}
+
+.select-actions {
+    flex-direction: row;
+}
+
+.select-actions .action {
+    margin-right: 18px;
+}
+
+.select-dots {
+    align-self: center;
+    margin-bottom: 30px;
+}
+
 /* Garage */
 
 .viewport {
@@ -249,11 +448,49 @@
     border-color: rgba(255, 196, 36, 0.55);
 }
 
+.top-bar {
+    translate: 0 0;
+    transition-property: translate;
+    transition-duration: 0.35s;
+    transition-timing-function: ease-out-cubic;
+}
+
+.top-bar--enter {
+    translate: 0 -112px;
+    transition-duration: 0s;
+}
+
 .title-accent {
     width: 10px;
     height: 52px;
     margin-right: 22px;
     background-color: rgb(255, 196, 36);
+}
+
+/* The garage's mode: CARS or UPGRADES. */
+.tabs {
+    flex-direction: row;
+    align-items: flex-end;
+    height: 100%;
+    margin-left: 56px;
+}
+
+.tab {
+    margin: 0 8px 0 0;
+    padding: 0 22px 18px 22px;
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: var(--rally-muted);
+    border-bottom-width: 4px;
+    border-color: rgba(255, 196, 36, 0);
+    -unity-font-style: bold;
+    transition-property: color, border-color;
+    transition-duration: 0.2s;
+}
+
+.tab--active {
+    color: var(--rally-white);
+    border-color: var(--rally-yellow);
 }
 
 .screen-title {
@@ -370,6 +607,16 @@
     color: rgb(200, 206, 216);
 }
 
+/* Drivetrain and weight, under the car's name. */
+.car-specs {
+    margin: 0 0 14px 0;
+    padding: 0;
+    font-size: 17px;
+    letter-spacing: 3px;
+    color: var(--rally-white);
+    -unity-font-style: bold;
+}
+
 .status {
     align-self: flex-start;
     margin: 24px 0 0 0;
@@ -469,6 +716,17 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+    translate: 0 0;
+    opacity: 1;
+    transition-property: translate, opacity;
+    transition-duration: 0.35s;
+    transition-timing-function: ease-out-cubic;
+}
+
+.garage-bottom--enter {
+    translate: 0 40px;
+    opacity: 0;
+    transition-duration: 0s;
 }
 
 .action {

@@ -1,0 +1,28 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Common.uss" />
+    <Style src="Loading.uss" />
+    <ui:VisualElement name="loading" class="loading">
+        <ui:VisualElement class="loading-stripe loading-stripe--wide" picking-mode="Ignore" />
+        <ui:VisualElement class="loading-stripe loading-stripe--thin" picking-mode="Ignore" />
+        <ui:VisualElement class="loading-logo" picking-mode="Ignore">
+            <ui:Label text="RALLY" class="loading-logo-rally" picking-mode="Ignore" />
+            <ui:Label text="X" class="loading-logo-x" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="loading-map" class="loading-map" picking-mode="Ignore" />
+        <ui:VisualElement class="loading-content" picking-mode="Ignore">
+            <ui:Label name="loading-eyebrow" text="NEXT STAGE" class="eyebrow" picking-mode="Ignore" />
+            <ui:Label name="loading-title" class="loading-title" picking-mode="Ignore" />
+            <ui:VisualElement class="accent-bar" picking-mode="Ignore" />
+            <ui:Label name="loading-details" class="loading-details" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement class="loading-footer" picking-mode="Ignore">
+            <ui:VisualElement class="loading-tip-row" picking-mode="Ignore">
+                <ui:Label text="TIP" class="tag tag--dark" picking-mode="Ignore" />
+                <ui:Label name="loading-tip" class="loading-tip" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="loading-bar" picking-mode="Ignore">
+                <ui:VisualElement name="loading-fill" class="loading-fill" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

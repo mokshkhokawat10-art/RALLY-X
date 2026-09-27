@@ -41,6 +41,13 @@ namespace RallyX.Progression
         [Tooltip("Position the previous track must be finished in or better (1 = won it). 0 = any finish.")]
         [SerializeField, Min(0)] private int positionOnPreviousTrack;
 
+        [Header("Map (baked from the track by RALLY X > Build > Bake Track Maps)")]
+        [Tooltip("The lap's shape for the track selection screen: points round the lap from the start line, fitted into a unit square.")]
+        [SerializeField] private Vector2[] mapOutline = Array.Empty<Vector2>();
+
+        [Tooltip("Length of one lap, metres (0 = unknown).")]
+        [SerializeField, Min(0f)] private float lapLength;
+
         public string Id => id;
         public string DisplayName => displayName;
         public string SceneName => sceneName;
@@ -53,6 +60,21 @@ namespace RallyX.Progression
         public int WinsToUnlock => winsToUnlock;
         public TrackInfo PreviousTrack => previousTrack;
         public int PositionOnPreviousTrack => positionOnPreviousTrack;
+
+        /// <summary>The lap's shape, normalised for a map (empty until baked).</summary>
+        public IReadOnlyList<Vector2> MapOutline => mapOutline ?? Array.Empty<Vector2>();
+
+        /// <summary>Length of one lap, metres (0 = unknown).</summary>
+        public float LapLength => lapLength;
+
+#if UNITY_EDITOR
+        /// <summary>Stores the baked map and lap length, for the editor's track map baker.</summary>
+        public void SetMap(Vector2[] outline, float length)
+        {
+            mapOutline = outline ?? Array.Empty<Vector2>();
+            lapLength = Mathf.Max(0f, length);
+        }
+#endif
 
         /// <summary>True for a track open from the start.</summary>
         public bool OpenFromStart => winsToUnlock <= 0 && previousTrack == null;

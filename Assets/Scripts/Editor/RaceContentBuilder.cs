@@ -36,8 +36,8 @@ namespace RallyX.EditorTools
                 panel.themeStyleSheet = theme;
                 panel.scaleMode = PanelScaleMode.ScaleWithScreenSize;
                 panel.referenceResolution = ReferenceResolution;
-                panel.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
-                panel.match = 0.5f;
+                // The whole 1920x1080 layout always fits; wider screens get more room at the sides.
+                panel.screenMatchMode = PanelScreenMatchMode.Shrink;
                 return panel;
             });
 

@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a85dc56b7b7f94fa634dcc180696b9, type: 3}
+  m_Name: LoadingScreen
+  m_EditorClassIdentifier: RallyX::RallyX.UI.LoadingScreenConfig
+  panelSettings: {fileID: 11400000, guid: 98f72d98cf83f6144a1db02422542c16, type: 2}
+  layout: {fileID: 9197481963319205126, guid: d007eb772ce927e438c77cf2f4a1e0cc, type: 3}
+  tracks: {fileID: 11400000, guid: f85cd8d28d7b4314b847115708f781ef, type: 2}
+  tips:
+  - Brake in a straight line before the corner, then turn in. The car grips best
+    when it isn't doing both.
+  - A tap of the handbrake swings the tail round a hairpin. Hold the throttle to
+    keep the slide going.
+  - Gravel and dirt spin the wheels sooner than asphalt. Squeeze the throttle out
+    of slow corners.
+  - Mud and grass slow you right down. Stay on the road, even if it means a wider
+    line.
+  - Hold the brake in the air to dip the nose, the throttle to lift it, and land
+    square.
+  - Upgrades are bought per car. The garage shows what each stage does before you
+    pay.
+  - A top-three finish at Pine Valley opens Red Canyon, and harder tracks pay more
+    credits.
+  - Rev the engine on the grid during the countdown. It won't move until GO.
+  - Change volumes and vibration in SETTINGS, from the main menu or the pause menu.
+  fadeIn: 0.22
+  hold: 0.35
+  fadeOut: 0.4

@@ -22,7 +22,8 @@ namespace RallyX.EditorTools
                            && TrackCatalog.BuildMissing()
                            && SandboxCourseBuilder.Rebuild()
                            && MenuSceneBuilder.Build()
-                           && AudioContentBuilder.Build();
+                           && AudioContentBuilder.Build()
+                           && UiContentBuilder.Build();
             if (!success)
                 EditorApplication.Exit(1);
         }
@@ -65,6 +66,13 @@ namespace RallyX.EditorTools
         public static void BuildAudio()
         {
             if (!AudioContentBuilder.Build())
+                EditorApplication.Exit(1);
+        }
+
+        /// <summary>The front end's shared content only: panel scaling, the loading screen config and the track maps. Touches no scene.</summary>
+        public static void BuildUi()
+        {
+            if (!UiContentBuilder.Build())
                 EditorApplication.Exit(1);
         }
 

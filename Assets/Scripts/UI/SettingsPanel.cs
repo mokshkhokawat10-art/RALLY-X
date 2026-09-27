@@ -58,6 +58,9 @@ namespace RallyX.UI
 
             back.focusable = false;
             back.clicked += Close;
+            var hintKeys = root.Q("settings-hints");
+            if (hintKeys != null)
+                new HintBar(hintKeys).Show((HintAction.Choose, "CHOOSE"), (HintAction.Change, "CHANGE"), (HintAction.Back, "BACK"));
             SetVisible(IsOpen);
             Refresh();
             return true;

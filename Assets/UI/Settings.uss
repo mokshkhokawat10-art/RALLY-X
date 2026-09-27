@@ -142,3 +142,10 @@
     color: rgb(160, 168, 182);
     -unity-text-align: middle-center;
 }
+
+/* Control hints under the settings (HintBar). */
+.settings-hints {
+    flex-direction: row;
+    justify-content: center;
+    margin-top: 14px;
+}

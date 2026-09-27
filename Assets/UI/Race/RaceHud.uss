@@ -12,7 +12,164 @@
     position: absolute;
     padding: 10px 22px 12px 22px;
     background-color: rgba(8, 12, 20, 0.72);
-    border-radius: 8px;
+    border-radius: 3px;
+    border-bottom-width: 3px;
+    border-color: var(--rally-yellow);
+    translate: 0 0;
+    opacity: 1;
+    transition-property: translate, opacity;
+    transition-duration: 0.4s;
+    transition-timing-function: ease-out-cubic;
+}
+
+/* Entry state of each panel, removed one after another at each start. */
+.hud-panel--enter {
+    translate: 0 -24px;
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+.hud-panel--bottom-left {
+    left: 36px;
+    bottom: 30px;
+    padding: 10px;
+}
+
+.minimap {
+    width: 250px;
+    height: 250px;
+}
+
+.minimap-drawing {
+    flex-grow: 1;
+}
+
+/* Rev bar and gear (bottom right), from the car's sound-only engine. */
+.rev-bar {
+    flex-direction: row;
+    justify-content: flex-end;
+    height: 14px;
+    margin: 4px 0 8px 0;
+}
+
+.rev-seg {
+    width: 14px;
+    height: 100%;
+    margin-left: 3px;
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.rev-seg--on {
+    background-color: var(--rally-yellow);
+}
+
+.rev-seg--red {
+    background-color: rgba(255, 72, 48, 0.25);
+}
+
+.rev-seg--red.rev-seg--on {
+    background-color: rgb(255, 72, 48);
+}
+
+.speed-row {
+    flex-direction: row;
+    align-items: flex-end;
+}
+
+.gear-box {
+    align-items: center;
+    margin-right: 26px;
+}
+
+.speed-box {
+    align-items: flex-end;
+}
+
+.gear {
+    padding: 0;
+    margin: 0;
+    font-size: 64px;
+    color: var(--rally-yellow);
+    -unity-font-style: bold-and-italic;
+    scale: 1 1;
+    transition-property: scale;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-out-back;
+}
+
+.gear--change {
+    scale: 1.35 1.35;
+    transition-duration: 0s;
+}
+
+/* The lap just completed and its difference to the best before it. */
+.lap-delta {
+    margin: 6px 0 0 0;
+    padding: 0;
+    font-size: 24px;
+    color: var(--rally-white);
+    -unity-font-style: bold;
+    translate: 0 0;
+    opacity: 1;
+    transition-property: translate, opacity;
+    transition-duration: 0.3s, 0.5s;
+}
+
+.lap-delta--hidden {
+    opacity: 0;
+}
+
+.lap-delta--enter {
+    translate: 24px 0;
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+.lap-delta--faster {
+    color: var(--rally-good);
+}
+
+.lap-delta--slower {
+    color: var(--rally-bad);
+}
+
+/* Start lights above the countdown: red for each of 3, 2, 1, all green at GO. */
+.start-lights {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 15%;
+    flex-direction: row;
+    justify-content: center;
+    opacity: 1;
+    transition-property: opacity;
+    transition-duration: 0.35s;
+}
+
+.start-lights--hidden {
+    opacity: 0;
+}
+
+.start-light {
+    width: 62px;
+    height: 62px;
+    margin: 0 14px;
+    border-radius: 31px;
+    background-color: rgba(18, 20, 26, 0.92);
+    border-width: 4px;
+    border-color: rgba(255, 255, 255, 0.25);
+    transition-property: background-color, border-color;
+    transition-duration: 0.08s;
+}
+
+.start-light--red {
+    background-color: rgb(235, 40, 30);
+    border-color: rgb(255, 128, 110);
+}
+
+.start-light--go {
+    background-color: rgb(60, 220, 96);
+    border-color: rgb(170, 255, 180);
 }
 
 .hud-panel--top-left {
@@ -116,8 +273,14 @@
     top: 20%;
     -unity-text-align: middle-center;
     font-size: 84px;
+    letter-spacing: 12px;
+    padding: 6px 0 10px 0;
     color: rgb(255, 64, 40);
-    -unity-font-style: bold;
+    background-color: rgba(8, 8, 10, 0.82);
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+    border-color: rgb(255, 64, 40);
+    -unity-font-style: bold-and-italic;
     text-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
     display: none;
 }
@@ -188,7 +351,7 @@
 }
 
 .results-card {
-    min-width: 720px;
+    min-width: 980px;
     padding: 30px 48px 26px 48px;
     align-items: center;
     background-color: rgba(10, 14, 24, 0.95);
@@ -212,6 +375,18 @@
     font-size: 30px;
     color: rgb(255, 196, 36);
     -unity-font-style: bold;
+}
+
+.results-place--p1 {
+    color: var(--rally-yellow);
+}
+
+.results-place--p2 {
+    color: rgb(214, 220, 230);
+}
+
+.results-place--p3 {
+    color: rgb(222, 150, 88);
 }
 
 .results-place {
@@ -321,8 +496,47 @@
 }
 
 .results-cell--time {
-    width: 180px;
+    width: 170px;
     -unity-text-align: middle-right;
+}
+
+.results-cell--best {
+    width: 170px;
+    -unity-text-align: middle-right;
+    color: var(--rally-muted);
+}
+
+.results-cell--gap {
+    width: 150px;
+    -unity-text-align: middle-right;
+    color: var(--rally-muted);
+}
+
+.results-row--player {
+    background-color: rgba(255, 196, 36, 0.1);
+    border-left-width: 4px;
+    border-left-color: var(--rally-yellow);
+}
+
+.results-row--p1 .results-cell--position {
+    color: var(--rally-yellow);
+    -unity-font-style: bold;
+}
+
+.results-row--p2 .results-cell--position {
+    color: rgb(214, 220, 230);
+    -unity-font-style: bold;
+}
+
+.results-row--p3 .results-cell--position {
+    color: rgb(222, 150, 88);
+    -unity-font-style: bold;
+}
+
+/* Control hints inside the results and pause cards. */
+.card-hints {
+    justify-content: center;
+    margin-top: 16px;
 }
 
 .results-row--header .results-cell {
@@ -370,18 +584,46 @@
     bottom: 0;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.55);
+    background-color: rgba(0, 0, 0, 0.62);
     display: none;
+    opacity: 1;
+    transition-property: opacity;
+    transition-duration: 0.2s;
+}
+
+/* Entry state of the pause menu, applied for a frame when it opens (transitions run in real time while paused). */
+.pause--enter {
+    opacity: 0;
+    transition-duration: 0s;
 }
 
 .pause-card {
-    min-width: 520px;
+    min-width: 600px;
     padding: 30px 48px 26px 48px;
     align-items: stretch;
-    background-color: rgba(10, 14, 24, 0.95);
-    border-radius: 12px;
-    border-width: 2px;
+    background-color: rgba(10, 14, 24, 0.96);
+    border-radius: 4px;
+    border-left-width: 6px;
     border-color: rgb(255, 196, 36);
+    translate: 0 0;
+    transition-property: translate;
+    transition-duration: 0.25s;
+    transition-timing-function: ease-out-cubic;
+}
+
+.pause--enter .pause-card {
+    translate: 0 30px;
+    transition-duration: 0s;
+}
+
+/* Where the player stands: place, lap and time. */
+.pause-summary {
+    margin-bottom: 22px;
+    font-size: 24px;
+    letter-spacing: 2px;
+    color: var(--rally-white);
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
 }
 
 .pause-card > .results-title,

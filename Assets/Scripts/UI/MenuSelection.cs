@@ -19,6 +19,9 @@ namespace RallyX.UI
         private readonly List<Button> buttons = new List<Button>();
         private readonly List<Action> actions = new List<Action>();
 
+        /// <summary>The highlight moved (the new index).</summary>
+        public event Action<int> Changed;
+
         public int Index { get; private set; } = -1;
         public Button Selected => Index >= 0 ? buttons[Index] : null;
         public int Count => buttons.Count;
@@ -50,8 +53,11 @@ namespace RallyX.UI
 
             if (Selected != null)
                 Selected.RemoveFromClassList(SelectedClass);
+            bool moved = Index != index;
             Index = index;
             buttons[index].AddToClassList(SelectedClass);
+            if (moved)
+                Changed?.Invoke(index);
         }
 
         public void Select(Button button) => Select(buttons.IndexOf(button));
