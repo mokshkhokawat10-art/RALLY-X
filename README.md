@@ -1,20 +1,312 @@
-# RALLY X
+<a name="top"></a>
 
-Arcade rally racer for Windows PC, built with Unity 6 (URP) and the Unity Input System.
+<p align="center">
+  <img src="docs/readme/hero/banner.svg" width="100%" alt="RALLY X. Off-road. Full throttle. A 3D arcade rally game for PC, built with Unity 6 and C#: Falcon RX, Kestrel S and Titan GT on Pine Valley and Red Canyon.">
+  <img src="docs/readme/hero/red-canyon.jpg" width="100%" alt="A dirt road through Red Canyon, rendered in RALLY X">
+</p>
 
-## Requirements
+<p align="center">
+  <a href="#install"><img src="docs/readme/ui/btn-play.svg" height="60" alt="Play RALLY X"></a>
+  <a href="#game"><img src="docs/readme/ui/btn-explore.svg" height="60" alt="Explore the project"></a>
+</p>
 
-- Unity **6000.3.25f1** (Unity 6.3 LTS), installed through Unity Hub
-- Git (optionally Git LFS for large art/audio assets)
+<p align="center">
+  <a href="#game"><img src="docs/readme/ui/nav-01-game.svg" height="40" alt="01 Game"></a>
+  <a href="#cars"><img src="docs/readme/ui/nav-02-cars.svg" height="40" alt="02 Cars"></a>
+  <a href="#tracks"><img src="docs/readme/ui/nav-03-tracks.svg" height="40" alt="03 Tracks"></a>
+  <a href="#features"><img src="docs/readme/ui/nav-04-features.svg" height="40" alt="04 Features"></a>
+  <a href="#roadmap"><img src="docs/readme/ui/nav-05-roadmap.svg" height="40" alt="05 Roadmap"></a>
+  <a href="#tech"><img src="docs/readme/ui/nav-06-tech.svg" height="40" alt="06 Tech"></a>
+</p>
 
-## Opening the project
+<br>
 
-1. Unity Hub > **Add** > **Add project from disk** > select this folder.
-2. Open it with Unity 6000.3.25f1.
-3. Run **RALLY X > Setup > Run Project Setup** once if the console reports setup errors
-   (it is idempotent and safe to re-run).
+<a name="game"></a>
 
-## Editor menus
+<img src="docs/readme/sections/01-game.svg" width="100%" alt="01 — What is RALLY X: the game">
+
+<h3 align="center"><b>RALLY X</b> is a fast-paced 3D arcade rally racing game built with <b>Unity 6</b> and <b>C#</b>.</h3>
+
+<p align="center">Pick a car in the garage, take on forest and canyon tracks against three AI rivals,<br>earn credits, upgrade, unlock — and go again.</p>
+
+<img src="docs/readme/ui/stats.svg" width="100%" alt="3D arcade rally · Unity 6 engine · C# · PC · URP render pipeline">
+
+<br><br>
+
+<a name="experience"></a>
+
+<img src="docs/readme/sections/02-experience.svg" width="100%" alt="02 — Game loop: the experience">
+
+```mermaid
+flowchart LR
+    garage[GARAGE] --> car[CHOOSE CAR] --> track[CHOOSE TRACK] --> race[RACE] --> credits[EARN CREDITS] --> unlock[UNLOCK] --> upgrade[UPGRADE] --> again[RACE AGAIN ↺]
+    classDef step fill:#0A0A0A,stroke:#FFD100,color:#F5F5F2
+    classDef hot fill:#FFD100,stroke:#FFD100,color:#0A0A0A
+    class garage,car,track,credits,unlock,upgrade,again step
+    class race hot
+```
+
+<details>
+<summary><b>HOW THE LOOP WORKS</b></summary>
+
+- **Garage.** Each car turns on a turntable with its stats; SELECT saves your choice, UPGRADES opens its parts.
+- **Track selection.** RACE on the main menu shows each track's map, laps, lap length, credit multiplier and best lap, or what unlocks it.
+- **Race.** Three laps against three AI drivers (Lind, Petrov, Moreno), started by the start lights.
+- **Credits.** A new career starts with 2,000 CR. Each finished race pays by position, times the track's multiplier:
+
+  | Finish | Pine Valley (x1) | Red Canyon (x1.5) |
+  |---|---|---|
+  | 1st | 1,500 CR | 2,250 CR |
+  | 2nd | 1,000 CR | 1,500 CR |
+  | 3rd | 700 CR | 1,050 CR |
+  | 4th | 400 CR | 600 CR |
+
+- **Unlocks.** Winning a race unlocks the Titan GT; a top-3 finish at Pine Valley unlocks Red Canyon, announced on the results screen.
+- **Upgrades.** Engine, Turbo, Tires, Brakes, Suspension and Gearbox, three stages each, bought per car.
+- **Saved.** Credits, the chosen car, upgrades, unlocks and best laps are kept in the player profile.
+
+</details>
+
+<br>
+
+<a name="cars"></a>
+
+<img src="docs/readme/sections/03-cars.svg" width="100%" alt="03 — Garage lineup: the cars">
+
+<img src="docs/readme/cars/falcon-rx.jpg" width="100%" alt="The Falcon RX, rendered by the car capture tool">
+<img src="docs/readme/cars/falcon-rx-spec.svg" width="100%" alt="Falcon RX: Group R4 · All-rounder. Top speed 165 km/h, grip 1.23 g, braking 100-0 km/h in 21 m, all-wheel drive, 40 / 60 front / rear. Unlock: starter car (first in the garage).">
+
+<details>
+<summary><b>FALCON RX — FULL SPEC</b></summary>
+
+| Spec | Falcon RX |
+|---|---|
+| **Class** | Group R4 · All-rounder |
+| **Drivetrain** | All-wheel drive, 40 / 60 front / rear |
+| **Weight** | 1,250 kg |
+| **Top speed** | 165 km/h |
+| **Grip** | 1.23 g |
+| **Braking 100-0 km/h** | 21 m |
+| **Unlock** | Starter car (first in the garage) |
+
+> The car you learned on. Balanced, predictable and quick on every surface, with no nasty habits.
+
+Balanced and mild, so the AI's cornering speeds still fit it: the AI opponents drive it too, with their own paint and door numbers.
+
+</details>
+
+<br>
+
+<img src="docs/readme/cars/kestrel-s.jpg" width="100%" alt="The Kestrel S, rendered by the car capture tool">
+<img src="docs/readme/cars/kestrel-s-spec.svg" width="100%" alt="Kestrel S: Group R2 · Lightweight hatch. Top speed 150 km/h, grip 1.36 g, braking 100-0 km/h in 19 m, front-wheel drive. Unlock: open from the start.">
+
+<details>
+<summary><b>KESTREL S — FULL SPEC</b></summary>
+
+| Spec | Kestrel S |
+|---|---|
+| **Class** | Group R2 · Lightweight hatch |
+| **Drivetrain** | Front-wheel drive |
+| **Weight** | 1,080 kg |
+| **Top speed** | 150 km/h |
+| **Grip** | 1.36 g |
+| **Braking 100-0 km/h** | 19 m |
+| **Unlock** | Open from the start |
+
+> Light, eager and glued to the road. It darts into corners and stops on a coin, but runs out of breath on the long straights.
+
+Light, stiff and quick to turn; it pushes wide on power and tucks in when lifting.
+
+</details>
+
+<br>
+
+<img src="docs/readme/cars/titan-gt.jpg" width="100%" alt="The Titan GT, rendered by the car capture tool">
+<img src="docs/readme/cars/titan-gt-spec.svg" width="100%" alt="Titan GT: Group B · Heavy coupe. Top speed 185 km/h, grip 1.12 g, braking 100-0 km/h in 24 m, rear-biased all-wheel drive, 25 / 75 front / rear. Unlock: win a race.">
+
+<details>
+<summary><b>TITAN GT — FULL SPEC</b></summary>
+
+| Spec | Titan GT |
+|---|---|
+| **Class** | Group B · Heavy coupe |
+| **Drivetrain** | Rear-biased all-wheel drive, 25 / 75 front / rear |
+| **Weight** | 1,420 kg |
+| **Top speed** | 185 km/h |
+| **Grip** | 1.12 g |
+| **Braking 100-0 km/h** | 24 m |
+| **Unlock** | Win a race |
+
+> A brute with the highest top speed in the garage. Heavy and slow to turn in: brake early and keep it pointed straight.
+
+A loose centre differential and a strong limited-slip one, a lot of weight transfer: the tail steps out under braking and power and it holds throttle drifts, with extra downforce and the stability assist for its top speed.
+
+</details>
+
+<p align="center"><sub>Stock figures, as the garage shows them; upgrades raise them. Renders from <b>RALLY X &gt; Dev &gt; Capture Car Screenshots</b>.</sub></p>
+
+<br>
+
+<a name="tracks"></a>
+
+<img src="docs/readme/sections/04-tracks.svg" width="100%" alt="04 — Stages: the tracks">
+
+<img src="docs/readme/tracks/pine-valley.jpg" width="100%" alt="Pine Valley: a dirt road crossing a creek on a timber bridge, among pine trees">
+<img src="docs/readme/tracks/pine-valley-spec.svg" width="100%" alt="Pine Valley, forest rally: 1.63 km lap, 3 laps, credits x1, asphalt, dirt, gravel and mud, open from the start">
+
+<p align="center"><i>Pine forest. An asphalt start, then dirt, gravel and mud, two jumps, two bridges over creeks and a mud shortcut.</i></p>
+
+<br>
+
+<img src="docs/readme/tracks/red-canyon.jpg" width="100%" alt="Red Canyon: a timber bridge over a dry wash between red-rock slopes">
+<img src="docs/readme/tracks/red-canyon-spec.svg" width="100%" alt="Red Canyon, canyon rally: 1.93 km lap, 3 laps, credits x1.5, asphalt, dirt, gravel and sand, unlocked by a top-3 finish at Pine Valley">
+
+<p align="center"><i>Dry red-rock canyon, run clockwise. An asphalt start straight, a fast gravel canyon floor over a dry wash, two switchbacks up onto the mesa, a crest jump on the mesa top, and a gravel descent with a second jump and a narrow gully shortcut past a butte. Off the road is loose sand.</i></p>
+
+<br>
+
+<a name="features"></a>
+
+<img src="docs/readme/sections/05-features.svg" width="100%" alt="05 — Systems: features">
+
+<img src="docs/readme/ui/features.svg" width="100%" alt="Drive: arcade rally physics, drifting, terrain-specific grip. Race: AI racers, Easy, Normal and Hard difficulties, checkpoint system. Progress: garage, upgrades, credits, track unlocking, save system.">
+
+<details>
+<summary><b>MORE UNDER THE BONNET</b></summary>
+
+- **Handling.** All-, front- or rear-wheel drive, limited-slip and centre differentials, a friction circle per axle, weight transfer under braking, acceleration and cornering, and air control over jumps.
+- **Six surfaces.** Asphalt, dirt, gravel, mud, grass and sand, each with its own grip, traction, drag, spray, tyre marks and tyre sounds.
+- **Race HUD.** Start lights, a rev bar and gear, a minimap with every racer, and each lap's time against your best.
+- **Front end.** Loading screen with the next track's map, track selection, pause menu, results with podium colours, best laps and gaps.
+- **Settings.** Master, Music, Sound Effects and Vehicles volumes, and gamepad vibration.
+- **Effects.** Tyre smoke, dust, gravel, mud, sparks, skid marks, backfires and brake glow.
+- **Audio.** Engines, tyres, wind, impacts, menu sounds, music and race announcements; the sounds are synthesised placeholders (see Audio in the developer reference).
+
+</details>
+
+<br>
+
+<a name="gallery"></a>
+
+<img src="docs/readme/sections/06-gallery.svg" width="100%" alt="06 — Track captures: gallery">
+
+<table>
+<tr>
+<td width="50%"><img src="docs/readme/gallery/01-pine-valley-start.jpg" width="100%" alt="Pine Valley: The start/finish gate"><br><sub><b>01 — PINE VALLEY</b> · The start/finish gate</sub></td>
+<td width="50%"><img src="docs/readme/gallery/02-pine-valley-0960m.jpg" width="100%" alt="Pine Valley: Through the pines, 0.96 km into the lap"><br><sub><b>02 — PINE VALLEY</b> · Through the pines, 0.96 km into the lap</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/readme/gallery/03-pine-valley-bridge.jpg" width="100%" alt="Pine Valley: One of the two creek bridges"><br><sub><b>03 — PINE VALLEY</b> · One of the two creek bridges</sub></td>
+<td width="50%"><img src="docs/readme/gallery/04-red-canyon-start.jpg" width="100%" alt="Red Canyon: The start/finish gate"><br><sub><b>04 — RED CANYON</b> · The start/finish gate</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/readme/gallery/05-red-canyon-0480m.jpg" width="100%" alt="Red Canyon: Between the canyon walls, 0.48 km into the lap"><br><sub><b>05 — RED CANYON</b> · Between the canyon walls, 0.48 km into the lap</sub></td>
+<td width="50%"><img src="docs/readme/gallery/06-red-canyon-1080m.jpg" width="100%" alt="Red Canyon: Along the canyon wall, 1.08 km into the lap"><br><sub><b>06 — RED CANYON</b> · Along the canyon wall, 1.08 km into the lap</sub></td>
+</tr>
+</table>
+
+<p align="center"><sub>Rendered with <b>RALLY X &gt; Dev &gt; Capture Track Screenshots</b>. The race HUD is UI Toolkit and isn't part of these camera renders.</sub></p>
+
+<br>
+
+<a name="roadmap"></a>
+
+<img src="docs/readme/sections/07-roadmap.svg" width="100%" alt="07 — Development: roadmap">
+
+<img src="docs/readme/ui/roadmap.svg" width="100%" alt="Build progress: 13 phases done, from Foundation to UI/UX and presentation. Development is paused after Phase 13. Still placeholders: synthesised audio and generated cars.">
+
+<details>
+<summary><b>PHASE HISTORY</b></summary>
+
+| Phase | Commit | Scope |
+|---|---|---|
+| 01 | `9a76c2e` | Project foundation |
+| 02 | `0d85550` | Arcade raycast vehicle controller |
+| 03 | `ac186f6` | Third-person rally chase camera |
+| 04 | `5ab6cbd` | Pine Valley track |
+| 05 | `d522c3a` | Rally race system |
+| 06 | `761ca6b` | AI racers |
+| 07 | `0907440` | Garage and vehicle selection (committed together with 08) |
+| 08 | `0907440` | Progression and upgrades |
+| 09 | `ece67e1` | Red Canyon, track selection and pause menu |
+| 10 | `039e6d7` | Visual and driving-quality upgrade |
+| 11 | `c36888d` | Advanced vehicle physics |
+| 12 | `13303e4` | Audio, VFX, game feel and presentation |
+| 13 | `ceaf724` | UI/UX and game presentation |
+
+</details>
+
+<br>
+
+<a name="controls"></a>
+
+<img src="docs/readme/sections/08-controls.svg" width="100%" alt="08 — Keyboard: controls">
+
+<img src="docs/readme/ui/controls.svg" width="100%" alt="W or Up: accelerate. S or Down: brake and reverse. A or Left, D or Right: steer. Space: handbrake. R: reset car. Esc: pause. Backspace: restart. Gamepad supported through the Unity Input System.">
+
+<details>
+<summary><b>FULL CONTROLS — KEYBOARD, GAMEPAD AND MENUS</b></summary>
+
+| Action        | Keyboard          | Gamepad        |
+|---------------|-------------------|----------------|
+| Throttle      | W / Up Arrow      | Right Trigger  |
+| Brake/Reverse | S / Down Arrow    | Left Trigger   |
+| Steer         | A D / Left Right  | Left Stick     |
+| Handbrake     | Space             | South (A / ✕)  |
+| Reset car     | R                 | North (Y / △)  |
+| Restart race  | Backspace         | View / Select  |
+| Pause         | Esc: pause menu (Resume, Restart Race, Settings, Main Menu); on the results screen: back to the main menu | Start |
+
+Menus and garage: arrows or WASD / D-pad or left stick to move, Enter or Space / South (A / X) to confirm,
+Esc / East (B / O) to go back, Q E / right stick (or drag with the mouse) to turn the car in the garage.
+On the main menu Left / Right (or the arrows by the track name) choose the track. In the pause menu Esc / Start or
+East (B / O) resumes. SETTINGS (main menu and pause menu): Up / Down choose a row, Left / Right change it (Enter toggles
+vibration), Esc / East goes back; the mouse can click a row's - and +. The mouse works everywhere.
+A gamepad rumbles with the ground, sliding tyres, hits and landings (Settings > Vibration).
+
+Dev panels: **F1** foundation overlay, **F2** vehicle telemetry (hidden by default in track scenes): speed, steering,
+surfaces, slip and drift, the drivetrain and each tyre's sideways grip left after the drive and brakes (`*` = spinning).
+All bindings are defined in `Assets/Scripts/Core/RallyInputActions.cs`.
+
+</details>
+
+<br>
+
+<a name="tech"></a>
+
+<img src="docs/readme/sections/09-tech.svg" width="100%" alt="09 — Under the hood: tech">
+
+<details>
+<summary><b>TECH STACK</b></summary>
+
+Unity 6.3 LTS (`6000.3.25f1`) · C# · Universal Render Pipeline 17.3 · Input System 1.20 · UI Toolkit · built-in 3D physics (raycast vehicle model) · ScriptableObject data · Unity Test Framework (Edit Mode and Play Mode) · Git
+
+</details>
+
+<details>
+<summary><b>PROJECT ARCHITECTURE</b></summary>
+
+```
+Assets/
+  Scripts/        RallyX runtime assembly (Core, Player, Vehicle, AI, Racing, Tracks,
+                  UI, Garage, Audio, VFX, SaveSystem) + Editor/ (RallyX.Editor assembly)
+  Tests/EditMode/ RallyX.Tests.EditMode assembly (can reach editor code)
+  Tests/PlayMode/ RallyX.Tests.PlayMode assembly
+  Prefabs/        Vehicles, Environment, UI, Track
+  Scenes/         MainMenu (opens first), Garage, Tracks (Pine Valley, Red Canyon), Dev (Sandbox test scene)
+  Settings/       URP, vehicle, camera and track configs, surfaces, physics materials
+  UI/             UI Toolkit theme, panel settings and layouts (Race/ = race HUD, results and pause menu; Menus/ = main menu and garage)
+  Materials/ Models/ Textures/ Audio/ VFX/   (Environment/ and Generated/ subfolders are builder output; a theme's art is in its own subfolder)
+```
+
+Namespaces follow the top-level script folder: `RallyX.Core`, `RallyX.Vehicle`, `RallyX.Cameras`, ...
+(plural `Cameras` because a `RallyX.Camera` namespace would hide `UnityEngine.Camera`).
+Editor code uses `RallyX.EditorTools` (not `RallyX.Editor`, which would shadow `UnityEditor.Editor`).
+
+</details>
+
+<details>
+<summary><b>EDITOR MENUS</b></summary>
 
 | Menu | What it does |
 |------|--------------|
@@ -44,7 +336,10 @@ Arcade rally racer for Windows PC, built with Unity 6 (URP) and the Unity Input 
 | RALLY X > Dev > Reset Player Profile | Deletes the player profile (credits, upgrades, chosen car, wins, unlocks, best laps) |
 | RALLY X > Dev > Show Player Profile File | Opens the folder holding `profile.json` |
 
-## Headless commands
+</details>
+
+<details>
+<summary><b>HEADLESS COMMANDS</b></summary>
 
 Unity must not have the project open. `U` = `"C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe"`.
 
@@ -83,30 +378,10 @@ REM Play Mode tests (vehicle physics, Phase 10 handling and Phase 11 drivetrains
 %U% -batchmode -projectPath "C:\Users\Admin\RALLY X" -runTests -testPlatform PlayMode -testResults results.xml -logFile -
 ```
 
-## Controls
+</details>
 
-| Action        | Keyboard          | Gamepad        |
-|---------------|-------------------|----------------|
-| Throttle      | W / Up Arrow      | Right Trigger  |
-| Brake/Reverse | S / Down Arrow    | Left Trigger   |
-| Steer         | A D / Left Right  | Left Stick     |
-| Handbrake     | Space             | South (A / ✕)  |
-| Reset car     | R                 | North (Y / △)  |
-| Restart race  | Backspace         | View / Select  |
-| Pause         | Esc: pause menu (Resume, Restart Race, Settings, Main Menu); on the results screen: back to the main menu | Start |
-
-Menus and garage: arrows or WASD / D-pad or left stick to move, Enter or Space / South (A / X) to confirm,
-Esc / East (B / O) to go back, Q E / right stick (or drag with the mouse) to turn the car in the garage.
-On the main menu Left / Right (or the arrows by the track name) choose the track. In the pause menu Esc / Start or
-East (B / O) resumes. SETTINGS (main menu and pause menu): Up / Down choose a row, Left / Right change it (Enter toggles
-vibration), Esc / East goes back; the mouse can click a row's - and +. The mouse works everywhere.
-A gamepad rumbles with the ground, sliding tyres, hits and landings (Settings > Vibration).
-
-Dev panels: **F1** foundation overlay, **F2** vehicle telemetry (hidden by default in track scenes): speed, steering,
-surfaces, slip and drift, the drivetrain and each tyre's sideways grip left after the drive and brakes (`*` = spinning).
-All bindings are defined in `Assets/Scripts/Core/RallyInputActions.cs`.
-
-## Tuning
+<details>
+<summary><b>TUNING</b></summary>
 
 Everything below is data: edit the assets, not the code.
 
@@ -176,7 +451,10 @@ Race rules (default laps, countdown, wrong-way warning, results delay) are in
 `Assets/Settings/Racing/RaceSettings_Default.asset`; a track can set its own laps (its `TrackInfo`, see Career).
 The HUD's and pause menu's layout and styles are in `Assets/UI/Race/` (`RaceHud.uxml`, `RaceHud.uss`).
 
-## Front end
+</details>
+
+<details>
+<summary><b>FRONT END</b></summary>
 
 Every screen shares the RALLY X look (`Assets/UI/Common.uss`: colour tokens, key caps, tags, captions): near-black
 panels, one yellow accent, white bold italic capitals. The panel shrinks the 1920x1080 layout to fit the screen, so it
@@ -196,7 +474,10 @@ always fits at 16:9 and wider screens get more room at the sides (cards stay anc
   pause menu sums up place, lap and time; the results show podium colours, each driver's best lap and gap to the winner.
 - **Control hints** are key caps that name keyboard keys or gamepad buttons, switching to whichever the player used last.
 
-## Audio
+</details>
+
+<details>
+<summary><b>AUDIO</b></summary>
 
 `GameAudio` (Scripts/Audio) starts with the game and lives across scenes, so nothing is placed in a scene for it. It plays
 the music (menu music in the menu scenes, carrying on from one to the next; race music from GO), the menu sounds (every
@@ -223,7 +504,10 @@ finish, results). It finds the race in whatever scene loads. The music ducks whi
   layers and the revs they were recorded at, gear change, backfire, default tyres, wind, impacts, scrape, landing) and
   the surface assets. The builder never overwrites a slot that is set.
 
-## Tracks
+</details>
+
+<details>
+<summary><b>TRACKS</b></summary>
 
 Tracks are generated rather than built by hand. Each has a definition in `Assets/Settings/Tracks/`
 (`PineValley_Track.asset`, `RedCanyon_Track.asset`): its layout (control points with position, height, width and
@@ -259,7 +543,10 @@ shortcut bypasses, so both routes pass every gate.
   `Assets/Scripts/Editor/Tracks/`), list it in `TrackCatalog`, give it a `TrackInfo` in the career's track roster
   (`ProgressionContentBuilder`), then build it. Every track-based test runs on each track listed in the test fixtures.
 
-## Racing
+</details>
+
+<details>
+<summary><b>RACING</b></summary>
 
 A track scene is raceable when it has a `RaceCircuit` (its `TrackPath`, `TrackSpawnGrid` and `Checkpoint`
 gates in driving order, the first being the start/finish line), a `RaceManager` and cars with a
@@ -282,7 +569,10 @@ car is spawned when the scene loads by `PlayerRaceEntry` (the car chosen in the 
   after another. Only style classes animate, so every label's text is final the moment it appears.
 - Disabling the `RaceManager` releases the cars for free driving.
 
-## AI opponents
+</details>
+
+<details>
+<summary><b>AI OPPONENTS</b></summary>
 
 Track scenes get an `AIOpponents` object that spawns one car per driver profile on the grid behind the player
 (Lind, Petrov, Moreno: fastest first, each with its own paint, pace, lane and shortcut habit). AI cars are raced
@@ -302,7 +592,10 @@ the same physics, checkpoints, laps and positions.
   `Assets/Settings/AI/Drivers/`. Speeds are planned at every race start, so edits apply from the next restart.
   The generated scene keeps its `AIOpponents` difficulty only until the track is rebuilt.
 
-## Garage and cars
+</details>
+
+<details>
+<summary><b>GARAGE AND CARS</b></summary>
 
 The game starts on `Assets/Scenes/MainMenu/MainMenu.unity` (RACE, GARAGE, QUIT, with the player's car on a turntable,
 the credits and the track to race, chosen with Left / Right). The garage (`Assets/Scenes/Garage/Garage.unity`) shows
@@ -333,7 +626,10 @@ change the builder, the layouts (`Assets/UI/Menus/`) or the assets rather than t
   and nimble, lower top speed) and Titan GT (rear-biased all-wheel drive, fastest, heavy; locked until the player wins a
   race).
 
-## Career: credits, upgrades and tracks
+</details>
+
+<details>
+<summary><b>CAREER: CREDITS, UPGRADES AND TRACKS</b></summary>
 
 The rules live in `Assets/Settings/Progression/` (created by RALLY X > Build > Create Missing Progression Content, never
 overwritten, so tune them in the Inspector): `ProgressionSettings` (credits per finishing position, starting credits),
@@ -366,21 +662,42 @@ overwritten, so tune them in the Inspector): `ProgressionSettings` (credits per 
   and Phase 7 profiles are upgraded in place. A locked or missing chosen car falls back to the default. Tests use a
   profile kept in memory.
 
-## Layout
+</details>
 
-```
-Assets/
-  Scripts/        RallyX runtime assembly (Core, Player, Vehicle, AI, Racing, Tracks,
-                  UI, Garage, Audio, VFX, SaveSystem) + Editor/ (RallyX.Editor assembly)
-  Tests/EditMode/ RallyX.Tests.EditMode assembly (can reach editor code)
-  Tests/PlayMode/ RallyX.Tests.PlayMode assembly
-  Prefabs/        Vehicles, Environment, UI, Track
-  Scenes/         MainMenu (opens first), Garage, Tracks (Pine Valley, Red Canyon), Dev (Sandbox test scene)
-  Settings/       URP, vehicle, camera and track configs, surfaces, physics materials
-  UI/             UI Toolkit theme, panel settings and layouts (Race/ = race HUD, results and pause menu; Menus/ = main menu and garage)
-  Materials/ Models/ Textures/ Audio/ VFX/   (Environment/ and Generated/ subfolders are builder output; a theme's art is in its own subfolder)
-```
+<br>
 
-Namespaces follow the top-level script folder: `RallyX.Core`, `RallyX.Vehicle`, `RallyX.Cameras`, ...
-(plural `Cameras` because a `RallyX.Camera` namespace would hide `UnityEngine.Camera`).
-Editor code uses `RallyX.EditorTools` (not `RallyX.Editor`, which would shadow `UnityEditor.Editor`).
+<a name="install"></a>
+
+<img src="docs/readme/sections/10-install.svg" width="100%" alt="10 — Get running: install">
+
+<h3>01&nbsp;&nbsp;Clone the repository<br>
+02&nbsp;&nbsp;Open it with Unity <code>6000.3.25f1</code><br>
+03&nbsp;&nbsp;Open <code>MainMenu.unity</code><br>
+04&nbsp;&nbsp;Press <b>Play</b></h3>
+
+<details>
+<summary><b>DETAILED SETUP</b></summary>
+
+**Requirements**
+
+- Unity **6000.3.25f1** (Unity 6.3 LTS), installed through Unity Hub
+- Git (optionally Git LFS for large art/audio assets)
+
+**Opening the project**
+
+1. Unity Hub > **Add** > **Add project from disk** > select this folder.
+2. Open it with Unity 6000.3.25f1.
+3. Run **RALLY X > Setup > Run Project Setup** once if the console reports setup errors
+   (it is idempotent and safe to re-run).
+
+**Playing and building**
+
+1. Open `Assets/Scenes/MainMenu/MainMenu.unity` (the game starts here) and press **Play**.
+2. To build, use **File > Build Profiles > Windows**. The build list starts with the main menu, then the garage, the Sandbox test scene and the two tracks.
+
+</details>
+
+<br>
+
+<img src="docs/readme/ui/divider.svg" width="100%" alt="">
+<a href="#top"><img src="docs/readme/ui/footer.svg" width="100%" alt="RALLY X. Off-road. Full throttle. Built with Unity 6, C# and URP. Back to top."></a>
